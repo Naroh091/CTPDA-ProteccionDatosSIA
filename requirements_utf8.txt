@@ -1,4 +1,4 @@
-﻿altgraph==0.17.4
+altgraph==0.17.4
 blinker==1.9.0
 certifi==2025.8.3
 cffi==2.0.0
@@ -28,7 +28,7 @@ pystray==0.19.5
 python-dateutil==2.9.0.post0
 pywin32==310
 pywin32-ctypes==0.2.3
-pyzipper==0.3.6
+pyzipper==0.4.0
 requests==2.32.5
 setuptools==80.9.0
 six==1.17.0
