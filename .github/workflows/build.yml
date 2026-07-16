@@ -1,0 +1,67 @@
+name: Build Application
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: supervisionsia-linux
+            executable: supervisionsia
+          - os: windows-latest
+            artifact_name: supervisionsia-windows
+            executable: supervisionsia.exe
+          - os: macos-latest
+            artifact_name: supervisionsia-macos
+            executable: supervisionsia
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install wkhtmltopdf (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wkhtmltopdf
+
+      - name: Install wkhtmltopdf (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew install wkhtmltopdf
+
+      - name: Install wkhtmltopdf (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          choco install wkhtmltopdf
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install pyinstaller psutil
+
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller --onefile --name supervisionsia app.py
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: dist/${{ matrix.executable }}

@@ -1,0 +1,94 @@
+# UTF-8
+#
+# Archivo de informacion de version para ProteccionDatosSIA
+# Generado para PyInstaller
+#
+# Para mas informacion sobre el formato VSVersionInfo:
+# https://learn.microsoft.com/en-us/windows/win32/menurc/versioninfo-resource
+#
+
+VSVersionInfo(
+  ffi=FixedFileInfo(
+    # Versión del archivo (Mayor, Menor, Parche, Build)
+    # Formato: (X, Y, Z, W) representa X.Y.Z.W
+    filevers=(1, 0, 0, 0),
+    
+    # Versión del producto
+    prodvers=(1, 0, 0, 0),
+    
+    # Máscara de flags válidos (0x3F = todos los flags son válidos)
+    mask=0x3f,
+    
+    # Flags del archivo:
+    # 0x0 = Final release
+    # 0x1 = Debug
+    # 0x2 = Prerelease
+    # 0x4 = Patched
+    # 0x8 = Private build
+    # 0x20 = Special build
+    flags=0x0,
+    
+    # Sistema operativo objetivo
+    # 0x40004 = VOS_NT_WINDOWS32 (Windows NT)
+    OS=0x40004,
+    
+    # Tipo de archivo
+    # 0x1 = VFT_APP (Aplicación)
+    fileType=0x1,
+    
+    # Subtipo de archivo (0x0 para aplicaciones)
+    subtype=0x0,
+    
+    # Fecha de creación (no usado en Windows)
+    date=(0, 0)
+  ),
+  
+  kids=[
+    StringFileInfo(
+      [
+        StringTable(
+          # 0C0A = Español (España)
+          # 04B0 = Unicode
+          u'0C0A04B0',
+          [
+            StringStruct(u'CompanyName', 
+              u'Consejo de Transparencia y Protección de Datos de Andalucía'),
+            
+            StringStruct(u'FileDescription', 
+              u'Sistema de Supervisión de Protección de Datos de Inteligencia Artificial'),
+            
+            StringStruct(u'FileVersion', 
+              u'1.0.0.0'),
+            
+            StringStruct(u'InternalName', 
+              u'ProteccionDatosSIA'),
+            
+            StringStruct(u'LegalCopyright', 
+              u'© 2025-2026 Consejo de Transparencia y Protección de Datos de Andalucía. Todos los derechos reservados.'),
+            
+            StringStruct(u'OriginalFilename', 
+              u'ProteccionDatosSIA.exe'),
+            
+            StringStruct(u'ProductName', 
+              u'ProteccionDatosSIA - Evaluación RGPD'),
+            
+            StringStruct(u'ProductVersion', 
+              u'1.0.0.0'),
+            
+            StringStruct(u'Comments', 
+              u'Herramienta para la evaluación del cumplimiento del RGPD en sistemas de IA de las Administraciones Públicas.'),
+            
+            StringStruct(u'LegalTrademarks', 
+              u''),
+          ]
+        )
+      ]
+    ),
+    
+    VarFileInfo([
+      # 0x0C0A = Español (España)
+      # 0x04B0 = Unicode (1200)
+      VarStruct(u'Translation', [0x0C0A, 0x04B0])
+    ])
+  ]
+)

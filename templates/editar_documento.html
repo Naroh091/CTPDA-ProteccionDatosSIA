@@ -1,0 +1,1308 @@
+
+<!--
+    Aplicación para la protección de datos en Sistemas IA
+    Copyright (C) 2025-2026 Consejo de Transparencia y Protección de Datos de Andalucía
+
+    Licenciado bajo EUPL v1.2: https://eupl.eu/1.2/es/
+-->
+
+
+{% extends "base.html" %}
+{% block title %}{{ estructura.descripcion }} - {{ nombre_aplicacion }}{% endblock %}
+{% block content %}
+
+<div id="contenedor-cabecera-documento" class="d-flex justify-content-between align-items-center mb-4">
+  <img id="logo-ctpd" src="{{ url_for('static', filename='img/logo_ctpdandalucia.png') }}" alt="Logo" style="height: 80px;">
+  <h1 class="text-center flex-grow-1" id="cabecera">{{ estructura.descripcion }}</h1>
+  <img id="logo-junta" src="{{ url_for('static', filename='img/logo_junta.png') }}" alt="Logo Junta" style="height: 80px;">
+</div>
+
+<!-- 🆕 Mensaje de monitoreo activo -->
+{% if monitoreo %}
+<div id="alerta-monitoreo-activo" class="alert alert-info" role="alert">
+  <i class="bi bi-info-circle"></i> <strong>Fase de Monitoreo Activa:</strong> El documento está en modo lectura.
+</div>
+{% endif %}
+
+<!-- Barra superior con selector de documentos y estado -->
+<div id="card-barra-superior" class="card mb-3">
+  <div id="body-barra-superior" class="card-body">
+    <div class="row align-items-center">
+      <!-- Selector de documentos -->
+      <div class="col-md-5">
+        <label id="label-selector-documento" class="form-label fw-bold">Informe:</label>
+        <select class="form-select" id="selector-documento" onchange="cambiarDocumento(this.value)"
+                disabled>
+          {% for doc in documentos %}
+          <option value="{{ doc.id_datdocs }}"
+                  {% if doc.id_datdocs == estructura.id_datdocs %}selected{% endif %}>
+            {{ doc.descripcion }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Selector de estado -->
+      <div class="col-md-4">
+        <label id="label-selector-estado" class="form-label fw-bold">Estado:</label>
+        <select class="form-select" id="selector-estado"
+                {% if monitoreo %}disabled{% endif %}>
+          {% for estado in estados_disponibles %}
+          <option value="{{ estado.id }}"
+                  {% if estado.id == id_estado_actual %}selected{% endif %}>
+            {{ estado.descripcion }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Botones de acción -->
+      <div id="contenedor-botones-accion" class="col-md-3 text-end">
+        <!-- Botón Generar Documento HTML (solo si hay plantilla configurada) -->
+        {% if tiene_plantilla %}
+        <button type="button"
+                id="btn-generar-html"
+                class="btn btn-info btn-sm mb-2 w-100"
+                onclick="generarDocumento()"
+                title="{% if tiene_datos_configurados %}Generar documento HTML desde plantilla{% else %}Descargar plantilla HTML base{% endif %}">
+          <i class="bi bi-file-earmark-text me-1"></i> {% if tiene_datos_configurados %}Generar HTML{% else %}Descargar plantilla HTML{% endif %}
+        </button>
+        <!-- Botón Generar Documento PDF (solo si hay plantilla configurada) -->
+        <button type="button"
+                id="btn-generar-pdf"
+                class="btn btn-danger btn-sm mb-2 w-100"
+                onclick="generarDocumentoPDF()"
+                title="{% if tiene_datos_configurados %}Generar documento PDF desde plantilla{% else %}Descargar plantilla PDF base{% endif %}">
+          <i class="bi bi-file-earmark-pdf me-1"></i> {% if tiene_datos_configurados %}Generar PDF{% else %}Descargar plantilla PDF{% endif %}
+        </button>
+        <!-- Botón Generar Anexos CSV (solo si V_SITNOAPLICA no es nulo) -->
+        {% if v_sitnoaplica %}
+        <button type="button"
+                id="btn-generar-anexos-csv"
+                class="btn btn-success btn-sm mb-2 w-100"
+                onclick="generarAnexosCSV(event)"
+                title="Generar anexos CSV (Riesgos, Controles y Requisitos)">
+          <i class="bi bi-file-earmark-spreadsheet me-1"></i> Generar Anexos CSV
+        </button>
+        {% endif %}
+        {% endif %}
+        <button type="button"
+                id="btn-cambiar-estado"
+                class="btn btn-primary btn-sm mb-2 w-100"
+                onclick="cambiarEstadoDocumento()"
+                {% if monitoreo %}disabled{% endif %}
+                title="Guardar cambio de estado">
+          <i class="bi bi-save me-1"></i> Cambiar Estado
+        </button>
+        {% if tiene_copia_automatica %}
+        <button type="button"
+                id="btn-copiar-automatico"
+                class="btn btn-success btn-sm w-100"
+                onclick="mostrarModalConfirmacionCopia()"
+                {% if documento_finalizado or monitoreo %}disabled{% endif %}
+                title="Copiar datos desde Elementos de Descripción">
+          <i class="bi bi-arrow-repeat me-1"></i> Copiar Automático
+        </button>
+        {% endif %}
+      </div>
+
+    </div>
+
+    <!-- 🆕 Mensaje de documento finalizado -->
+    {% if documento_finalizado and not monitoreo %}
+    <div id="alerta-documento-finalizado" class="alert alert-info mt-3 mb-0">
+      <i class="bi bi-lock-fill me-2"></i>
+      <strong>Documento finalizado:</strong> Este documento está marcado como finalizado y no puede ser modificado.
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Instrucciones generales -->
+{% if estructura.instrucciones %}
+<div id="card-instrucciones" class="card mb-3 border-info">
+  <div id="header-instrucciones"
+       class="card-header"
+       style="cursor: pointer; background-color: #d1ecf1; color: #0c5460; border-color: #bee5eb;"
+       data-bs-toggle="collapse"
+       data-bs-target="#collapseInstrucciones"
+       aria-expanded="true"
+       aria-controls="collapseInstrucciones">
+    <i class="bi bi-chevron-down me-2" id="iconInstrucciones" style="font-size: 1.2rem; font-weight: bold;"></i>
+    <i class="bi bi-info-circle me-2"></i>
+    <strong>Instrucciones</strong>
+  </div>
+  <div class="collapse show" id="collapseInstrucciones">
+    <div id="body-instrucciones" class="card-body" style="background-color: #d1ecf1; color: #0c5460;">
+      {{ estructura.instrucciones | safe }}
+    </div>
+  </div>
+</div>
+
+<script>
+// Cambiar icono del collapse de instrucciones
+document.getElementById('collapseInstrucciones').addEventListener('show.bs.collapse', function () {
+  document.getElementById('iconInstrucciones').classList.remove('bi-chevron-right');
+  document.getElementById('iconInstrucciones').classList.add('bi-chevron-down');
+});
+document.getElementById('collapseInstrucciones').addEventListener('hide.bs.collapse', function () {
+  document.getElementById('iconInstrucciones').classList.remove('bi-chevron-down');
+  document.getElementById('iconInstrucciones').classList.add('bi-chevron-right');
+});
+</script>
+{% endif %}
+
+{% if tiene_campos %}
+<!-- Botón para desplegar/plegar todos los elementos -->
+<div id="barra-controles-expansion" class="d-flex justify-content-between align-items-center mb-3">
+  <button type="button"
+          class="btn-expand-all"
+          onclick="toggleExpandAll()"
+          id="btnExpandAll">
+    <i class="bi bi-arrows-expand"></i>
+    <span id="btnExpandAllText">Desplegar Todo</span>
+  </button>
+
+  {% if not monitoreo %}
+  <div id="indicador-guardado-auto" style="color: #28a745; font-size: 16px;">
+    💾 <strong>Guardado automático activado</strong>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- Estructura del documento -->
+<div id="documento-container" class="documento-container">
+  {% macro renderizar_campo(campo, nivel=0, padre_es_checkbox=False) %}
+    <div class="campo-documento"
+        id="campo-{{ campo.id_cfgdatdocs }}"
+        data-nivel="{{ nivel }}"
+        data-id-cfgdatdocs="{{ campo.id_cfgdatdocs }}"
+        {% if padre_es_checkbox and campo.l_check != 1 %}data-dependiente-de="{{ campo.id_superior }}" style="margin-left: {{ nivel * 20 }}px; display: none;"{% else %}style="margin-left: {{ nivel * 20 }}px;"{% endif %}
+        {% if campo.hijos %}data-tiene-hijos="true"{% endif %}>
+
+      {% if campo.texto_antes %}
+        <div id="texto-antes-{{ campo.id_cfgdatdocs }}" class="texto-explicativo" style="margin-bottom: 5px;">
+          {{ campo.texto_antes | safe }}
+        </div>
+      {% endif %}
+
+      <!-- Título del campo (solo si NO es checkbox) -->
+      {% if campo.l_check != 1 %}
+      <div id="titulo-campo-{{ campo.id_cfgdatdocs }}" class="campo-titulo" style="margin-top: {{ 10 if nivel == 0 else 5 }}px; margin-bottom: 5px;">
+        <!-- Botón de colapso si tiene hijos Y el padre NO es checkbox -->
+        {% if campo.hijos and not padre_es_checkbox %}
+          <button type="button"
+                  id="btn-collapse-{{ campo.id_cfgdatdocs }}"
+                  class="btn-collapse-toggle collapsed"
+                  onclick="toggleCollapse(this)"
+                  aria-expanded="false"
+                  title="Expandir/Contraer">
+            <i class="bi bi-chevron-down"></i>
+          </button>
+        {% endif %}
+
+        <strong id="descripcion-campo-{{ campo.id_cfgdatdocs }}">{{ campo.descripcion }}</strong>
+        {% if campo.obligatorio %}
+          <span class="text-danger">*</span>
+        {% endif %}
+
+        <!-- 🆕 Botones de copia individual -->
+        {% if campo.botones_copia %}
+          {% for boton in campo.botones_copia %}
+            <button type="button"
+                    id="btn-copia-{{ campo.id_datelemdocs }}-{{ boton.id_subelem }}"
+                    class="btn btn-success btn-sm ms-2 btn-copia-individual"
+                    onclick="copiarDatoIndividual({{ campo.id_datelemdocs }}, {{ boton.id_subelem }})"
+                    title="Copiar desde {{ boton.codigo }}"
+                    {% if documento_finalizado or monitoreo %}disabled{% endif %}>
+              <i class="bi bi-arrow-down-circle"></i> {{ boton.codigo }}
+            </button>
+          {% endfor %}
+        {% endif %}
+
+        {% if campo.instrucciones %}
+          <i id="icono-instrucciones-{{ campo.id_cfgdatdocs }}"
+            class="bi bi-info-circle text-primary ms-2"
+            data-bs-toggle="modal"
+            data-bs-target="#modalInstruccion{{ campo.id_cfgdatdocs }}"
+            style="cursor: pointer;"
+            title="Ver instrucciones"></i>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- Campo de captura de datos -->
+      {% if campo.l_check == 1 %}
+        <!-- 🆕 CHECKBOX: Si L_CHECK = 1, mostrar checkbox en lugar de textarea -->
+        <div id="contenedor-check-{{ campo.id_datelemdocs }}" class="form-check mt-2">
+          <input class="form-check-input campo-checkbox"
+                 type="checkbox"
+                 data-id-datelemdocs="{{ campo.id_datelemdocs }}"
+                 data-id-cfgdatdocs="{{ campo.id_cfgdatdocs }}"
+                 {% if campo.info_padre %}
+                 data-id-padre="{{ campo.info_padre.id_cfgdatdocs }}"
+                 data-desc-padre="{{ campo.info_padre.descripcion }}"
+                 data-max-checks="{{ campo.info_padre.n_valores_check or 0 }}"
+                 {% else %}
+                 data-id-padre=""
+                 data-max-checks="0"
+                 {% endif %}
+                 id="check_{{ campo.id_datelemdocs }}"
+                 {% if campo.valor == 'X' %}checked{% endif %}
+                 {% if documento_finalizado or monitoreo or not campo.editable %}disabled{% endif %}
+                 onchange="handleCheckboxChange(this)">
+          <label id="label-check-{{ campo.id_datelemdocs }}" class="form-check-label" for="check_{{ campo.id_datelemdocs }}">
+            {{ campo.descripcion }}
+          </label>
+        </div>
+      {% else %}
+        <!-- Campo de texto editable (comportamiento original) -->
+        {% if campo.editable %}
+          <textarea id="textarea-{{ campo.id_datelemdocs }}"
+                    class="form-control campo-editable mt-1"
+                    rows="3"
+                    data-id-datelemdocs="{{ campo.id_datelemdocs }}"
+                    placeholder="Escriba aquí..."
+                    {% if documento_finalizado or monitoreo %}disabled{% endif %}>{{ campo.valor }}</textarea>
+        {% else %}
+          {% if campo.valor %}
+            <div id="campo-no-editable-{{ campo.id_cfgdatdocs }}" class="campo-no-editable mt-1 p-2 bg-light border rounded">
+              {{ campo.valor }}
+            </div>
+          {% endif %}
+        {% endif %}
+      {% endif %}
+
+      <!-- texto_despues: FUERA del collapse si NO tiene hijos -->
+      {% if campo.texto_despues and not campo.hijos %}
+        <div id="texto-despues-{{ campo.id_cfgdatdocs }}" class="texto-explicativo mt-1" style="font-size: 0.9rem;">
+          {{ campo.texto_despues | safe }}
+        </div>
+      {% endif %}
+
+      <!-- Modal de instrucciones -->
+      {% if campo.instrucciones %}
+      <div class="modal fade" id="modalInstruccion{{ campo.id_cfgdatdocs }}" tabindex="-1">
+        <div class="modal-dialog modal-lg" id="dialog-instruccion-{{ campo.id_cfgdatdocs }}">
+          <div class="modal-content" id="content-instruccion-{{ campo.id_cfgdatdocs }}">
+            <div class="modal-header bg-primary text-white" id="header-instruccion-{{ campo.id_cfgdatdocs }}">
+              <h5 class="modal-title" id="titulo-modal-instruccion-{{ campo.id_cfgdatdocs }}">
+                <i class="bi bi-info-circle me-2"></i>Instrucciones
+              </h5>
+              <button type="button" id="btn-cerrar-instruccion-{{ campo.id_cfgdatdocs }}" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="body-instruccion-{{ campo.id_cfgdatdocs }}">
+              {{ campo.instrucciones | safe }}
+            </div>
+            <div class="modal-footer" id="footer-instruccion-{{ campo.id_cfgdatdocs }}">
+              <button type="button" id="btn-aceptar-instruccion-{{ campo.id_cfgdatdocs }}" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Renderizar hijos recursivamente dentro de un contenedor colapsable -->
+      {% if campo.hijos %}
+        <div id="hijos-container-{{ campo.id_cfgdatdocs }}" class="campo-hijos-container {% if not padre_es_checkbox %}collapsed{% endif %}" data-parent-id="{{ campo.id_datelemdocs }}">
+          <!-- texto_despues: DENTRO del collapse si SÍ tiene hijos -->
+          {% if campo.texto_despues %}
+            <div id="texto-despues-interno-{{ campo.id_cfgdatdocs }}" class="texto-explicativo mt-1 mb-2" style="font-size: 0.9rem; margin-left: {{ (nivel + 1) * 20 }}px;">
+              {{ campo.texto_despues | safe }}
+            </div>
+          {% endif %}
+
+          <!-- 🆕 Contenedor especial para checks inline (DENTRO del contenedor de hijos) -->
+          {% if campo.checks_inline %}
+          <div id="checks-inline-{{ campo.id_cfgdatdocs }}" class="checks-inline-container">
+          {% endif %}
+
+          {% for hijo in campo.hijos %}
+            {{ renderizar_campo(hijo, nivel + 1, campo.l_check == 1) }}
+          {% endfor %}
+
+          <!-- 🆕 Cerrar contenedor de checks inline -->
+          {% if campo.checks_inline %}
+          </div>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+  {% endmacro %}
+
+  <!-- Renderizar todos los campos de nivel 0 -->
+  {% for campo in estructura.campos %}
+    {{ renderizar_campo(campo, 0) }}
+  {% endfor %}
+</div>
+
+<!-- Botón de navegación -->
+<div id="contenedor-navegacion-documento" class="d-grid gap-3 d-md-flex justify-content-start mt-4">
+  <a id="btn-volver-listado" href="{{ url_for('formulario_documentos') }}" class="btn btn-outline-secondary btn-lg rounded-pill">
+    <i class="bi bi-arrow-left me-2"></i>Volver al listado de informes
+  </a>
+</div>
+
+<!-- 🆕 NUEVO: Modal de Confirmación para Copia Automática -->
+<div class="modal fade" id="modalConfirmacionCopiaAutomatica" tabindex="-1" aria-labelledby="modalConfirmacionCopiaAutomaticaLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-dialog-centered" id="dialog-confirmacion-copia">
+    <div class="modal-content border-0 shadow" id="content-confirmacion-copia">
+      <div class="modal-header bg-warning text-dark" id="header-confirmacion-copia">
+        <h5 class="modal-title" id="modalConfirmacionCopiaAutomaticaLabel">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>Confirmación
+        </h5>
+        <button type="button" id="btn-cerrar-confirmacion-copia" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body" id="body-confirmacion-copia">
+        <div id="contenidoMensajeConfirmacionCopia" class="mensaje-confirmacion-copia">
+          <!-- El contenido HTML formateado se insertará aquí desde la base de datos -->
+        </div>
+      </div>
+      <div class="modal-footer justify-content-center" id="footer-confirmacion-copia">
+        <button type="button" id="btn-cancelar-copia" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle me-1"></i>Cancelar
+        </button>
+        <button type="button" class="btn btn-primary" id="btnConfirmarCopiaAutomatica">
+          <i class="bi bi-check-circle me-1"></i>Confirmar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal único para mensajes -->
+<div class="modal fade" id="alertModal" tabindex="-1" aria-labelledby="alertModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" id="dialog-alert">
+    <div class="modal-content border-warning" id="content-alert">
+      <div class="modal-header bg-warning text-dark" id="header-alert">
+        <h5 class="modal-title text-dark" id="alertModalLabel">Atención</h5>
+        <button type="button" id="btn-cerrar-alert" class="btn-close " data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body" id="alertModalBody">
+        <!-- El mensaje se insertará aquí dinámicamente -->
+      </div>
+      <div class="modal-footer" id="footer-alert">
+        <button type="button" id="btn-aceptar-alert" class="btn btn-warning" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 🆕 FUNCIÓN PARA MOSTRAR MENSAJES EN MODAL
+  function mostrarModalMensaje(mensaje) {
+      const modalBody = document.getElementById('alertModalBody');
+      modalBody.textContent = mensaje;
+
+      const alertModal = new bootstrap.Modal(document.getElementById('alertModal'));
+      alertModal.show();
+    }
+
+// 🆕 FUNCIÓN PARA COLAPSAR/EXPANDIR ELEMENTOS
+function toggleCollapse(button) {
+  // Buscar el contenedor de hijos
+  const campoDocumento = button.closest('.campo-documento');
+  const hijosContainer = campoDocumento.querySelector('.campo-hijos-container');
+
+  if (!hijosContainer) return;
+
+  // Toggle de la clase collapsed
+  const isCollapsed = hijosContainer.classList.contains('collapsed');
+
+  if (isCollapsed) {
+    // Expandir
+    button.classList.remove('collapsed');
+    // Primero establecer max-height para la animación
+    hijosContainer.style.maxHeight = hijosContainer.scrollHeight + 'px';
+    button.setAttribute('aria-expanded', 'true');
+
+    // Después de la animación, quitar el max-height para permitir crecimiento dinámico
+    setTimeout(() => {
+      hijosContainer.classList.remove('collapsed');
+      hijosContainer.style.maxHeight = 'none';
+    }, 300);
+  } else {
+    // Colapsar: primero establecer max-height actual, luego animar a 0
+    hijosContainer.style.maxHeight = hijosContainer.scrollHeight + 'px';
+    // Forzar reflow
+    hijosContainer.offsetHeight;
+
+    button.classList.add('collapsed');
+    hijosContainer.classList.add('collapsed');
+    hijosContainer.style.maxHeight = '0px';
+    button.setAttribute('aria-expanded', 'false');
+  }
+}
+
+// 🆕 FUNCIÓN PARA DESPLEGAR/PLEGAR TODOS LOS ELEMENTOS
+function toggleExpandAll() {
+  const btnExpandAll = document.getElementById('btnExpandAll');
+  const btnText = document.getElementById('btnExpandAllText');
+  const btnIcon = btnExpandAll.querySelector('i');
+
+  const allContainers = document.querySelectorAll('.campo-hijos-container');
+  const allButtons = document.querySelectorAll('.btn-collapse-toggle');
+
+  // Verificar si todos están colapsados
+  const todosColapsados = Array.from(allContainers).every(container =>
+    container.classList.contains('collapsed')
+  );
+
+  if (todosColapsados) {
+    // Expandir todos
+    allContainers.forEach(container => {
+      container.style.maxHeight = container.scrollHeight + 'px';
+    });
+
+    // Después de la animación, quitar max-height
+    setTimeout(() => {
+      allContainers.forEach(container => {
+        container.classList.remove('collapsed');
+        container.style.maxHeight = 'none';
+      });
+    }, 300);
+
+    allButtons.forEach(button => {
+      button.classList.remove('collapsed');
+      button.setAttribute('aria-expanded', 'true');
+    });
+
+    btnText.textContent = 'Plegar Todo';
+    btnIcon.className = 'bi bi-arrows-collapse';
+  } else {
+    // Colapsar todos
+    allContainers.forEach(container => {
+      container.style.maxHeight = container.scrollHeight + 'px';
+      // Forzar reflow
+      container.offsetHeight;
+      container.classList.add('collapsed');
+      container.style.maxHeight = '0px';
+    });
+
+    allButtons.forEach(button => {
+      button.classList.add('collapsed');
+      button.setAttribute('aria-expanded', 'false');
+    });
+
+    btnText.textContent = 'Desplegar Todo';
+    btnIcon.className = 'bi bi-arrows-expand';
+  }
+}
+
+// 🆕 PASAR LA VARIABLE MONITOREO DESDE JINJA A JAVASCRIPT
+const monitoreoActivo = {{ monitoreo | lower }};
+
+// Autoguardado de campos
+let timeouts = {};
+
+document.addEventListener('DOMContentLoaded', function() {
+  // 🆕 FORZAR DISABLED SI ESTÁ EN MONITOREO
+  if (monitoreoActivo) {
+    forzarDisabledMonitoreo();
+  }
+
+  // 🆕 Inicializar visibilidad de campos dependientes de checkboxes
+  initializeDependentFields();
+
+  // Configurar autoguardado en todos los campos editables (solo si NO está en monitoreo)
+  if (!monitoreoActivo) {
+    // Autoguardado para textareas
+    document.querySelectorAll('.campo-editable').forEach(function(textarea) {
+      textarea.addEventListener('input', function() {
+        const idDatelemdocs = this.dataset.idDatelemdocs;
+        const valor = this.value;
+
+        // Limpiar timeout anterior
+        if (timeouts[idDatelemdocs]) {
+          clearTimeout(timeouts[idDatelemdocs]);
+        }
+
+        // Nuevo timeout de 1 segundo
+        timeouts[idDatelemdocs] = setTimeout(function() {
+          guardarCampo(idDatelemdocs, valor);
+        }, 1000);
+      });
+    });
+
+    // 🆕 NOTA: El manejo de checkboxes se realiza mediante onchange="handleCheckboxChange(this)"
+    // en el HTML, que incluye validación de N_VALORES_CHECK y gestión de campos dependientes
+  }
+});
+
+// 🆕 FUNCIÓN PARA FORZAR DISABLED EN MODO MONITOREO
+function forzarDisabledMonitoreo() {
+
+  // Deshabilitar todos los textareas editables
+  document.querySelectorAll('textarea.campo-editable').forEach(function(textarea) {
+    textarea.disabled = true;
+    textarea.readOnly = true;
+  });
+
+  // 🆕 Deshabilitar todos los checkboxes
+  document.querySelectorAll('input.campo-checkbox').forEach(function(checkbox) {
+    checkbox.disabled = true;
+  });
+
+  // Deshabilitar botones de copia individual
+  document.querySelectorAll('button.btn-copia-individual').forEach(function(button) {
+    button.disabled = true;
+    button.classList.add('disabled');
+    button.style.opacity = '0.6';
+    button.style.cursor = 'not-allowed';
+    button.title = 'Fase de monitoreo - Edición bloqueada';
+  });
+
+  // Deshabilitar selectores
+  const selectorDocumento = document.getElementById('selector-documento');
+  const selectorEstado = document.getElementById('selector-estado');
+
+  if (selectorDocumento) {
+    selectorDocumento.disabled = true;
+  }
+
+  if (selectorEstado) {
+    selectorEstado.disabled = true;
+  }
+
+}
+
+// ============================================================================
+// 🆕 GESTIÓN DE CAMPOS DEPENDIENTES DE CHECKBOXES
+// ============================================================================
+
+/**
+ * Inicializa el estado de visibilidad de los campos dependientes
+ * según el estado actual de los checkboxes padre
+ */
+function initializeDependentFields() {
+
+  // Obtener todos los checkboxes
+  const checkboxes = document.querySelectorAll('.campo-checkbox');
+
+  checkboxes.forEach(checkbox => {
+    const idCfgdatdocs = checkbox.getAttribute('data-id-cfgdatdocs');
+    const isChecked = checkbox.checked;
+
+    // Buscar campos dependientes de este checkbox
+    const dependientes = document.querySelectorAll(`[data-dependiente-de="${idCfgdatdocs}"]`);
+
+    if (dependientes.length > 0) {
+
+      dependientes.forEach(campo => {
+        if (isChecked) {
+          campo.style.display = '';
+        } else {
+          campo.style.display = 'none';
+        }
+      });
+    }
+  });
+
+}
+
+/**
+ * Maneja el cambio de estado de un checkbox
+ * Realiza validación, muestra/oculta campos dependientes y borra datos si se desmarca
+ */
+function handleCheckboxChange(checkbox) {
+  const idCfgdatdocs = checkbox.getAttribute('data-id-cfgdatdocs');
+  const idDatelemdocs = checkbox.getAttribute('data-id-datelemdocs');
+  const isChecking = checkbox.checked;
+
+
+  // 1️⃣ VALIDACIÓN: Si está MARCANDO, verificar límite de N_VALORES_CHECK
+  if (isChecking) {
+    const idPadre = checkbox.getAttribute('data-id-padre');
+    const maxChecks = parseInt(checkbox.getAttribute('data-max-checks') || '0');
+
+    // Solo validar si hay un padre Y tiene límite configurado (maxChecks > 0)
+    if (idPadre && maxChecks > 0) {
+      // Contar cuántos checkboxes hermanos ya están marcados
+      const checkboxesHermanos = document.querySelectorAll(
+        `.campo-checkbox[data-id-padre="${idPadre}"]`
+      );
+
+      let contadorMarcados = 0;
+      checkboxesHermanos.forEach(function(cb) {
+        if (cb.checked && cb !== checkbox) {
+          contadorMarcados++;
+        }
+      });
+
+
+      // Si ya se alcanzó el máximo, NO permitir marcar
+      if (contadorMarcados >= maxChecks) {
+        // Desmarcar inmediatamente
+        checkbox.checked = false;
+
+        // Mostrar mensaje de error
+        const descPadre = checkbox.getAttribute('data-desc-padre') || 'este elemento';
+        const textoOpcion = maxChecks === 1 ? 'opción' : 'opciones';
+        const mensaje = `⚠️ Solo es posible marcar ${maxChecks} ${textoOpcion} para el elemento "${descPadre}"`;
+
+        mostrarModalMensaje(mensaje);
+
+        // ⚠️ IMPORTANTE: NO mostrar campos dependientes si la validación falla
+        return;
+      } else {
+      }
+    }
+  }
+
+  // 2️⃣ MOSTRAR/OCULTAR CAMPOS DEPENDIENTES
+  const camposDependientes = document.querySelectorAll(`[data-dependiente-de="${idCfgdatdocs}"]`);
+
+  if (camposDependientes.length > 0) {
+
+    camposDependientes.forEach(campo => {
+      if (isChecking) {
+        // Mostrar campo dependiente
+        campo.style.display = '';
+      } else {
+        // Ocultar campo dependiente
+        campo.style.display = 'none';
+
+        // 3️⃣ BORRAR DATOS DE CAMPOS DEPENDIENTES AL DESMARCAR
+        // Buscar todos los textareas dentro del campo dependiente
+        const textareas = campo.querySelectorAll('textarea.campo-editable');
+        textareas.forEach(textarea => {
+          const idDatelemocsHijo = textarea.getAttribute('data-id-datelemdocs');
+          if (idDatelemocsHijo) {
+
+            // Limpiar el textarea visualmente
+            textarea.value = '';
+
+            // Guardar el valor vacío en la base de datos
+            if (!monitoreoActivo) {
+              guardarCampo(idDatelemocsHijo, '');
+            }
+          }
+        });
+
+        // También borrar checkboxes dependientes (si los hay)
+        const checkboxesHijos = campo.querySelectorAll('input.campo-checkbox');
+        checkboxesHijos.forEach(checkboxHijo => {
+          const idDatelemocsHijo = checkboxHijo.getAttribute('data-id-datelemdocs');
+          if (idDatelemocsHijo && checkboxHijo.checked) {
+
+            // Desmarcar el checkbox
+            checkboxHijo.checked = false;
+
+            // Guardar el valor vacío en la base de datos
+            if (!monitoreoActivo) {
+              guardarCampo(idDatelemocsHijo, '');
+            }
+          }
+        });
+      }
+    });
+  }
+
+  // 4️⃣ GUARDAR ESTADO DEL CHECKBOX ACTUAL
+  if (!monitoreoActivo) {
+    const valor = checkbox.checked ? 'X' : '';
+    guardarCampo(idDatelemdocs, valor);
+  }
+}
+
+
+function guardarCampo(idDatelemdocs, valor) {
+  // No guardar si está en monitoreo
+  if (monitoreoActivo) {
+    return;
+  }
+
+  fetch('/api/guardar-campo-documento', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      id_datelemdocs: idDatelemdocs,
+      valor: valor
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+    } else {
+    }
+  })
+  .catch(error => {
+  });
+}
+
+function cambiarDocumento(idDatdocs) {
+  // Bloquear si está en monitoreo
+  if (monitoreoActivo) {
+    alert('⚠️ No se puede cambiar de documento en fase de monitoreo');
+    return;
+  }
+  window.location.href = `/formulario/documentos/${idDatdocs}`;
+}
+
+// 🆕 NUEVA FUNCIÓN: Mostrar modal de confirmación antes de copiar
+function mostrarModalConfirmacionCopia() {
+  // Bloquear si está en monitoreo
+  if (monitoreoActivo) {
+    alert('⚠️ Esta acción no está disponible en fase de monitoreo');
+    return;
+  }
+
+  // Obtener el mensaje de confirmación desde la base de datos
+  fetch('/api/obtener-mensaje-copia-eipd', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Insertar el mensaje HTML formateado en el modal de confirmación
+      document.getElementById('contenidoMensajeConfirmacionCopia').innerHTML = data.mensaje;
+
+      // Mostrar el modal de confirmación
+      const modalConfirmacion = new bootstrap.Modal(document.getElementById('modalConfirmacionCopiaAutomatica'));
+      modalConfirmacion.show();
+    } else {
+      // Si no se puede obtener el mensaje, usar el método tradicional
+      copiarDatosAutomaticos();
+    }
+  })
+  .catch(error => {
+    // En caso de error, usar el método tradicional
+    copiarDatosAutomaticos();
+  });
+}
+
+// 🆕 MANEJADOR DEL BOTÓN DE CONFIRMACIÓN DEL MODAL
+document.addEventListener('DOMContentLoaded', function() {
+  const btnConfirmar = document.getElementById('btnConfirmarCopiaAutomatica');
+  if (btnConfirmar) {
+    btnConfirmar.addEventListener('click', function() {
+      // Cerrar el modal
+      const modalConfirmacion = bootstrap.Modal.getInstance(document.getElementById('modalConfirmacionCopiaAutomatica'));
+      if (modalConfirmacion) {
+        modalConfirmacion.hide();
+      }
+
+      // Ejecutar la copia automática
+      copiarDatosAutomaticos();
+    });
+  }
+});
+
+function copiarDatosAutomaticos() {
+  // Bloquear si está en monitoreo
+  if (monitoreoActivo) {
+    alert('⚠️ Esta acción no está disponible en fase de monitoreo');
+    return;
+  }
+
+  const idDatdocs = {{ estructura.id_datdocs }};
+
+  // Deshabilitar botón temporalmente
+  const btnCopiar = document.querySelector('button[onclick="mostrarModalConfirmacionCopia()"]');
+  if (btnCopiar) {
+    const textoOriginal = btnCopiar.innerHTML;
+    btnCopiar.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Copiando...';
+    btnCopiar.disabled = true;
+  }
+
+  fetch(`/api/copiar-datos-automaticos/${idDatdocs}`, {
+    method: 'POST'
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Mostrar mensaje de éxito con temporizador
+      const mensaje = document.createElement('div');
+      mensaje.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+      mensaje.style.zIndex = '9999';
+      mensaje.innerHTML = `
+        <i class="bi bi-check-circle me-2"></i>${data.mensaje}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+      document.body.appendChild(mensaje);
+
+      // Recargar después de 1.5 segundos para dar tiempo a que se muestre el mensaje
+      setTimeout(() => {
+        // Usar navegación en lugar de reload() para evitar problemas con PyInstaller
+        const url = new URL(window.location.href);
+        url.searchParams.set('_t', Date.now());  // Parámetro anti-caché
+        window.location.href = url.toString();
+      }, 1500);
+    } else {
+      alert(`❌ Error: ${data.mensaje}`);
+      if (btnCopiar) {
+        btnCopiar.innerHTML = textoOriginal;
+        btnCopiar.disabled = false;
+      }
+    }
+  })
+  .catch(error => {
+    alert('Error al copiar datos automáticos');
+    if (btnCopiar) {
+      btnCopiar.innerHTML = textoOriginal;
+      btnCopiar.disabled = false;
+    }
+  });
+}
+
+function copiarDatoIndividual(idDatelemdocs, idSubelem) {
+  // Bloquear si está en monitoreo
+  if (monitoreoActivo) {
+    alert('⚠️ Esta acción no está disponible en fase de monitoreo');
+    return;
+  }
+
+  if (!idDatelemdocs || !idSubelem) {
+    alert('❌ Error: ID de campo o subelemento no válido');
+    return;
+  }
+
+  // Obtener el textarea de destino
+  const textarea = document.querySelector(`textarea[data-id-datelemdocs="${idDatelemdocs}"]`);
+  if (!textarea) {
+    alert('❌ Error: No se encontró el campo de destino');
+    return;
+  }
+
+  const contenidoActual = textarea.value.trim();
+
+  // Si ya hay contenido, mostrar opciones
+  if (contenidoActual) {
+    mostrarModalOpcionesCopia(idDatelemdocs, idSubelem, contenidoActual);
+  } else {
+    // Si está vacío, copiar directamente
+    ejecutarCopiaIndividual(idDatelemdocs, idSubelem, 'reemplazar');
+  }
+}
+
+function mostrarModalOpcionesCopia(idDatelemdocs, idSubelem, contenidoActual) {
+  // Crear modal dinámicamente
+  const modalHtml = `
+    <div class="modal fade" id="modalOpcionesCopia" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog" id="dialog-opciones-copia">
+        <div class="modal-content" id="content-opciones-copia">
+          <div class="modal-header bg-warning text-dark" id="header-opciones-copia">
+            <h5 class="modal-title" id="titulo-modal-opciones-copia">
+              <i class="bi bi-exclamation-triangle me-2"></i>Ya hay contenido en el destino
+            </h5>
+            <button type="button" id="btn-cerrar-opciones-copia" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+          </div>
+          <div class="modal-body" id="body-opciones-copia">
+            <p id="pregunta-opciones-copia" class="mb-3"><strong>El campo ya tiene contenido. ¿Qué desea hacer?</strong></p>
+            <div id="alerta-contenido-actual" class="alert alert-info">
+              <small><strong>Contenido actual:</strong></small><br>
+              <small class="text-muted">${contenidoActual.substring(0, 100)}${contenidoActual.length > 100 ? '...' : ''}</small>
+            </div>
+          </div>
+          <div class="modal-footer d-flex justify-content-between" id="footer-opciones-copia">
+            <button type="button" id="btn-cancelar-opciones-copia" class="btn btn-secondary" data-bs-dismiss="modal">
+              <i class="bi bi-x-circle me-1"></i>Cancelar
+            </button>
+            <div id="grupo-botones-opciones-copia">
+              <button type="button" id="btn-reemplazar-copia" class="btn btn-danger me-1" onclick="ejecutarCopiaConOpcion(${idDatelemdocs}, ${idSubelem}, 'reemplazar')">
+                <i class="bi bi-arrow-repeat me-1"></i>Reemplazar
+              </button>
+              <button type="button" id="btn-copiar-antes" class="btn btn-primary me-1" onclick="ejecutarCopiaConOpcion(${idDatelemdocs}, ${idSubelem}, 'antes')">
+                <i class="bi bi-arrow-up-circle me-1"></i>Copiar Antes
+              </button>
+              <button type="button" id="btn-copiar-despues" class="btn btn-success" onclick="ejecutarCopiaConOpcion(${idDatelemdocs}, ${idSubelem}, 'despues')">
+                <i class="bi bi-arrow-down-circle me-1"></i>Copiar Después
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Remover modal anterior si existe
+  const modalExistente = document.getElementById('modalOpcionesCopia');
+  if (modalExistente) {
+    modalExistente.remove();
+  }
+
+  // Agregar modal al body
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+  // Mostrar modal
+  const modal = new bootstrap.Modal(document.getElementById('modalOpcionesCopia'));
+  modal.show();
+
+  // Limpiar modal al cerrarse
+  document.getElementById('modalOpcionesCopia').addEventListener('hidden.bs.modal', function() {
+    this.remove();
+  });
+}
+
+function ejecutarCopiaConOpcion(idDatelemdocs, idSubelem, opcion) {
+  // Cerrar el modal
+  const modal = bootstrap.Modal.getInstance(document.getElementById('modalOpcionesCopia'));
+  if (modal) {
+    modal.hide();
+  }
+
+  // Ejecutar la copia con la opción seleccionada
+  ejecutarCopiaIndividual(idDatelemdocs, idSubelem, opcion);
+}
+
+function ejecutarCopiaIndividual(idDatelemdocs, idSubelem, modo) {
+  fetch(`/api/copiar-dato-individual/${idDatelemdocs}/${idSubelem}`, {
+    method: 'POST'
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      const textarea = document.querySelector(`textarea[data-id-datelemdocs="${idDatelemdocs}"]`);
+      if (textarea) {
+        const contenidoActual = textarea.value;
+        const nuevoContenido = data.valor_copiado;
+
+        // Aplicar el modo de copia seleccionado
+        switch(modo) {
+          case 'reemplazar':
+            textarea.value = nuevoContenido;
+            break;
+          case 'antes':
+            textarea.value = nuevoContenido + '\n\n' + contenidoActual;
+            break;
+          case 'despues':
+            textarea.value = contenidoActual + '\n\n' + nuevoContenido;
+            break;
+        }
+
+        // Guardar el nuevo contenido
+        guardarCampo(idDatelemdocs, textarea.value);
+
+        // Mostrar feedback visual
+        textarea.classList.add('border-success');
+        setTimeout(() => {
+          textarea.classList.remove('border-success');
+        }, 2000);
+      }
+
+      // Mostrar mensaje de éxito
+      const mensaje = document.createElement('div');
+      mensaje.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+      mensaje.style.zIndex = '9999';
+      mensaje.innerHTML = `
+        <i class="bi bi-check-circle me-2"></i>${data.mensaje}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+      document.body.appendChild(mensaje);
+      setTimeout(() => mensaje.remove(), 3000);
+    } else {
+      alert(`⚠️ ${data.mensaje}`);
+    }
+  })
+  .catch(error => {
+    alert('Error al copiar dato individual');
+  });
+}
+
+
+function cambiarEstadoDocumento() {
+  // Bloquear si está en monitoreo
+  if (monitoreoActivo) {
+    alert('⚠️ No se puede cambiar el estado del documento en fase de monitoreo');
+    return;
+  }
+
+  const idDatdocs = {{ estructura.id_datdocs }};
+  const selectEstado = document.getElementById('selector-estado');
+  const nuevoEstadoId = selectEstado.value;
+  const nuevoEstadoTexto = selectEstado.options[selectEstado.selectedIndex].text;
+
+  // Mensaje de confirmación adaptado
+  let mensajeConfirmacion = `¿Confirma el cambio de estado a "${nuevoEstadoTexto}"?`;
+
+  if (nuevoEstadoTexto === "Finalizado") {
+    mensajeConfirmacion += "\n\n⚠️ ATENCIÓN: El documento quedará bloqueado y no podrá editarse hasta que cambie el estado nuevamente.";
+  }
+
+  if (!confirm(mensajeConfirmacion)) {
+    return;
+  }
+
+  // Mostrar indicador de carga
+  selectEstado.disabled = true;
+  const btnCambiar = event.target;
+  const textoOriginal = btnCambiar.innerHTML;
+  btnCambiar.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando...';
+  btnCambiar.disabled = true;
+
+  fetch('/api/cambiar-estado-documento', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      id_datdocs: idDatdocs,
+      id_estado: parseInt(nuevoEstadoId)
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Mostrar mensaje de éxito
+      const mensaje = document.createElement('div');
+      mensaje.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+      mensaje.style.zIndex = '9999';
+      mensaje.innerHTML = `
+        <i class="bi bi-check-circle me-2"></i>Estado actualizado correctamente
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+      document.body.appendChild(mensaje);
+
+      // Recargar la página después de 1 segundo para reflejar los cambios
+      setTimeout(() => {
+        // Usar navegación en lugar de reload() para evitar problemas con PyInstaller
+        const url = new URL(window.location.href);
+        url.searchParams.set('_t', Date.now());  // Parámetro anti-caché
+        window.location.href = url.toString();
+      }, 1000);
+    } else {
+      alert(`❌ Error: ${data.mensaje}`);
+      selectEstado.disabled = false;
+      btnCambiar.innerHTML = textoOriginal;
+      btnCambiar.disabled = false;
+    }
+  })
+  .catch(error => {
+    alert('Error al cambiar el estado del documento');
+    selectEstado.disabled = false;
+    btnCambiar.innerHTML = textoOriginal;
+    btnCambiar.disabled = false;
+  });
+}
+
+// ============================================================================
+// GENERACIÓN DE DOCUMENTOS DESDE PLANTILLAS
+// ============================================================================
+
+function generarDocumento() {
+
+  const idDatdocs = {{ estructura.id_datdocs }};
+
+
+  // Mostrar indicador de carga
+  const btnGenerar = event.target;
+  const textoOriginal = btnGenerar.innerHTML;
+  btnGenerar.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generando...';
+  btnGenerar.disabled = true;
+
+  fetch(`/api/generar-documento/${idDatdocs}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      // Crear un Blob con el contenido HTML
+      const blob = new Blob([data.html], { type: 'text/html;charset=utf-8' });
+
+      // Crear un enlace temporal para descargar el archivo
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = data.nombre_archivo;
+      document.body.appendChild(a);
+      a.click();
+
+      // Limpiar
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      // Mostrar mensaje de éxito
+      const mensaje = document.createElement('div');
+      mensaje.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+      mensaje.style.zIndex = '9999';
+      mensaje.innerHTML = `
+        <i class="bi bi-check-circle me-2"></i>Documento HTML generado correctamente: ${data.nombre_archivo}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+      document.body.appendChild(mensaje);
+      setTimeout(() => mensaje.remove(), 5000);
+
+      // Restaurar botón
+      btnGenerar.innerHTML = textoOriginal;
+      btnGenerar.disabled = false;
+    } else {
+      alert(`❌ Error: ${data.mensaje}`);
+      btnGenerar.innerHTML = textoOriginal;
+      btnGenerar.disabled = false;
+    }
+  })
+  .catch(error => {
+    alert('Error al generar el documento');
+    btnGenerar.innerHTML = textoOriginal;
+    btnGenerar.disabled = false;
+  });
+}
+
+// ============================================================================
+// GENERACIÓN DE DOCUMENTOS PDF DESDE PLANTILLAS
+// ============================================================================
+
+function generarDocumentoPDF() {
+  // Bloquear si está en monitoreo
+
+  const idDatdocs = {{ estructura.id_datdocs }};
+
+    // Mostrar indicador de carga
+  const btnGenerar = event.target;
+  const textoOriginal = btnGenerar.innerHTML;
+  btnGenerar.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generando PDF...';
+  btnGenerar.disabled = true;
+
+  fetch(`/api/generar-documento-pdf/${idDatdocs}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      // Si hay error, intentar leer el JSON del error
+      return response.json().then(data => {
+        throw new Error(data.mensaje || 'Error al generar PDF');
+      });
+    }
+
+    // Extraer el nombre del archivo desde los headers
+    let nombreArchivo = 'documento.pdf'; // Nombre por defecto
+    const contentDisposition = response.headers.get('Content-Disposition');
+    if (contentDisposition) {
+      // El header tiene formato: attachment; filename="nombre_archivo.pdf"
+      const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
+      if (matches != null && matches[1]) {
+        nombreArchivo = matches[1].replace(/['"]/g, '');
+      }
+    }
+
+    // Retornar el blob junto con el nombre del archivo
+    return response.blob().then(blob => ({ blob, nombreArchivo }));
+  })
+  .then(({ blob, nombreArchivo }) => {
+    // Crear un enlace temporal para descargar el archivo PDF
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nombreArchivo;
+
+    document.body.appendChild(a);
+    a.click();
+
+    // Limpiar
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+
+    // Mostrar mensaje de éxito
+    const mensaje = document.createElement('div');
+    mensaje.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+    mensaje.style.zIndex = '9999';
+    mensaje.innerHTML = `
+      <i class="bi bi-check-circle me-2"></i>Documento PDF generado correctamente: ${nombreArchivo}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(mensaje);
+    setTimeout(() => mensaje.remove(), 5000);
+
+    // Restaurar botón
+    btnGenerar.innerHTML = textoOriginal;
+    btnGenerar.disabled = false;
+  })
+  .catch(error => {
+    alert(`❌ Error al generar PDF: ${error.message}`);
+    btnGenerar.innerHTML = textoOriginal;
+    btnGenerar.disabled = false;
+  });
+}
+
+function generarAnexosCSV(event) {
+
+
+  const idSistema = {{ id_sistema }};
+
+  // Mostrar indicador de carga
+  const btnGenerar = event.target;
+  const textoOriginal = btnGenerar.innerHTML;
+  btnGenerar.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generando anexos...';
+  btnGenerar.disabled = true;
+
+
+  fetch(`/api/generar-anexos-csv/${idSistema}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      // Si hay error, intentar leer el JSON del error
+      return response.json().then(data => {
+        throw new Error(data.mensaje || 'Error al generar anexos CSV');
+      });
+    }
+
+    // Extraer el nombre del archivo desde los headers
+    let nombreArchivo = 'Anexos.zip'; // Nombre por defecto
+    const contentDisposition = response.headers.get('Content-Disposition');
+    if (contentDisposition) {
+      // El header tiene formato: attachment; filename="nombre_archivo.zip"
+      const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
+      if (matches != null && matches[1]) {
+        nombreArchivo = matches[1].replace(/['"]/g, '');
+      }
+    }
+
+    // Retornar el blob junto con el nombre del archivo
+    return response.blob().then(blob => ({ blob, nombreArchivo }));
+  })
+  .then(({ blob, nombreArchivo }) => {
+    // Crear un enlace temporal para descargar el archivo ZIP
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nombreArchivo;
+
+    document.body.appendChild(a);
+    a.click();
+
+    // Limpiar
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+
+
+    // Mostrar mensaje de éxito
+    const mensaje = document.createElement('div');
+    mensaje.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+    mensaje.style.zIndex = '9999';
+    mensaje.innerHTML = `
+      <i class="bi bi-check-circle me-2"></i>Anexos CSV generados correctamente: ${nombreArchivo}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(mensaje);
+    setTimeout(() => mensaje.remove(), 5000);
+
+    // Restaurar botón
+    btnGenerar.innerHTML = textoOriginal;
+    btnGenerar.disabled = false;
+  })
+  .catch(error => {
+    alert(`❌ Error al generar anexos CSV: ${error.message}`);
+    btnGenerar.innerHTML = textoOriginal;
+    btnGenerar.disabled = false;
+  });
+}
+</script>
+
+
+{% endblock %}

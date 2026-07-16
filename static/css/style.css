@@ -1,0 +1,2348 @@
+
+/**
+ * Aplicación para la protección de datos en Sistemas IA
+ * Copyright (C) 2025-2026 Consejo de Transparencia y Protección de Datos de Andalucía
+ *
+ *
+ * Licenciado bajo EUPL v1.2: https://eupl.eu/1.2/es/
+ */
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f9f9f9;
+  color: #212529;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: #004b87;
+}
+
+.form-control.bg-warning-subtle {
+  background-color: #fff3cd;
+  border-color: #ffeeba;
+}
+
+.progress {
+  height: 25px;
+}
+
+.progress-bar {
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.table th,
+.table td {
+  vertical-align: middle;
+}
+
+.card-header.bg-dark {
+  background-color: #343a40 !important;
+}
+
+a {
+  text-decoration: none;
+}
+
+.nav-tabs .nav-link.active {
+  background-color: #004b87;
+  color: white;
+}
+
+a.nav-link.active:hover {
+  background-color: #004b87;
+  color: #fff;
+}
+
+.nav-tabs .nav-link {
+  color: #004b87;
+}
+
+.nav-tabs .nav-link:hover {
+  color: #002e5d;
+}
+
+#btnCerrar {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  width: 40px;
+  height: 40px;
+  font-size: 24px;
+  font-weight: bold;
+  line-height: 1;
+  color: white;
+  background-color: red;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  padding-bottom: 5px;
+}
+
+#btnCerrar:hover {
+  background-color: darkred;
+}
+
+/* Botón de Manual de Uso */
+#btnManual {
+  position: absolute;
+  top: 15px;
+  right: 65px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 1.1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+  border: 2px solid #28a745;
+  background-color: #28a745;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+#btnManual:hover {
+  background-color: #218838;
+  border-color: #1e7e34;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-outline-success {
+  text-decoration: none;
+}
+
+/* Personalizar colores de fondo */
+.table td {
+  background-color: #f8f9fa;
+}
+
+.table th {
+  background-color: #e9ecef;
+}
+
+.table tr:nth-child(even) {
+  background-color: #dee2e6;
+}
+
+.table td.description {
+  background-color: #d4edda;
+}
+
+.table td a {
+  color: #0d6efd;
+}
+
+/* Estilos para riesgos inactivos */
+.fila-riesgo-inactivo > td:first-child {
+  background-color: #fff3cd !important;
+  border-left: 4px solid #ffc107;
+}
+
+.btn-activar-riesgo {
+  margin-top: 0.5rem;
+}
+
+/* Estilo para el select "¿Aplica?" deshabilitado en riesgos inactivos */
+.fila-riesgo-inactivo .aplica-select-riesgo:disabled {
+  background-color: #f8f9fa;
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Estilos para controles inactivos */
+.fila-control-inactivo > td:first-child {
+  background-color: #fff3cd !important;
+  border-left: 4px solid #ffc107;
+}
+
+.btn-activar-control {
+  margin-top: 0.5rem;
+}
+
+/* Estilo para los selects deshabilitados en controles inactivos */
+.fila-control-inactivo select:disabled,
+.fila-control-inactivo button:disabled {
+  background-color: #f8f9fa;
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+
+.table td a:hover {
+  color: #0a58ca;
+}
+
+/* Espaciado entre título y subtítulo */
+.table-title {
+  margin-bottom: 0;
+}
+
+.table-subtitle {
+  margin-top: 0;
+  font-style: italic;
+  color: #6c757d;
+}
+
+/* Encabezado oscuro del thead */
+.table thead th {
+  background-color: #343a40;
+  color: white;
+  font-weight: bold;
+}
+
+/* Celdas de descripción en verde claro */
+.description {
+  background-color: #d4edda;
+}
+
+/* Enlaces */
+.table a {
+  color: #0d6efd;
+}
+
+.table a:hover {
+  color: #0a58ca;
+}
+
+/* Contenedor de la tabla */
+.table-container {
+  border: 1px solid #dee2e6;
+  border-radius: 0.25rem;
+  margin-bottom: 2rem;
+}
+
+.bg-light-danger {
+  background-color: #f8d7da !important;
+}
+
+.bg-light-success {
+  background-color: #d4edda !important;
+}
+
+.color-titulo {
+  color: #004b87 !important;
+}
+
+/* --- CONFIGURACIÓN AUTOMÁTICA DETECTADA --- */
+#tabla-configuracion {
+  margin-bottom: 2em;
+}
+
+#tabla-configuracion .configuracion-titulo {
+  color: #004b87;
+  font-weight: bold;
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+#tabla-configuracion .configuracion-container {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem;
+  background-color: #f9f9f9;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#tabla-configuracion .configuracion-tabla {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 0;
+  font-size: 1rem;
+}
+
+#tabla-configuracion .configuracion-tabla thead th {
+  background-color: #2c3e50;
+  color: white;
+  padding: 12px;
+  text-align: left;
+  font-size: 1.1rem;
+  font-weight: bold;
+  border-bottom: 1px solid #ddd;
+}
+
+#tabla-configuracion .configuracion-tabla tbody td {
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+  vertical-align: top;
+}
+
+#tabla-configuracion .configuracion-tabla .campo {
+  width: 30%;
+  font-weight: bold;
+  border-right: 1px solid #eee;
+  padding-right: 10px;
+}
+
+#tabla-configuracion .configuracion-tabla .valor {
+  width: 70%;
+  padding-left: 10px;
+}
+
+#tabla-configuracion .configuracion-tabla .validaciones {
+  border-top: 1px solid #ddd;
+  padding-top: 15px;
+  padding-bottom: 10px;
+  margin-top: 10px;
+}
+
+#tabla-configuracion .configuracion-validaciones {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+#tabla-configuracion .configuracion-validacion {
+  margin: 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#tabla-configuracion .configuracion-validacion .icono {
+  font-size: 1.1em;
+}
+
+#tabla-configuracion .configuracion-validacion .mensaje {
+  font-size: 0.95rem;
+}
+
+.fila-no-aplica {
+  background-color: #c3c3c3 !important;
+}
+
+.color-text-area {
+  color: #000;
+}
+
+.color-text-area:hover {
+  color: #fff;
+}
+
+.btn-custom {
+  transition: all 0.3s ease;
+  border-radius: 8px;
+  font-weight: 500;
+  padding: 8px 16px;
+}
+
+.btn-custom:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* === COLLAPSE PARA ITERACIONES EN ADI ELEMENTOS === */
+.toggle-icon {
+  transition: transform 0.3s ease;
+  font-size: 0.9rem;
+}
+
+h6[data-bs-toggle="collapse"]:hover {
+  color: #0d6efd;
+  cursor: pointer;
+}
+
+.collapse {
+  transition: height 0.35s ease;
+}
+
+/* ========================================
+  ESTILOS PARA FORMULARIO DE MONITOREO
+  ======================================== */
+
+/* === COLLAPSE PARA INSTRUCCIONES DE LA FASE === */
+.instrucciones-fase-header {
+  transition: color 0.2s ease;
+  user-select: none;
+}
+
+.instrucciones-fase-header:hover {
+  color: #0056b3 !important;
+}
+
+.toggle-icon-fase {
+  transition: transform 0.3s ease;
+  display: inline-block;
+  margin-right: 5px;
+  font-size: 0.9em;
+}
+
+.instrucciones-fase-header[aria-expanded="true"] .toggle-icon-fase {
+  transform: rotate(90deg);
+}
+
+.instrucciones-fase-header[aria-expanded="false"] .toggle-icon-fase {
+  transform: rotate(0deg);
+}
+
+/* Diseño compacto del modal de detalle */
+#modalDetalleControl .form-label {
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+#modalDetalleControl .form-control-sm,
+#modalDetalleControl .form-select-sm {
+  font-size: 0.875rem;
+  padding: 0.375rem 0.5rem;
+  line-height: 1.4;
+}
+
+/* Tabla de ejecuciones - header fijo al hacer scroll */
+#tabla_ejecuciones thead th {
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+  font-weight: 600;
+}
+
+/* Scrollbar personalizada para tabla de ejecuciones */
+.table-responsive::-webkit-scrollbar {
+  width: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* === TABLAS CON HEADER FIJO === */
+.table-responsive {
+  max-height: 70vh;
+  overflow-y: auto;
+  position: relative;
+  scroll-behavior: smooth;
+}
+
+.table-responsive thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: #343a40 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* === AYUDA CONTEXTUAL V2.0 - ESTILO MODAL === */
+
+/* Icono de ayuda */
+.ayuda-icono {
+  font-size: 0.9em;
+  margin-left: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.ayuda-icono:hover {
+  transform: scale(1.15);
+}
+
+/* Tooltip estilo modal */
+.ayuda-contextual-tooltip-modal {
+  position: fixed;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  /* max-width: 500px; ← ELIMINADO para permitir expandir libremente */
+  min-width: 300px;  /* Ajustado a 300px para consistencia con el JS */
+  z-index: 10000;
+  animation: modalFadeIn 0.2s ease-out;
+  border: 1px solid #dee2e6;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Header del modal de ayuda */
+.ayuda-modal-header {
+  background: #f8f9fa;
+  color: #212529;
+  padding: 12px 16px;
+  border-radius: 8px 8px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #dee2e6;
+  flex-shrink: 0;
+}
+
+.ayuda-modal-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #004b87;
+  display: flex;
+  align-items: center;
+}
+
+.ayuda-modal-title i {
+  color: #0d6efd;
+}
+
+.ayuda-modal-close {
+  background: transparent;
+  border: none;
+  color: #6c757d;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.ayuda-modal-close:hover {
+  background-color: #e9ecef;
+  color: #dc3545;
+}
+
+/* Cuerpo del modal */
+.ayuda-modal-body {
+  padding: 16px;
+  color: #212529;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Estilos para contenido HTML dentro del modal */
+.ayuda-modal-body strong {
+  font-weight: 700;
+  color: #004b87;
+}
+
+.ayuda-modal-body em {
+  font-style: italic;
+  color: #6c757d;
+}
+
+.ayuda-modal-body ul,
+.ayuda-modal-body ol {
+  margin: 8px 0;
+  padding-left: 24px;
+}
+
+.ayuda-modal-body li {
+  margin: 6px 0;
+}
+
+.ayuda-modal-body code {
+  background-color: #f8f9fa;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+  color: #d63384;
+  border: 1px solid #e9ecef;
+}
+
+.ayuda-modal-body p {
+  margin: 10px 0;
+}
+
+.ayuda-modal-body p:first-child {
+  margin-top: 0;
+}
+
+.ayuda-modal-body p:last-child {
+  margin-bottom: 0;
+}
+
+.ayuda-modal-body a {
+  color: #0d6efd;
+  text-decoration: underline;
+}
+
+.ayuda-modal-body a:hover {
+  color: #0a58ca;
+}
+
+/* Scrollbar del modal */
+.ayuda-modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.ayuda-modal-body::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.ayuda-modal-body::-webkit-scrollbar-thumb {
+  background: #0d6efd;
+  border-radius: 4px;
+}
+
+.ayuda-modal-body::-webkit-scrollbar-thumb:hover {
+  background: #0a58ca;
+}
+
+/* Animación de entrada */
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* === ESTILOS PARA MODAL ARRASTRABLE Y REDIMENSIONABLE === */
+
+/* Header del modal con cursor de mover */
+.ayuda-modal-header {
+  cursor: move;
+  user-select: none;
+}
+
+.ayuda-modal-header.grabbing {
+  cursor: grabbing;
+}
+
+/* Handle visible de redimensionado en esquina inferior derecha */
+.ayuda-modal-resize-handle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  cursor: nwse-resize;
+  background: linear-gradient(135deg, transparent 50%, rgba(0,0,0,0.1) 50%);
+  z-index: 2;
+}
+
+/* Handles invisibles para redimensionar desde los bordes */
+.resize-handle-top,
+.resize-handle-right,
+.resize-handle-bottom,
+.resize-handle-left,
+.resize-handle-top-left,
+.resize-handle-top-right,
+.resize-handle-bottom-left,
+.resize-handle-bottom-right {
+  position: absolute;
+  z-index: 1;
+}
+
+.resize-handle-top {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+  cursor: ns-resize;
+}
+
+.resize-handle-right {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 5px;
+  cursor: ew-resize;
+}
+
+.resize-handle-bottom {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+  cursor: ns-resize;
+}
+
+.resize-handle-left {
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 5px;
+  cursor: ew-resize;
+}
+
+.resize-handle-top-left {
+  top: 0;
+  left: 0;
+  width: 10px;
+  height: 10px;
+  cursor: nwse-resize;
+}
+
+.resize-handle-top-right {
+  top: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  cursor: nesw-resize;
+}
+
+.resize-handle-bottom-left {
+  bottom: 0;
+  left: 0;
+  width: 10px;
+  height: 10px;
+  cursor: nesw-resize;
+}
+
+.resize-handle-bottom-right {
+  bottom: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  cursor: nwse-resize;
+}
+
+
+/* ========================================
+  ESTILOS PARA VALIDACIÓN DE CONTROLES
+  ======================================== */
+
+/* Resalta controles que no cumplen con requisitos de fase */
+.fila-control-invalida {
+  border-left: 4px solid #dc3545 !important; /* Borde rojo */
+}
+
+.fila-control-invalida:hover {
+  background-color: #fff5f5 !important; /* Tono muy suave al hover */
+}
+
+/* Fondo rojo claro en la primera columna (nombre del control) */
+.fila-control-invalida td:first-child {
+  background-color: #ffe6e6 !important; /* Rojo clarito */
+}
+
+.fila-control-invalida:hover td:first-child {
+  background-color: #ffd4d4 !important; /* Un poco más oscuro al hover */
+}
+
+/* Icono de advertencia para controles inválidos */
+.icono-control-invalido {
+  color: #dc3545;
+  font-size: 1.1em;
+  margin-left: 5px;
+  vertical-align: middle;
+  animation: pulse-warning 2s ease-in-out infinite;
+}
+
+/* Animación sutil para el icono */
+@keyframes pulse-warning {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+
+/* ========================================
+  ESTILOS PARA REQUISITOS INVÁLIDOS
+  ======================================== */
+
+/* Resalta requisitos que no cumplen criterios de verificación de fase */
+.fila-requisito-invalida {
+  border-left: 4px solid #dc3545 !important; /* Borde rojo */
+}
+
+.fila-requisito-invalida:hover {
+  background-color: #fff5f5 !important; /* Tono muy suave al hover */
+}
+
+/* Fondo rojo claro en la primera columna (denominación del requisito) */
+.fila-requisito-invalida td:first-child {
+  background-color: #ffe6e6 !important; /* Rojo clarito */
+}
+
+.fila-requisito-invalida:hover td:first-child {
+  background-color: #ffd4d4 !important; /* Un poco más oscuro al hover */
+}
+
+
+/* ========================================
+  ESTILOS PARA GESTIÓN DE DOCUMENTOS - COMPACTOS
+  ======================================== */
+
+/* Contenedor principal del documento */
+.documento-container {
+  line-height: 1.3;
+  overflow: visible;
+  min-height: auto;
+  height: auto;
+}
+
+/* Estilos para cada campo del documento */
+.campo-documento {
+  margin-bottom: 12px;
+}
+
+/* === ESTILOS PARA COLAPSO/DESPLEGABLE DE ELEMENTOS === */
+
+/* Botón "Desplegar Todo" - Diseño atractivo */
+.btn-expand-all {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-expand-all:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+.btn-expand-all:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+}
+
+.btn-expand-all i {
+  font-size: 1.1em;
+  transition: transform 0.3s ease;
+}
+
+.btn-expand-all:hover i {
+  transform: rotate(180deg);
+}
+
+/* Efecto de brillo al pasar el mouse */
+.btn-expand-all::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transition: left 0.5s;
+}
+
+.btn-expand-all:hover::before {
+  left: 100%;
+}
+
+/* Botón de colapso en el título */
+.btn-collapse-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-right: 8px;
+  cursor: pointer;
+  font-size: 1.1em;
+  color: #004b87;
+  transition: transform 0.3s ease, color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  vertical-align: middle;
+}
+
+.btn-collapse-toggle:hover {
+  color: #0056b3;
+  transform: scale(1.15);
+}
+
+/* Icono de flecha que rota al colapsar */
+.btn-collapse-toggle i {
+  transition: transform 0.3s ease;
+}
+
+/* Estado inicial: colapsado (flecha hacia la derecha) */
+.btn-collapse-toggle.collapsed i {
+  transform: rotate(-90deg);
+}
+
+/* Contenedor de hijos colapsable */
+.campo-hijos-container {
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Estado expandido */
+.campo-hijos-container:not(.collapsed) {
+  opacity: 1;
+  overflow: visible;
+  max-height: none !important;
+  pointer-events: auto;
+}
+
+/* Línea vertical para indicar jerarquía (opcional) */
+.campo-documento[data-tiene-hijos="true"] {
+  position: relative;
+}
+
+.campo-documento[data-tiene-hijos="true"]::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 30px;
+  bottom: 0;
+  width: 2px;
+  background-color: #e0e0e0;
+  display: none; /* Oculto por defecto, se puede activar si se desea */
+}
+
+/* Título del campo */
+.campo-titulo {
+  font-size: 11pt;
+  line-height: 1.3;
+  margin-bottom: 5px;
+}
+
+/* Campo editable (textarea) */
+.campo-editable {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.3;
+  padding: 6px;
+  margin-top: 3px !important;
+  margin-bottom: 3px !important;
+  border: 2px solid #ddd;
+  transition: border-color 0.3s;
+  resize: vertical;
+}
+
+.campo-editable:focus {
+  border-color: #2e7d32;
+  box-shadow: 0 0 0 0.2rem rgba(46, 125, 50, 0.25);
+}
+
+/* Campo no editable (solo lectura) */
+.campo-no-editable {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.3;
+  padding: 8px;
+  margin-top: 3px !important;
+  margin-bottom: 3px !important;
+  color: #555;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+}
+
+/* Textos explicativos (instrucciones, fuentes) */
+.texto-explicativo {
+  font-style: italic;
+  color: #666;
+  padding: 4px 8px;
+  background: #f8f9fa;
+  border-radius: 3px;
+  border-left: 3px solid #666;
+  font-size: 9.5pt;
+  line-height: 1.3;
+  margin-top: 3px;
+  margin-bottom: 3px;
+}
+
+/* Referencias a elementos de descripción */
+.source-reference, .adi-reference {
+  font-weight: bold;
+  font-family: monospace;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 9.5pt;
+}
+
+.source-reference {
+  color: #0056b3;
+  background: #e7f3ff;
+}
+
+.adi-reference {
+  color: #6f42c1;
+  background: #f0eaff;
+}
+
+/* === BOTONES DE COPIA INDIVIDUAL === */
+.btn-copia-individual {
+  font-size: 0.75rem;
+  padding: 0.15rem 0.4rem;
+  font-weight: 600;
+  border: none;
+  vertical-align: middle;
+}
+
+.btn-copia-individual:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  background-color: #218838 !important;
+}
+
+.btn-copia-individual i {
+  font-size: 0.85rem;
+}
+
+/* Animación de borde verde al copiar */
+.border-success {
+  border-color: #28a745 !important;
+  border-width: 2px !important;
+  transition: border-color 0.3s ease;
+  box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+/* Modal de instrucciones - Compacto */
+.modal-body {
+  padding: 12px;
+  font-size: 10pt;
+  line-height: 1.4;
+}
+
+.modal-header {
+  padding: 10px 15px;
+}
+
+.modal-title {
+  font-size: 13pt;
+}
+
+/* Estilos para tablas de documentos */
+.tabla-documentos .badge {
+  font-size: 0.85rem;
+  padding: 0.4em 0.6em;
+}
+
+.tabla-documentos .btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+/* Asegurar que el botón Editar en la tabla de documentos tenga texto visible */
+.tabla-documentos .btn-primary {
+  color: #fff !important;
+  background-color: #0d6efd !important;
+  border-color: #0d6efd !important;
+}
+
+.tabla-documentos .btn-primary:hover {
+  color: #fff !important;
+  background-color: #0b5ed7 !important;
+  border-color: #0a58ca !important;
+}
+
+/* Estilos para la plantilla de documento (vista previa/impresión) */
+.plantilla-documento {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 11pt;
+  line-height: 1.4;
+  color: #333;
+  max-width: 210mm;
+  margin: 0 auto;
+  background: white;
+  padding: 20px;
+}
+
+.plantilla-documento .header {
+  text-align: center;
+  border-bottom: 3px solid #2e7d32;
+  padding-bottom: 15px;
+  margin-bottom: 25px;
+}
+
+.plantilla-documento .logo-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.plantilla-documento .ctpda-logo {
+  font-size: 12pt;
+  color: #666;
+  text-align: left;
+}
+
+.plantilla-documento h1 {
+  font-size: 16pt;
+  color: #2e7d32;
+  margin: 15px 0 5px 0;
+  text-align: center;
+  font-weight: bold;
+}
+
+.plantilla-documento .section {
+  margin-bottom: 25px;
+  page-break-inside: avoid;
+}
+
+.plantilla-documento .section-title {
+  font-size: 13pt;
+  font-weight: bold;
+  color: #2e7d32;
+  background-color: #f5f5f5;
+  padding: 8px 12px;
+  margin-bottom: 15px;
+  border-left: 4px solid #2e7d32;
+}
+
+.plantilla-documento .subsection {
+  margin-bottom: 20px;
+  padding: 15px 0;
+}
+
+.plantilla-documento .subsection-title {
+  font-size: 11pt;
+  font-weight: bold;
+  color: #555;
+  margin-bottom: 15px;
+  background-color: #f5f5f5;
+  padding: 8px 12px;
+  border-left: 4px solid #2e7d32;
+}
+
+.plantilla-documento .field-text-area {
+  border: 1px solid #666;
+  background: white;
+  display: block;
+  width: 100%;
+  min-height: 80px;
+  margin: 10px 0;
+  padding: 8px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 11pt;
+  line-height: 1.4;
+  resize: vertical;
+}
+
+.plantilla-documento .instruction {
+  font-style: italic;
+  color: #666;
+  margin: 8px 0;
+  padding: 8px 10px;
+  background: #f8f9fa;
+  border-radius: 3px;
+  border-left: 3px solid #666;
+  font-size: 10pt;
+}
+
+.plantilla-documento .field {
+  margin-bottom: 15px;
+}
+
+.plantilla-documento .field-label {
+  font-weight: 500;
+  margin-bottom: 3px;
+}
+
+.plantilla-documento p strong {
+  color: #2e7d32;
+  font-weight: bold;
+}
+
+.plantilla-documento .footer {
+  font-size: 9pt;
+  color: #666;
+  text-align: center;
+  margin-top: 30px;
+  padding-top: 15px;
+  border-top: 1px solid #ddd;
+}
+
+/* Estilos para impresión */
+@media print {
+  body {
+    margin: 0;
+    padding: 0;
+  }
+  .page-break {
+    page-break-before: always;
+  }
+  .documento-container,
+  .plantilla-documento {
+    box-shadow: none;
+    border: none;
+  }
+}
+
+#modalOpcionesCopia .modal-footer {
+  flex-wrap: nowrap;
+}
+
+#modalOpcionesCopia .modal-footer > div {
+  display: flex;
+  gap: 0.25rem;
+}
+
+#modalOpcionesCopia .alert-info {
+  max-height: 150px;
+  overflow-y: auto;
+  font-size: 0.9rem;
+}
+
+/* Deshabilitar visualmente los campos finalizados */
+textarea[disabled] {
+  background-color: #f8f9fa !important;
+  cursor: not-allowed;
+}
+
+.btn-copia-individual:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#selector-estado:disabled {
+  background-color: #e9ecef;
+  cursor: not-allowed;
+}
+
+/* ========================================
+  ESTILOS PARA OCULTAR RIESGO RESIDUAL
+  Cuando C_NIVELRIESG = 'I'
+  ======================================== */
+
+/* Ocultar las columnas de riesgo residual */
+.ocultar-residual {
+  display: none !important;
+}
+
+/* Ajustar el ancho de la columna de riesgos inherentes cuando se ocultan los residuales */
+.ocultar-residual ~ th.columna-inherente,
+.ocultar-residual ~ td.columna-inherente {
+  width: 75% !important;
+}
+
+/* En la tabla del resumen, ajustar el ancho de riesgos inherentes */
+thead tr:has(.ocultar-residual) .columna-inherente {
+  width: 75% !important;
+}
+
+/* ========================================
+  ESTILOS PARA CUADROS DE RESUMEN COLAPSABLES
+  ======================================== */
+
+/* Header del cuadro de resumen - efecto hover */
+.cuadro-resumen-header {
+  transition: background-color 0.2s ease;
+  user-select: none;
+}
+
+.cuadro-resumen-header:hover {
+  background-color: #495057 !important;
+}
+
+/* Icono de collapse - rotación animada */
+.icono-collapse-resumen {
+  transition: transform 0.3s ease;
+  display: inline-block;
+  font-size: 0.9em;
+}
+
+/* Cuando está colapsado (aria-expanded="false"), rotar el icono */
+.cuadro-resumen-header[aria-expanded="false"] .icono-collapse-resumen {
+  transform: rotate(-90deg);
+}
+
+/* Cuando está expandido (aria-expanded="true"), mantener el icono hacia abajo */
+.cuadro-resumen-header[aria-expanded="true"] .icono-collapse-resumen {
+  transform: rotate(0deg);
+}
+
+/* ========================================
+  ESTILOS PARA MODAL DE CONFIRMACIÓN DE RIESGO ESPECÍFICO
+  ======================================== */
+
+/* Contenedor del mensaje de confirmación con soporte para HTML formateado */
+.mensaje-confirmacion-riesgo {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #333;
+  text-align: left;
+}
+
+/* Estilos para elementos HTML dentro del mensaje */
+.mensaje-confirmacion-riesgo p {
+  margin-bottom: 0.75rem;
+}
+
+.mensaje-confirmacion-riesgo ul,
+.mensaje-confirmacion-riesgo ol {
+  margin-left: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.mensaje-confirmacion-riesgo li {
+  margin-bottom: 0.5rem;
+}
+
+.mensaje-confirmacion-riesgo strong,
+.mensaje-confirmacion-riesgo b {
+  font-weight: 600;
+  color: #000;
+}
+
+.mensaje-confirmacion-riesgo em,
+.mensaje-confirmacion-riesgo i {
+  font-style: italic;
+}
+
+.mensaje-confirmacion-riesgo h1,
+.mensaje-confirmacion-riesgo h2,
+.mensaje-confirmacion-riesgo h3,
+.mensaje-confirmacion-riesgo h4,
+.mensaje-confirmacion-riesgo h5,
+.mensaje-confirmacion-riesgo h6 {
+  margin-top: 1rem;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+  color: #000;
+}
+
+/* Estilos para el modal de confirmación */
+#modalConfirmacionRiesgoEspecifico .modal-header {
+  border-bottom: 2px solid #ffc107;
+}
+
+#modalConfirmacionRiesgoEspecifico .modal-footer {
+  border-top: 1px solid #dee2e6;
+  padding: 1rem;
+}
+
+/* ========================================
+  ESTILOS PARA CONTADOR DE REGISTROS
+  ======================================== */
+
+/* Contenedor del contador */
+.contador-registros-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Badge del contador */
+.contador-registros-badge {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 0.5rem 0.9rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  min-width: 50px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.contador-registros-badge:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Animación de actualización del contador */
+@keyframes contadorPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.contador-registros-badge.updating {
+  animation: contadorPulse 0.3s ease;
+}
+
+/* ========================================
+  ESTILOS PARA TARJETAS DE VALIDACIÓN DE FASES
+  Tamaño uniforme FIJO - Solución definitiva
+  ======================================== */
+
+/* Tamaño uniforme para TODAS las tarjetas */
+.tarjeta-validacion-uniforme {
+  width: 160px !important;
+  min-width: 160px !important;
+  max-width: 160px !important;
+  flex: 0 0 160px !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
+  display: inline-block !important;
+  vertical-align: top !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* Forzar que el enlace y la card respeten el ancho del contenedor */
+.tarjeta-validacion-uniforme > a {
+  display: block !important;
+  width: 100% !important;
+}
+
+.tarjeta-validacion-uniforme .card {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 100% !important;
+}
+
+/* Asegurar que el contenido de texto se ajuste dentro del ancho fijo */
+.tarjeta-validacion-uniforme .card-body {
+  padding: 0.75rem 0.4rem !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  white-space: normal !important;
+}
+
+.tarjeta-validacion-uniforme h6 {
+  font-size: 0.85rem !important;
+  line-height: 1.1 !important;
+  margin-top: 0.4rem !important;
+  margin-bottom: 0.2rem !important;
+  word-wrap: break-word !important;
+  white-space: normal !important;
+}
+
+.tarjeta-validacion-uniforme p,
+.tarjeta-validacion-uniforme small {
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  white-space: normal !important;
+}
+
+/* Ajustar tamaño de iconos */
+.tarjeta-validacion-uniforme i.fs-2 {
+  font-size: 1.8rem !important;
+}
+
+/* Asegurar que las tarjetas tengan altura mínima uniforme */
+.tarjeta-validacion-uniforme .card.h-100 {
+  min-height: 140px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+}
+
+/* Responsive - tablets */
+@media (max-width: 1199px) and (min-width: 768px) {
+  .tarjeta-validacion-uniforme {
+    width: 145px !important;
+    min-width: 145px !important;
+    max-width: 145px !important;
+    flex: 0 0 145px !important;
+  }
+}
+
+/* Responsive - móviles grandes */
+@media (max-width: 767px) and (min-width: 576px) {
+  .tarjeta-validacion-uniforme {
+    width: 160px !important;
+    min-width: 160px !important;
+    max-width: 160px !important;
+    flex: 0 0 160px !important;
+  }
+}
+
+/* Responsive - móviles pequeños */
+@media (max-width: 575px) {
+  .tarjeta-validacion-uniforme {
+    width: 100% !important;
+    min-width: auto !important;
+    max-width: 100% !important;
+    flex: 0 0 100% !important;
+  }
+}
+
+/* Asegurar que el efecto hover se mantenga */
+.card[style*="cursor: pointer"] {
+  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.card[style*="cursor: pointer"]:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+
+/* ========================================
+  ESTILOS PARA BOTÓN GENERAR DOCUMENTO
+  ======================================== */
+
+/* Botón Generar Documento - Info style */
+.btn-info {
+  background-color: #17a2b8;
+  border-color: #17a2b8;
+  color: white;
+}
+
+.btn-info:hover {
+  background-color: #138496;
+  border-color: #117a8b;
+  color: white;
+}
+
+.btn-info:disabled {
+  background-color: #6c757d;
+  border-color: #6c757d;
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* Spinner dentro del botón */
+.btn .spinner-border-sm {
+  width: 1rem;
+  height: 1rem;
+  border-width: 0.15em;
+}
+
+/* ========================================
+  ESTILOS PARA CHECKBOXES EN DOCUMENTOS
+  ======================================== */
+
+/* Checkbox de documentos */
+.campo-checkbox {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-right: 0.5rem;
+  cursor: pointer;
+}
+
+.campo-checkbox:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Label del checkbox */
+.form-check-label {
+  cursor: pointer;
+  user-select: none;
+  font-weight: 500;
+}
+
+.form-check-label:has(+ .campo-checkbox:disabled) {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Contenedor del checkbox - solo para documentos */
+.campo-documento .form-check {
+  padding-left: 0;
+  min-height: auto;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+}
+
+/* ========================================
+  ESTILOS PARA CHECKBOXES EN LÍNEA
+  Cuando todos los checks hermanos tienen descripciones de 1 carácter
+  ======================================== */
+
+/* Contenedor para checks en línea */
+.checks-inline-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  margin-left: 20px;
+  align-items: center;
+}
+
+/* Los campos dentro del contenedor inline se presentan en línea */
+.checks-inline-container > .campo-documento {
+  display: inline-flex;
+  margin: 0 !important;
+  padding: 0;
+  /* Eliminar margen de anidamiento cuando está en línea */
+  margin-left: 0 !important;
+}
+
+/* Los checks dentro del contenedor inline */
+.checks-inline-container .form-check {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+}
+
+/* Espaciado entre checkbox y label en modo inline */
+.checks-inline-container .campo-checkbox {
+  margin-right: 0.4rem;
+  margin-top: 0;
+}
+
+/* Asegurar que el label esté alineado */
+.checks-inline-container .form-check-label {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+/* ========================================
+   AYUDA INLINE (TIPO I)
+   ======================================== */
+
+/* Contenedor principal de la ayuda inline */
+.ayuda-inline-container {
+  width: 100%;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Estilo del header del card */
+.ayuda-inline-container .card-header {
+  transition: background-color 0.2s ease;
+}
+
+.ayuda-inline-container .card-header:hover {
+  background-color: rgba(13, 202, 240, 0.2) !important;
+}
+
+/* Animación del chevron - Estado base (expandido) */
+.ayuda-inline-container .bi-chevron-down {
+  transition: transform 0.3s ease;
+  display: inline-block;
+}
+
+/* Contenido de la ayuda inline */
+.ayuda-inline-content {
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+.ayuda-inline-content p {
+  margin-bottom: 0.75rem;
+}
+
+.ayuda-inline-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* Estilos para contenido HTML dentro de la ayuda */
+.ayuda-inline-content strong {
+  color: #004b87;
+  font-weight: 600;
+}
+
+.ayuda-inline-content ul,
+.ayuda-inline-content ol {
+  margin-left: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.ayuda-inline-content li {
+  margin-bottom: 0.25rem;
+}
+
+/* ========================================
+   AYUDA INLINE - ESTADOS EXPANDIDO/COLAPSADO
+   ======================================== */
+
+/* Estado COLAPSADO (por defecto): Chevron apunta hacia la derecha */
+.ayuda-inline-container .card-header.collapsed .bi-chevron-down,
+.ayuda-inline-container .card-header[aria-expanded="false"] .bi-chevron-down {
+  transform: rotate(-90deg);
+}
+
+/* Estado EXPANDIDO: Chevron apunta hacia abajo */
+.ayuda-inline-container .card-header:not(.collapsed) .bi-chevron-down,
+.ayuda-inline-container .card-header[aria-expanded="true"] .bi-chevron-down {
+  transform: rotate(0deg);
+}
+
+/* Cursor pointer para indicar que es clickeable */
+.ayuda-inline-container .card-header[data-bs-toggle="collapse"] {
+  cursor: pointer;
+}
+
+
+
+/* ========================================
+   AYUDA TOOLTIP (TIPO T) - NUEVO
+   Tooltip simple al pasar el cursor
+   ======================================== */
+
+/* Contenedor del tooltip tipo T */
+.ayuda-tooltip-t {
+  position: fixed;
+  z-index: 10001;
+  background: #ffffff;
+  color: #212529;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  max-width: 350px;
+  min-width: 150px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  border: 1px solid #dee2e6;
+  pointer-events: none; /* Evita que el tooltip interfiera con el hover */
+
+  /* Estado inicial (oculto) */
+  opacity: 0;
+  transform: translateY(5px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+/* Estado visible */
+.ayuda-tooltip-t.ayuda-tooltip-t-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Flecha del tooltip - Base */
+.ayuda-tooltip-t::after {
+  content: '';
+  position: absolute;
+  border: 8px solid transparent;
+}
+
+/* Flecha apuntando hacia abajo (tooltip arriba del elemento) */
+.ayuda-tooltip-t.arrow-bottom::after {
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-top-color: #ffffff;
+  border-bottom: none;
+}
+
+/* Sombra de la flecha hacia abajo */
+.ayuda-tooltip-t.arrow-bottom::before {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 9px solid transparent;
+  border-top-color: rgba(0, 0, 0, 0.1);
+  border-bottom: none;
+  margin-top: 1px;
+}
+
+/* Flecha apuntando hacia arriba (tooltip debajo del elemento) */
+.ayuda-tooltip-t.arrow-top::after {
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-bottom-color: #ffffff;
+  border-top: none;
+}
+
+/* Sombra de la flecha hacia arriba */
+.ayuda-tooltip-t.arrow-top::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 9px solid transparent;
+  border-bottom-color: rgba(0, 0, 0, 0.1);
+  border-top: none;
+  margin-bottom: 1px;
+}
+
+/* Estilos para contenido HTML dentro del tooltip tipo T */
+.ayuda-tooltip-t strong {
+  font-weight: 600;
+  color: #004b87;
+}
+
+.ayuda-tooltip-t em {
+  font-style: italic;
+}
+
+.ayuda-tooltip-t ul,
+.ayuda-tooltip-t ol {
+  margin: 6px 0;
+  padding-left: 18px;
+}
+
+.ayuda-tooltip-t li {
+  margin: 3px 0;
+}
+
+.ayuda-tooltip-t p {
+  margin: 6px 0;
+}
+
+.ayuda-tooltip-t p:first-child {
+  margin-top: 0;
+}
+
+.ayuda-tooltip-t p:last-child {
+  margin-bottom: 0;
+}
+
+.ayuda-tooltip-t code {
+  background-color: #f8f9fa;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85em;
+  color: #d63384;
+}
+
+/* Indicador visual para elementos con ayuda tipo T */
+.tiene-ayuda-tooltip-t {
+  position: relative;
+}
+
+/* Opcional: añadir un sutil indicador visual de que hay ayuda disponible */
+.tiene-ayuda-tooltip-t::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 6px;
+  height: 6px;
+  background-color: #0d6efd;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+/* Mostrar indicador solo si NO es un botón (los botones no necesitan indicador extra) */
+.tiene-ayuda-tooltip-t:not(button):not(.btn)::after {
+  opacity: 0.7;
+}
+
+/* Para botones, cambiar el cursor para indicar que hay información adicional */
+button.tiene-ayuda-tooltip-t,
+.btn.tiene-ayuda-tooltip-t {
+  cursor: help;
+}
+
+/* ========================================
+   RESPONSIVE - TOOLTIP TIPO T
+   ======================================== */
+
+/* En pantallas pequeñas, hacer el tooltip más estrecho */
+@media (max-width: 576px) {
+  .ayuda-tooltip-t {
+    max-width: 280px;
+    font-size: 0.85rem;
+    padding: 8px 12px;
+  }
+}
+
+/* En pantallas muy pequeñas */
+@media (max-width: 400px) {
+  .ayuda-tooltip-t {
+    max-width: 220px;
+  }
+}
+
+
+
+/* ========================================
+   RESUMEN DE ESTADOS - Requisitos
+   ======================================== */
+
+/* Cajas de estado con mismo estilo que indicadores principales */
+.resumen-estado-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid #dee2e6;
+  border-radius: 0.25rem;
+  padding: 0.5rem;
+  background-color: #f8f9fa;
+  width: 100%; /* Ocupar todo el ancho del col-3 */
+}
+
+.resumen-estado-label {
+  color: #6c757d;
+  font-weight: bold;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1; /* Tomar el espacio disponible */
+}
+
+.resumen-estado-valor {
+  margin-left: 0.5rem;
+  font-weight: bold;
+  flex-shrink: 0; /* No reducir el tamaño del número */
+}
+
+/* Responsive: ajustar en pantallas pequeñas */
+@media (max-width: 768px) {
+  .resumen-estado-label {
+    font-size: 0.8rem;
+  }
+
+  .resumen-estado-valor {
+    font-size: 1rem;
+  }
+}
+
+/* ============================================================================
+ * CSS PARA RIESGO GLOBAL
+ * ============================================================================ */
+
+/* --------------------------------------------------------------------------
+ * FILA DE 5 INDICADORES EN RESUMEN DE RIESGOS
+ * -------------------------------------------------------------------------- */
+.fila-cinco-indicadores {
+    display: flex;
+    flex-wrap: nowrap;
+}
+
+.col-indicador-5 {
+    flex: 0 0 20%;
+    max-width: 20%;
+    padding-right: calc(var(--bs-gutter-x) * 0.5);
+    padding-left: calc(var(--bs-gutter-x) * 0.5);
+}
+
+/* Responsive para 5 columnas */
+@media (max-width: 992px) {
+    .fila-cinco-indicadores {
+        flex-wrap: wrap;
+    }
+
+    .col-indicador-5 {
+        flex: 0 0 33.333%;
+        max-width: 33.333%;
+        margin-bottom: 0.5rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .col-indicador-5 {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+}
+
+/* --------------------------------------------------------------------------
+ * INDICADOR DE RIESGO GLOBAL EN CUADRO RESUMEN
+ * -------------------------------------------------------------------------- */
+#indicador-riesgo-global {
+    transition: all 0.3s ease;
+}
+
+#indicador-riesgo-global:hover {
+    background-color: #e9ecef !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+#badge-riesgo-global {
+    font-size: 0.85rem;
+    padding: 0.4em 0.6em;
+    transition: all 0.3s ease;
+}
+
+/* --------------------------------------------------------------------------
+ * BADGE DE RIESGO GLOBAL - Animaciones
+ * -------------------------------------------------------------------------- */
+#badge-riesgo-global:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+/* Animación de pulso para cuando hay factores agravantes */
+.badge-pulse {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(237, 125, 49, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(237, 125, 49, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(237, 125, 49, 0);
+    }
+}
+
+/* --------------------------------------------------------------------------
+ * LAYOUT INTEGRADO: TABLA DE RIESGOS + PANEL DE DIAGNÓSTICO
+ * -------------------------------------------------------------------------- */
+
+/* Contenedor principal flex */
+.riesgos-layout {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    transition: all 0.3s ease;
+}
+
+/* Columna de riesgos (tabla) */
+.columna-riesgos {
+    flex: 1;
+    min-width: 0; /* Permite que flex-shrink funcione correctamente */
+    transition: all 0.3s ease;
+    overflow: hidden; /* Importante para contener la tabla */
+}
+
+/* Cuando el panel está visible, la tabla puede hacer scroll horizontal */
+.riesgos-layout.panel-visible .columna-riesgos {
+    flex: 1;
+}
+
+.riesgos-layout.panel-visible .columna-riesgos #contenedor-tabla-riesgos {
+    overflow-x: auto;
+}
+
+/* Reducir anchos mínimos de columnas cuando el panel está visible */
+.riesgos-layout.panel-visible #tabla-riesgos th#th_justificaciones,
+.riesgos-layout.panel-visible #tabla-riesgos td[id^="celda-justificaciones-"] {
+    min-width: 200px !important;
+}
+
+.riesgos-layout.panel-visible #tabla-riesgos th#th_riesgo,
+.riesgos-layout.panel-visible #tabla-riesgos td[id^="celda-riesgo-"] {
+    min-width: 120px !important;
+    max-width: 200px !important;
+}
+
+/* Reducir padding en celdas cuando el panel está visible */
+.riesgos-layout.panel-visible #tabla-riesgos th,
+.riesgos-layout.panel-visible #tabla-riesgos td {
+    padding: 0.4rem 0.3rem;
+    font-size: 0.9rem;
+}
+
+/* Columna de diagnóstico (panel lateral) */
+.columna-diagnostico {
+    flex: 0 0 0;
+    width: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: all 0.3s ease;
+}
+
+/* Cuando el panel está visible */
+.columna-diagnostico.visible {
+    flex: 0 0 350px;
+    width: 350px;
+    min-width: 350px; /* Asegura que no se comprima */
+    opacity: 1;
+}
+
+/* Panel de diagnóstico integrado */
+.panel-diagnostico-integrado {
+    background: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    padding: 15px;
+    position: sticky;
+    top: 20px;
+    max-height: calc(100vh - 150px);
+    overflow-y: auto;
+}
+
+/* Cabecera del panel de diagnóstico */
+.panel-diagnostico-header {
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.panel-diagnostico-header h5 {
+    color: #004b87;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+/* Cabecera del diagnóstico */
+.diagnostico-header {
+    border-radius: 8px;
+}
+
+.diagnostico-header h3 {
+    font-weight: 700;
+}
+
+/* Ajustes de tamaño de fuente en el panel para aprovechar mejor el espacio */
+.panel-diagnostico-integrado .metricas-riesgo .h4 {
+    font-size: 1.3rem;
+}
+
+.panel-diagnostico-integrado .metrica-card {
+    padding: 8px !important;
+}
+
+.panel-diagnostico-integrado .factores-agravantes .list-group-item {
+    padding: 8px 10px;
+}
+
+.panel-diagnostico-integrado h6 {
+    font-size: 0.9rem;
+}
+
+/* --------------------------------------------------------------------------
+ * MÉTRICAS DE RIESGO
+ * -------------------------------------------------------------------------- */
+.metricas-riesgo .metrica-card {
+    background: #f8f9fa;
+    border-radius: 8px;
+    transition: transform 0.2s ease;
+}
+
+.metricas-riesgo .metrica-card:hover {
+    transform: translateY(-2px);
+}
+
+.metricas-riesgo .h4 {
+    color: #2c3e50;
+    font-weight: 700;
+}
+
+/* Indicadores de nivel por color */
+.metricas-riesgo .row .col-3 > div {
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+/* --------------------------------------------------------------------------
+ * FACTORES AGRAVANTES
+ * -------------------------------------------------------------------------- */
+.factores-agravantes .list-group-item {
+    border: none;
+    border-radius: 6px !important;
+    margin-bottom: 8px;
+    transition: all 0.2s ease;
+}
+
+.factores-agravantes .list-group-item:hover {
+    background-color: #f1f3f4;
+    transform: translateX(3px);
+}
+
+.factores-agravantes .list-group-item strong {
+    font-size: 0.9rem;
+}
+
+.factores-agravantes .list-group-item small {
+    display: block;
+    margin-top: 4px;
+}
+
+/* Estilos para factores filtrables (clicables) */
+.factor-filtrable {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.factor-filtrable:hover {
+    background-color: #e3f2fd !important;
+    transform: translateX(5px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.factor-filtrable:hover .bi-funnel {
+    color: #0d6efd !important;
+}
+
+/* Factor activo (seleccionado para filtrar) */
+.factor-filtrable.factor-activo {
+    background-color: #bbdefb !important;
+    border-left-width: 5px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.factor-filtrable.factor-activo .bi-funnel {
+    color: #1565c0 !important;
+}
+
+/* --------------------------------------------------------------------------
+ * INDICADOR DE AVANCE DE FASE
+ * -------------------------------------------------------------------------- */
+.avance-fase {
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.avance-fase .badge {
+    font-size: 0.95rem;
+    padding: 0.5em 1em;
+}
+
+/* --------------------------------------------------------------------------
+ * RESALTADO DE FILAS EN TABLA DE RIESGOS
+ * -------------------------------------------------------------------------- */
+.riesgo-row.resaltado {
+    background-color: #fff3cd !important;
+    animation: highlight-fade 3s ease forwards;
+}
+
+@keyframes highlight-fade {
+    0% {
+        background-color: #ffc107;
+    }
+    100% {
+        background-color: #fff3cd;
+    }
+}
+
+/* Indicador visual en filas de riesgo según nivel */
+.riesgo-row[data-nivel="CRITICO"] td:first-child {
+    border-left: 4px solid #C00000;
+}
+
+.riesgo-row[data-nivel="ALTO"] td:first-child {
+    border-left: 4px solid #ED7D31;
+}
+
+.riesgo-row[data-nivel="MEDIO"] td:first-child {
+    border-left: 4px solid #FFC000;
+}
+
+.riesgo-row[data-nivel="BAJO"] td:first-child {
+    border-left: 4px solid #00B050;
+}
+
+/* --------------------------------------------------------------------------
+ * COLORES DE NIVEL DE RIESGO (variables CSS reutilizables)
+ * -------------------------------------------------------------------------- */
+:root {
+    --riesgo-bajo: #00B050;
+    --riesgo-bajo-bg: #00B05020;
+    --riesgo-medio: #FFC000;
+    --riesgo-medio-bg: #FFC00020;
+    --riesgo-alto: #ED7D31;
+    --riesgo-alto-bg: #ED7D3120;
+    --riesgo-critico: #C00000;
+    --riesgo-critico-bg: #C0000020;
+}
+
+/* Clases de utilidad para colores de riesgo */
+.text-riesgo-bajo { color: var(--riesgo-bajo); }
+.text-riesgo-medio { color: var(--riesgo-medio); }
+.text-riesgo-alto { color: var(--riesgo-alto); }
+.text-riesgo-critico { color: var(--riesgo-critico); }
+
+.bg-riesgo-bajo { background-color: var(--riesgo-bajo-bg); }
+.bg-riesgo-medio { background-color: var(--riesgo-medio-bg); }
+.bg-riesgo-alto { background-color: var(--riesgo-alto-bg); }
+.bg-riesgo-critico { background-color: var(--riesgo-critico-bg); }
+
+.border-riesgo-bajo { border-color: var(--riesgo-bajo) !important; }
+.border-riesgo-medio { border-color: var(--riesgo-medio) !important; }
+.border-riesgo-alto { border-color: var(--riesgo-alto) !important; }
+.border-riesgo-critico { border-color: var(--riesgo-critico) !important; }
+
+/* --------------------------------------------------------------------------
+ * RESPONSIVE - LAYOUT INTEGRADO DE RIESGOS
+ * -------------------------------------------------------------------------- */
+
+/* Pantallas medianas: panel más estrecho */
+@media (max-width: 1400px) {
+    .columna-diagnostico.visible {
+        flex: 0 0 320px;
+        width: 320px;
+        min-width: 320px;
+    }
+
+    .panel-diagnostico-integrado {
+        padding: 12px;
+    }
+
+    .panel-diagnostico-integrado h6 {
+        font-size: 0.85rem;
+    }
+}
+
+/* Pantallas más pequeñas */
+@media (max-width: 1200px) {
+    .columna-diagnostico.visible {
+        flex: 0 0 300px;
+        width: 300px;
+        min-width: 300px;
+    }
+}
+
+/* Pantallas pequeñas: layout apilado */
+@media (max-width: 992px) {
+    .riesgos-layout {
+        flex-direction: column;
+    }
+
+    .columna-riesgos {
+        width: 100%;
+    }
+
+    .columna-diagnostico {
+        width: 100%;
+        order: -1; /* Panel arriba de la tabla */
+    }
+
+    .columna-diagnostico.visible {
+        flex: 0 0 auto;
+        width: 100%;
+        min-width: 100%;
+        margin-bottom: 20px;
+    }
+
+    .panel-diagnostico-integrado {
+        position: relative;
+        top: 0;
+        max-height: none;
+    }
+}
+
+@media (max-width: 576px) {
+    #badge-riesgo-global {
+        font-size: 0.75rem;
+        padding: 0.3em 0.5em;
+    }
+
+    #indicador-riesgo-global small {
+        font-size: 0.7rem;
+    }
+
+    .panel-diagnostico-integrado {
+        padding: 10px;
+    }
+}
+
+/* --------------------------------------------------------------------------
+ * SCROLLBAR PERSONALIZADA PARA EL PANEL
+ * -------------------------------------------------------------------------- */
+.panel-diagnostico-integrado::-webkit-scrollbar {
+    width: 6px;
+}
+
+.panel-diagnostico-integrado::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.panel-diagnostico-integrado::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.panel-diagnostico-integrado::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+

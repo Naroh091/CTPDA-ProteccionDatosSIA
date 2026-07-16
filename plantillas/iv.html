@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documento de viabilidad protección de datos del Proyecto SIA</title>
+    <style>
+        @page {
+            margin: 2cm;
+            size: A4;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 11pt;
+            line-height: 1.4;
+            color: #333;
+            max-width: 210mm;
+            margin: 0 auto;
+            background: white;
+        }
+        
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #2e7d32;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .logo-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .junta-logo {
+            font-size: 16pt;
+            font-weight: bold;
+            color: #2e7d32;
+        }
+        
+        .ctpda-logo {
+            font-size: 12pt;
+            color: #666;
+            text-align: right;
+        }
+        
+        h1 {
+            font-size: 16pt;
+            color: #2e7d32;
+            margin: 15px 0 5px 0;
+            text-align: center;
+        }
+        
+        .subtitle {
+            font-size: 10pt;
+            color: #666;
+            text-align: center;
+            font-style: italic;
+            margin-bottom: 20px;
+        }
+        
+        .section {
+            margin-bottom: 25px;
+            page-break-inside: avoid;
+        }
+        
+        .section-title {
+            font-size: 13pt;
+            font-weight: bold;
+            color: #2e7d32;
+            background-color: #f5f5f5;
+            padding: 8px 12px;
+            margin-bottom: 15px;
+            border-left: 4px solid #2e7d32;
+        }
+        
+        .subsection {
+            margin-bottom: 15px;
+        }
+        
+        .subsection-title {
+            font-size: 11pt;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 8px;
+        }
+        
+        .field {
+            margin-bottom: 10px;
+        }
+        
+        .field-label {
+            font-weight: 500;
+            margin-bottom: 3px;
+        }
+        
+        .field-input {
+            border-bottom: 1px solid #333;
+            display: inline-block;
+            min-width: 200px;
+            height: 20px;
+            margin-left: 5px;
+        }
+        
+        .field-input-long {
+            border-bottom: 1px solid #333;
+            display: inline-block;
+            min-width: 350px;
+            height: 20px;
+            margin-left: 5px;
+        }
+        
+        .field-input-full {
+            border-bottom: 1px solid #333;
+            width: 100%;
+            height: 20px;
+            margin-top: 5px;
+        }
+        
+        .checkbox {
+            width: 14px;
+            height: 14px;
+            border: 1.5px solid #333;
+            display: inline-block;
+            margin-right: 8px;
+            margin-left: 5px;
+            vertical-align: middle;
+            text-align: center;
+            line-height: 12px;
+            font-size: 11pt;
+            font-weight: bold;
+            color: #2e7d32;
+        }
+        
+        .checkbox-group {
+            margin: 8px 0;
+        }
+        
+        .rating-scale {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+        }
+        
+        .rating-boxes {
+            display: flex;
+            margin-left: 10px;
+        }
+        
+        .rating-box {
+            position: relative;
+            width: 24px;
+            height: 24px;
+            border: 1.5px solid #333;
+            margin-right: 8px;
+            text-align: center;
+            font-size: 11pt;
+            line-height: 24px;
+            display: inline-block;
+            font-weight: normal;
+            color: #333;
+        }
+        
+        .rating-box.checked {
+            background-color: #e8f5e9;
+            border: 2px solid #2e7d32;
+            line-height: 22px;
+        }
+        
+        .rating-box.checked::after {
+            content: '✓';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18pt;
+            color: #2e7d32;
+            font-weight: bold;
+        }
+        
+        .decision-section {
+            background-color: #fff3e0;
+            padding: 15px;
+            border: 2px solid #ff9800;
+            border-radius: 5px;
+        }
+        
+        .decision-options {
+            margin: 15px 0;
+        }
+        
+        .decision-option {
+            margin: 10px 0;
+            font-size: 12pt;
+        }
+        
+        .signature-section {
+            margin-top: 30px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .signature-box {
+            text-align: center;
+            width: 45%;
+            max-width: 250px;
+        }
+        
+        .signature-line {
+            border-bottom: 1px solid #333;
+            width: 100%;
+            margin-top: 0;
+            padding-top: 35px;
+        }
+        
+        .footer {
+            font-size: 9pt;
+            color: #666;
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+        }
+        
+        @media print {
+            body { margin: 0; }
+            .page-break { page-break-before: always; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>DOCUMENTO DE VIABILIDAD PROTECCIÓN DE DATOS PROYECTO SIA</h1>     
+    </div>
+
+    <div class="section">
+        <div class="section-title">SECCIÓN A: IDENTIFICACIÓN Y CONTEXTO</div>
+        
+        <div class="subsection">
+            <div class="subsection-title">A.1 Datos básicos del proyecto</div>
+            <div class="field">
+                <div class="field-label">• Denominación del proyecto: {{A.1.1}}</div>
+            </div>
+            <div class="field">
+                <div class="field-label">• Entidad/Organismo promotor: {{A.1.2}}</div>
+            </div>
+            <div class="field">
+                <div class="field-label">• Responsable funcional: {{A.1.3}}</div>
+            </div>
+            <div class="field">
+                <div class="field-label">• Fecha prevista de inicio: {{A.1.4}}</div>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <div class="subsection-title">A.2 Problema y necesidad pública</div>
+            <div class="field">
+                <div class="field-label">• Problema específico que se aborda:</div>
+                {{A.2.1}}
+            </div>
+            <div class="field">
+                <div class="field-label">• Proceso/servicio público afectado:</div> {{A.2.2}}
+            </div>
+            <div class="field">
+                <div class="field-label">• Beneficio esperado (cuantificable):</div> {{A.2.3}}
+            </div>
+        </div>
+
+        <div class="subsection">
+            <div class="subsection-title">A.3 Marco competencial y jurídico </div>
+            <div class="field">
+                <div class="field-label">• Competencia legal que ampara la actuación:</div>
+                {{A.3.1}}
+            </div>
+            <div class="field">
+                <div class="field-label">• Normativa sectorial específica aplicable:</div>
+				{{A.3.2}}
+            </div>
+            <div class="field">
+                <div class="field-label">• Bases jurídicas preliminares de los tratamientos de datos personales (Art. 6 RGPD):</div>
+				{{A.3.3}}
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">SECCIÓN B: CONFIGURACIÓN AUTOMÁTICA (ADI)</div>
+        
+        <div class="subsection">
+            <div class="subsection-title">B.1 Resultado del Asistente de Decisión Inicial</div>
+            <div class="checkbox-group">
+                <div class="field-label">• Perfil de cumplimiento asignado:</div>
+                <span class="checkbox">{{ES_ESENCIAL}}</span>Esencial
+                <span class="checkbox">{{ES_ESTANDAR}}</span>Estándar  
+                <span class="checkbox">{{ES_EXHAUSTIVO}}</span>Exhaustivo
+            </div>
+            <div class="field">
+                <div class="field-label">• Tipo de adquisición previsto: {{TIPO_ADQUISICION}}</div>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <div class="subsection-title">B.2 Complejidad identificada</div>
+            <div class="field">
+                <div class="field-label">• Grupos de control activados: {{NUM_GRUPOS_CONTROL}} (total: {{NUM_CONTROLES}} controles)</div>
+            </div>
+            <div class="checkbox-group">
+                <div class="field-label">• Riesgos activados: {{NUM_RIESGOS_AUT}}</div>
+               
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">SECCIÓN C: ACTORES Y RESPONSABILIDADES</div>
+        
+        <div class="subsection">
+            <div class="subsection-title">C.1 Estructura de responsabilidad</div>
+            <div class="field">
+                <div class="field-label">• Responsable del tratamiento:</div> {{C.1.1}}
+            </div>
+            <div class="checkbox-group">
+                <div class="field-label">• ¿Existen corresponsables?:</div>
+                <span class="checkbox">{{C.1.2SI}}</span>Sí → Si sí: {{C.1.2SISI}}</span>
+                <span class="checkbox">{{C.1.2NO}}</span>No
+            </div>
+            <div class="checkbox-group">
+                <div class="field-label">• Participación prevista de la Administración en el SIA:</div>
+                <span class="checkbox">{{C.1.3A}}</span>Diseño
+                <span class="checkbox">{{C.1.3B}}</span>Desarrollo  
+                <span class="checkbox">{{C.1.3C}}</span>Solo operación
+            </div>
+        </div>
+
+        <div class="subsection">
+            <div class="subsection-title">C.2 Equipo del proyecto</div>
+            <div class="checkbox-group">
+                <div class="field-label">• DPD consultado:</div>
+                <span class="checkbox">{{C.2.1SI}}</span>Sí → Fecha: {{C.2.1SISI}}
+                <span class="checkbox">{{C.2.1NO}}</span>No
+            </div>
+            <div class="field">
+                <div class="field-label">• Responsabilidad funcional: {{C.2.2}}</div>
+            </div>
+            <div class="field">
+                <div class="field-label">• Jefatura de proyecto: {{C.2.3}}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">SECCIÓN D: AUTOEVALUACIÓN PRELIMINAR </div>
+        
+        <div class="subsection">
+            <div class="subsection-title">D.1 Solidez de la justificación (valoración 1-4)</div>
+            
+            <div class="rating-scale">
+                <span class="field-label">• ¿La necesidad está claramente definida y justificada?:</span>
+                <div class="rating-boxes">
+                    <div class="rating-box{{D.1.11}}">1</div>
+                    <div class="rating-box{{D.1.12}}">2</div>
+                    <div class="rating-box{{D.1.13}}">3</div>
+                    <div class="rating-box{{D.1.14}}">4</div>
+                    
+                </div>
+            </div>
+            
+            <div class="rating-scale">
+                <span class="field-label">• ¿Se han considerado alternativas no basadas en IA?:</span>
+                <div class="rating-boxes">
+                    <div class="rating-box{{D.1.21}}">1</div>
+                    <div class="rating-box{{D.1.22}}">2</div>
+                    <div class="rating-box{{D.1.23}}">3</div>
+                    <div class="rating-box{{D.1.24}}">4</div>
+                   
+                </div>
+            </div>
+            
+            <div class="rating-scale">
+                <span class="field-label">• ¿El sistema evita prácticas prohibidas del RIA?:</span>
+                <div class="rating-boxes">
+                    <div class="rating-box{{D.1.31}}">1</div>
+                    <div class="rating-box{{D.1.32}}">2</div>
+                    <div class="rating-box{{D.1.33}}">3</div>
+                    <div class="rating-box{{D.1.34}}">4</div>
+ 
+                </div>
+            </div>
+            
+            <div class="rating-scale">
+                <span class="field-label">• ¿La organización tiene capacidad técnica suficiente?:</span>
+                <div class="rating-boxes">
+                    <div class="rating-box{{D.1.41}}">1</div>
+                    <div class="rating-box{{D.1.42}}">2</div>
+                    <div class="rating-box{{D.1.43}}">3</div>
+                    <div class="rating-box{{D.1.44}}">4</div>
+ 
+                </div>
+            </div>
+        </div>
+
+        <div class="subsection">
+            <div class="subsection-title">D.2 Desafíos preliminares identificados</div>
+            <div class="field">
+                <div class="field-label">• Principal desafío en protección de datos:</div>
+                {{D.2.1}}
+            </div>
+            <div class="field">
+                <div class="field-label">• Principal desafío operativo:</div>
+                {{D.2.2}}
+            </div>
+            <div class="checkbox-group">
+                <div class="field-label">• ¿Existen puntos de bloqueo significativos?:</div>
+                <span class="checkbox">{{D.2.3SI}}</span>Sí → Si sí: {{D.2.3SISI}}
+                <span class="checkbox">{{D.2.3NO}}</span>No
+            </div>
+        </div>
+    </div>
+
+    <div class="section decision-section">
+        <div class="section-title" style="background:none; color:#e65100; border-left-color:#ff9800;">SECCIÓN E: DECISIÓN</div>
+        
+        <div class="subsection">
+            <div class="subsection-title">E.1 Evaluación global</div>
+          
+            <div class="checkbox-group">
+                <div class="field-label">• ¿Es viable proceder con el proyecto desde la perspectiva de protección de datos?:</div>
+                <span class="checkbox">{{E.1.1A}}</span>Sí
+                <span class="checkbox">{{E.1.1B}}</span>No  
+                <span class="checkbox">{{E.1.1C}}</span>Condicionado
+            </div>
+        </div>
+
+        <div class="subsection">
+            <div class="subsection-title">E.2 Condiciones o requisitos previos (si aplica)</div>
+            <div class="field">
+                <div class="field-label">• Recursos adicionales necesarios:</div>
+                {{E.2.1}}
+            </div>
+            <div class="field">
+                <div class="field-label">• Formación específica requerida:</div>
+                {{E.2.2}}
+            </div>
+            <div class="field">
+                <div class="field-label">• Otros condicionantes:</div> {{E.2.3}}
+            </div>
+        </div>
+
+        <div class="subsection">
+            <div class="subsection-title">E.3 Decisión</div>
+            <div class="decision-options">
+                <div class="decision-option">
+                    <span class="checkbox">{{E.3A}}</span><strong>AUTORIZAR</strong> continuar a Fase 2
+                </div>
+                <div class="decision-option">
+                    <span class="checkbox">{{E.3B}}</span><strong>SUSPENDER</strong> - requiere revisión
+                </div>
+                <div class="decision-option">
+                    <span class="checkbox">{{E.3C}}</span><strong>DESESTIMAR</strong> - inviable
+                </div>
+				<div class="field">
+                <div class="field-label">• Nota: si la entidad no tiene designado DPD esta metodología no puede aplicarse </div>
+               
+            </div>
+            </div>
+        </div>
+
+        <table style="width: 100%; margin-top: 30px; border-collapse: collapse;">
+            <tr>
+                <td style="width: 50%; text-align: center; vertical-align: top; padding: 0 10px;">
+                    <div style="min-height: 30px; font-size: 10pt; margin-bottom: 10px;">{{E.4}}</div>
+                    <div style="border-bottom: 1px solid #333; padding-top: 35px;"></div>
+                    <div style="font-size: 10pt; margin-top: 8px;">Responsable de la decisión</div>
+                    <div style="font-size: 10pt; margin-top: 10px;">Nombre: {{E.42}}</div>
+                </td>
+                <td style="width: 50%; text-align: center; vertical-align: top; padding: 0 10px;">
+                    <div style="min-height: 30px; margin-bottom: 10px;">&nbsp;</div>
+                    <div style="border-bottom: 1px solid #333; padding-top: 35px;"></div>
+                    <div style="font-size: 10pt; margin-top: 8px;">Fecha</div>
+                    <div style="font-size: 10pt; margin-top: 10px;">{{E.5}}</div>
+                </td>
+            </tr>
+        </table>
+
+        <div class="field" style="margin-top:20px;">
+            <div class="field-label">Observaciones:</div>
+            {{E.6}}
+        </div>
+    </div>
+
+    <div class="footer">
+        Protección de Datos en Sistemas de IA<br>
+        Consejo de Transparencia y Protección de Datos de Andalucía<br>
+    </div>
+</body>
+</html>

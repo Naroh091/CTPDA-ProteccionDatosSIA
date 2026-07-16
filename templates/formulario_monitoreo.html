@@ -1,0 +1,980 @@
+
+<!--
+    Aplicación para la protección de datos en Sistemas IA
+    Copyright (C) 2025-2026 Consejo de Transparencia y Protección de Datos de Andalucía
+
+    Licenciado bajo EUPL v1.2: https://eupl.eu/1.2/es/
+-->
+
+
+{% extends "base.html" %}
+{% block title %}Monitoreo - {{ nombre_aplicacion }}{% endblock %}
+
+{% block content %}
+{# Aseguramos que 'controles' sea siempre una lista (aunque vacía) #}
+{% set controles = controles or [] %}
+
+<div id="contenedor-cabecera-monitoreo" class="d-flex justify-content-between align-items-center mb-4">
+  <img id="logo-ctpd" src="{{ url_for('static', filename='img/logo_ctpdandalucia.png') }}" alt="Logo" style="height: 80px;">
+  <h1 id="cabecera">Plan de monitorización continua</h1>
+  <img id="logo-junta" src="{{ url_for('static', filename='img/logo_junta.png') }}" alt="Logo Junta" style="height: 80px;">
+</div>
+
+<!-- ===== CUADRO DE MANDO DE MONITOREO - COMPACTO Y COLAPSABLE ===== -->
+<div id="card-panel-monitoreo" class="card mb-4 shadow-sm">
+  <div id="header-panel-monitoreo" class="card-header bg-dark text-white py-2 cuadro-resumen-header"
+      data-bs-toggle="collapse"
+      data-bs-target="#collapseResumenMonitoreo"
+      aria-expanded="true"
+      aria-controls="collapseResumenMonitoreo"
+      style="cursor: pointer;">
+    <h6 id="titulo-panel-monitoreo" class="mb-0 text-white">
+      <i class="bi bi-chevron-down icono-collapse-resumen"></i>
+      <i class="bi bi-speedometer2"></i> Panel de Control - Monitoreo
+    </h6>
+  </div>
+  <div class="collapse show" id="collapseResumenMonitoreo">
+    <div id="body-panel-monitoreo" class="card-body p-3">
+
+    <!-- Fila 1: Indicadores principales - COMPACTO EN UNA LÍNEA -->
+    <div id="fila-indicadores-principales" class="row g-2 mb-3">
+      <!-- Total Controles -->
+      <div class="col-md-3">
+        <div id="indicador-total-controles" class="border rounded p-2 bg-light d-flex justify-content-between align-items-center">
+          <span class="text-muted"><strong>Total Controles</strong></span>
+          <span id="valor-total-controles" class="text-primary fs-5 fw-bold">{{ estadisticas.total_controles }}</span>
+        </div>
+      </div>
+
+      <!-- Controles Activos -->
+      <div class="col-md-3">
+        <div id="indicador-controles-activos" class="border rounded p-2 bg-light d-flex justify-content-between align-items-center">
+          <span class="text-muted"><strong>Activos</strong></span>
+          <span id="valor-controles-activos" class="text-success fs-5 fw-bold">{{ estadisticas.controles_activos }}</span>
+        </div>
+      </div>
+
+      <!-- Suspendidos -->
+      <div class="col-md-3">
+        <div id="indicador-controles-suspendidos" class="border rounded p-2 bg-light d-flex justify-content-between align-items-center">
+          <span class="text-muted"><strong>Suspendidos</strong></span>
+          <span id="valor-controles-suspendidos" class="text-warning fs-5 fw-bold">{{ estadisticas.controles_suspendidos }}</span>
+        </div>
+      </div>
+
+      <!-- Próximos 30 días -->
+      <div class="col-md-3">
+        <div id="indicador-proximos-30-dias" class="border rounded p-2 bg-light d-flex justify-content-between align-items-center">
+          <span class="text-muted"><strong>Próximos 30 días</strong></span>
+          <span id="valor-proxima-ejecucion" class="text-info fs-5 fw-bold">
+            <i class="bi bi-calendar-event me-1"></i> {{ estadisticas.controles_proxima_ejecucion }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Separador -->
+    <hr class="my-3">
+
+    <!-- Fila 2: Evolución de Madurez (compacta y en una sola fila) -->
+    <div id="fila-evolucion-madurez" class="row g-3">
+      <!-- Madurez Inicial -->
+      <div class="col-md-4">
+        <div id="card-madurez-inicial" class="card border-secondary h-100">
+          <div id="body-madurez-inicial" class="card-body p-2 text-center">
+            <small class="text-muted d-block mb-1">
+              <i class="bi bi-arrow-up-circle"></i> <strong>Madurez Inicial</strong>
+            </small>
+            <p id="descripcion-madurez-inicial" class="text-muted small mb-1">Baseline al iniciar monitoreo</p>
+            <h5 id="valor-madurez-inicial" class="text-secondary mb-1">{{ "%.1f"|format(estadisticas.madurez_promedio_inicial) }}</h5>
+            <div id="progreso-madurez-inicial" class="progress mt-1" style="height: 6px;">
+              <div class="progress-bar bg-secondary" style="width: {{ (estadisticas.madurez_promedio_inicial / 4 * 100)|round(1) }}%"></div>
+            </div>
+            <small class="text-muted mt-1">Escala 1-4</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Madurez Actual -->
+      <div class="col-md-4">
+        <div id="card-madurez-actual" class="card border-primary h-100">
+          <div id="body-madurez-actual" class="card-body p-2 text-center">
+            <small class="text-muted d-block mb-1">
+              <i class="bi bi-graph-up-arrow"></i> <strong>Madurez Actual</strong>
+            </small>
+            <p id="descripcion-madurez-actual" class="text-muted small mb-1">Promedio de controles activos</p>
+            <h5 id="valor-madurez-actual" class="text-primary mb-1">{{ "%.1f"|format(estadisticas.madurez_promedio_actual) }}</h5>
+            <div id="progreso-madurez-actual" class="progress mt-1" style="height: 6px;">
+              <div class="progress-bar bg-primary" style="width: {{ (estadisticas.madurez_promedio_actual / 4 * 100)|round(1) }}%"></div>
+            </div>
+            <small class="text-muted mt-1">Escala 1-4</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mejora -->
+      <div class="col-md-4">
+        <div id="card-mejora-madurez" class="card border-{% if estadisticas.mejora_madurez > 0 %}success{% elif estadisticas.mejora_madurez < 0 %}danger{% else %}secondary{% endif %} h-100">
+          <div id="body-mejora-madurez" class="card-body p-2 text-center">
+            <small class="text-muted d-block mb-1">
+              <i class="bi bi-trophy"></i> <strong>Mejora</strong>
+            </small>
+            <p id="descripcion-mejora" class="text-muted small mb-1">Evolución desde inicio</p>
+            <h5 id="valor-mejora-madurez" class="text-{% if estadisticas.mejora_madurez > 0 %}success{% elif estadisticas.mejora_madurez < 0 %}danger{% else %}secondary{% endif %} mb-1">
+              {% if estadisticas.mejora_madurez > 0 %}+{% endif %}{{ "%.1f"|format(estadisticas.mejora_madurez) }}
+              {% if estadisticas.mejora_madurez > 0 %}
+              <i class="bi bi-arrow-up-circle-fill"></i>
+              {% elif estadisticas.mejora_madurez < 0 %} <i class="bi bi-arrow-down-circle-fill"></i>
+                {% else %}
+                <i class="bi bi-dash-circle"></i>
+                {% endif %}
+            </h5>
+            <small id="porcentaje_cambio_mejora" class="text-muted">
+              {% if estadisticas.madurez_promedio_inicial > 0 %}
+              {{ (((estadisticas.mejora_madurez / estadisticas.madurez_promedio_inicial) * 100) |round(1)) }}% de cambio
+              {% else %}
+              Sin baseline
+              {% endif %}
+            </small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+<!-- ===== FIN CUADRO DE MANDO ===== -->
+
+<!-- Listado de controles en monitoreo -->
+<div id="contenedor-tabla-monitoreo" class="table-responsive">
+  <table id="tabla-monitoreo" class="table table-bordered table-hover align-middle">
+    <thead id="thead-monitoreo" class="table-dark">
+      <tr>
+        <th id="th-control" class="text-center" style="min-width: 200px;">Control</th>
+        <th id="th-descripcion" class="text-center" style="min-width: 300px;">Descripción</th>
+        <th id="th-estado" class="text-center">Estado</th>
+        <th id="th-madurez-inicial" class="text-center">Madurez Inicial</th>
+        <th id="th-madurez-actual" class="text-center">Madurez Actual</th>
+        <th id="th-madurez-objetivo" class="text-center">Madurez Objetivo</th>
+        <th id="th-frecuencia" class="text-center">Frecuencia</th>
+        <th id="th-ultima-ejecucion" class="text-center">Última Ejecución</th>
+        <th id="th-proxima-ejecucion" class="text-center">Próxima Ejecución</th>
+      </tr>
+    </thead>
+    <tbody id="tbody-monitoreo">
+      {% for control in controles %}
+      <tr id="fila-control-{{ control.id_datcontmon }}" data-ayuda-control="control_monitoreo_{{ control.c_control }}">
+        <!-- Control -->
+        <td id="celda-control-{{ control.id_datcontmon }}" style="max-width: 200px; white-space: normal; word-break: break-word;">
+          <strong id="nombre-control-{{ control.id_datcontmon }}">{{ control.descripcion_control|default('—') }}</strong>
+          <div class="mt-2">
+            <button type="button" id="btn-editar-{{ control.id_datcontmon }}" class="btn btn-sm btn-primary w-100" onclick="abrirModalDetalle({{ control.id_datcontmon }})">
+              <i class="bi bi-pencil-square"></i> Editar
+            </button>
+          </div>
+        </td>
+
+        <!-- Descripción -->
+        <td id="celda-descripcion-{{ control.id_datcontmon }}" style="max-width: 220px; white-space: normal; word-break: break-word;">
+          {{ control.descripcion_detallada|default('—') }}
+        </td>
+
+        <!-- Estado -->
+        <td id="celda-estado-{{ control.id_datcontmon }}" class="text-center">{{ control.estado|default('—') }}</td>
+
+        <!-- Madurez Inicial -->
+        <td id="celda-madurez-inicial-{{ control.id_datcontmon }}" class="text-center">{{ control.madurez_inicial|default('—') }}</td>
+
+        <!-- Madurez Actual -->
+        <td id="celda-madurez-actual-{{ control.id_datcontmon }}" class="text-center">{{ control.madurez_actual|default('—') }}</td>
+
+        <!-- Madurez Objetivo -->
+        <td id="celda-madurez-objetivo-{{ control.id_datcontmon }}" class="text-center">{{ control.madurez_objetivo|default('—') }}</td>
+
+        <!-- Frecuencia -->
+        <td id="celda-frecuencia-{{ control.id_datcontmon }}" class="text-center">{{ control.frecuencia|default('—') }}</td>
+
+        <!-- Última Ejecución -->
+        <td id="celda-ultima-ejecucion-{{ control.id_datcontmon }}" class="text-center">
+          {{ control.fecha_ultima_ejecucion|default('—') }}
+        </td>
+
+        <!-- Próxima Fecha -->
+        <td id="celda-proxima-ejecucion-{{ control.id_datcontmon }}" class="text-center">
+          {{ control.fecha_proxima_ejecucion|default('—') }}
+        </td>
+      </tr>
+      {% else %}
+      <tr id="fila-sin-controles">
+        <td colspan="10" class="text-center text-muted">
+          No hay controles configurados para monitoreo en este proyecto.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Botones de navegación -->
+<div id="contenedor-navegacion-monitoreo" class="d-grid gap-3 d-md-flex justify-content-between mt-4">
+  <a id="btn-navegacion-atras" href="{{ url_for('formulario_controles') }}" class="btn btn-outline-secondary btn-lg rounded-pill">
+    ⬅ Atrás
+  </a>
+  <a id="btn-navegacion-siguiente" href="{{ url_for('formulario_fases') }}" class="btn btn-primary btn-lg rounded-pill">
+    Siguiente ➡
+  </a>
+</div>
+
+<!-- Modal de Detalle del Control - VERSIÓN COMPACTA -->
+<div class="modal fade" id="modalDetalleControl" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-xl" id="dialog-detalle-control">
+    <div class="modal-content" id="content-detalle-control">
+      <div class="modal-header bg-primary text-white" id="header-detalle-control">
+        <h5 class="modal-title text-white" id="titulo-modal-detalle">
+          <i class="bi bi-clipboard-data"></i> Detalle del Control
+        </h5>
+        <button type="button" id="btn-cerrar-detalle" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="body-detalle-control">
+
+        <input type="hidden" id="detalle_id_datcontmon" value="">
+
+        <!-- Información del Control -->
+        <div id="info-control-detalle" class="mb-3 p-2 bg-light border rounded">
+          <strong>Descripción del Control:</strong>
+          <span id="detalle_descripcion_control" class="ms-2"></span>
+        </div>
+
+        <!-- Fila 1: Estado y Responsable -->
+        <div id="fila-estado-responsable" class="row mb-3 align-items-center">
+          <div class="col-md-2">
+            <label id="label-detalle-estado" class="form-label fw-bold mb-0">Estado:</label>
+          </div>
+          <div class="col-md-2">
+            <select class="form-select form-select-sm" id="detalle_estado" onchange="guardarCampoMonitoreo('estado', this.value)">
+              <option value="">Seleccionar...</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label id="label-detalle-responsable" class="form-label fw-bold mb-0">Responsable:</label>
+          </div>
+          <div class="col-md-6">
+            <input type="text" class="form-control form-control-sm" id="detalle_responsable" placeholder="Nombre del responsable" oninput="debounceGuardarCampo('responsable', this.value)">
+          </div>
+        </div>
+
+        <!-- Fila 2: Todas las Madureces en una fila -->
+        <div id="fila-madureces" class="row mb-3 align-items-center">
+          <div class="col-md-2">
+            <label id="label-madurez-objetivo" class="form-label fw-bold mb-0">Madurez Objetivo:</label>
+          </div>
+          <div class="col-md-2">
+            <select class="form-select form-select-sm" id="detalle_madurez_objetivo" onchange="guardarCampoMonitoreo('madurez_objetivo', this.value)">
+              <option value="">Seleccionar...</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label id="label-madurez-inicial" class="form-label fw-bold mb-0">Madurez Inicial:</label>
+          </div>
+          <div class="col-md-2">
+            <input type="text" class="form-control form-control-sm" id="detalle_madurez_inicial" readonly style="background-color: #e9ecef;">
+          </div>
+          <div class="col-md-2">
+            <label id="label-madurez-actual" class="form-label fw-bold mb-0">Madurez Actual:</label>
+          </div>
+          <div class="col-md-2">
+            <select class="form-select form-select-sm" id="detalle_madurez_actual" onchange="guardarCampoMonitoreo('madurez_actual', this.value)">
+              <option value="">Seleccionar...</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Descripción de Ejecución -->
+        <div id="fila-descripcion-ejecucion" class="row mb-3 align-items-start">
+          <div class="col-md-2">
+            <label id="label-descripcion-ejecucion" class="form-label fw-bold mb-0">Descripción:</label>
+          </div>
+          <div class="col-md-10">
+            <textarea class="form-control form-control-sm" id="detalle_descripcion" rows="3" placeholder="Descripción detallada de la ejecución del control" oninput="debounceGuardarCampo('descripcion', this.value)"></textarea>
+          </div>
+        </div>
+
+        <!-- Fila 3: Frecuencia y Todas las Fechas en una fila -->
+        <div id="fila-frecuencia-fechas" class="row mb-3 align-items-center">
+          <div class="col-md-2">
+            <label id="label-frecuencia" class="form-label fw-bold mb-0">Frecuencia:</label>
+          </div>
+          <div class="col-md-2">
+            <select class="form-select form-select-sm" id="detalle_frecuencia" onchange="guardarCampoMonitoreo('frecuencia', this.value)">
+              <option value="">Seleccionar...</option>
+            </select>
+          </div>
+          <div class="col-md-2">
+            <label id="label-ultima-ejecucion" class="form-label fw-bold mb-0">Última Ejecución:</label>
+          </div>
+          <div class="col-md-2">
+            <input type="date" class="form-control form-control-sm" id="detalle_fecha_ultima" onchange="guardarCampoMonitoreo('fecha_ultima', this.value)">
+          </div>
+          <div class="col-md-2">
+            <label id="label-proxima-ejecucion" class="form-label fw-bold mb-0">Próxima Ejecución:</label>
+          </div>
+          <div class="col-md-2">
+            <input type="date" class="form-control form-control-sm" id="detalle_fecha_proxima" onchange="guardarCampoMonitoreo('fecha_proxima', this.value)">
+          </div>
+        </div>
+
+        <div id="contenedor-botones-detalle" class="d-flex justify-content-end gap-2 mb-2">
+          <button type="button" id="btn-guardar-control-completo" class="btn btn-success btn-sm" onclick="guardarControlCompleto()">
+            <i class="bi bi-save"></i> Guardar Control
+          </button>
+          <button type="button" id="btn-cerrar-modal-detalle" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+
+        <!-- Separador -->
+        <hr class="my-2">
+
+        <!-- Listado de Ejecuciones - COMPACTO -->
+        <div id="header-ejecuciones" class="d-flex justify-content-between align-items-center mb-2">
+          <h6 id="titulo-ejecuciones" class="mb-0">
+            <i class="bi bi-calendar-check"></i> Listado de Ejecuciones
+          </h6>
+          <button type="button" id="btn-nueva-ejecucion" class="btn btn-success btn-sm" onclick="abrirModalNuevaEjecucion()">
+            <i class="bi bi-plus-circle"></i> Nueva Ejecución
+          </button>
+        </div>
+
+        <!-- Tabla con máximo 4 filas visibles y scroll -->
+        <div id="contenedor-tabla-ejecuciones" class="table-responsive" style="max-height: 200px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 4px;">
+          <table class="table table-sm table-bordered table-hover mb-0" id="tabla_ejecuciones">
+            <thead id="thead-ejecuciones" class="table-light" style="position: sticky; top: 0; z-index: 10;">
+              <tr>
+                <th id="th-fecha-ejecucion" class="text-center" style="width: 120px;">Fecha</th>
+                <th id="th-observaciones-ejecucion">Observaciones</th>
+                <th id="th-acciones-ejecucion" class="text-center" style="width: 160px;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tbody_ejecuciones">
+              <tr id="fila-sin-ejecuciones">
+                <td colspan="3" class="text-center text-muted">No hay
+                  ejecuciones registradas</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Ejecución (Nueva/Editar) -->
+<div class="modal fade" id="modalEjecucion" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-lg" id="dialog-ejecucion">
+    <div class="modal-content" id="content-ejecucion">
+      <div class="modal-header" id="header-ejecucion">
+        <h5 class="modal-title" id="tituloModalEjecucion">
+          <i class="bi bi-calendar-plus"></i> Nueva Ejecución
+        </h5>
+        <button type="button" id="btn-cerrar-ejecucion" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="body-ejecucion">
+        <input type="hidden" id="ejecucion_id" value="">
+
+        <div id="grupo-fecha-ejecucion" class="mb-3">
+          <label id="label-fecha-ejecucion" class="form-label fw-bold">Fecha de Ejecución <span class="text-danger">*</span></label>
+          <input type="date" class="form-control" id="ejecucion_fecha" required>
+          <div id="ayuda-fecha-ejecucion" class="form-text">La fecha no puede ser posterior a la fecha
+            actual</div>
+        </div>
+
+        <div id="grupo-observaciones-ejecucion" class="mb-3">
+          <label id="label-observaciones-ejecucion" class="form-label fw-bold">Observaciones <span class="text-danger">*</span></label>
+          <textarea class="form-control" id="ejecucion_observaciones" rows="6" placeholder="Describa los detalles de la ejecución del control..." required></textarea>
+        </div>
+      </div>
+      <div class="modal-footer" id="footer-ejecucion">
+        <button type="button" id="btn-guardar-ejecucion" class="btn btn-primary" onclick="guardarEjecucion()">
+          <i class="bi bi-save"></i> Guardar Ejecución
+        </button>
+        <button type="button" id="btn-cancelar-ejecucion" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Éxito (Guardado) -->
+<div class="modal fade" id="modalExito" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-sm" id="dialog-exito">
+    <div class="modal-content border-success" id="content-exito">
+      <div class="modal-header bg-success text-white" id="header-exito">
+        <h5 class="modal-title text-white" id="titulo-modal-exito"><i class="bi bi-check-circle-fill me-2"></i> ¡Éxito!</h5>
+        <button type="button" id="btn-cerrar-exito" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center" id="body-exito">
+        <p class="mb-0" id="mensajeExito">Operación completada con éxito.</p>
+      </div>
+      <div class="modal-footer" id="footer-exito">
+        <button type="button" id="btn-aceptar-exito" class="btn btn-success" data-bs-dismiss="modal">Aceptar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Confirmación (Eliminación) -->
+<div class="modal fade" id="modalConfirmacion" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-sm" id="dialog-confirmacion">
+    <div class="modal-content border-danger" id="content-confirmacion">
+      <div class="modal-header bg-danger text-white" id="header-confirmacion">
+        <h5 class="modal-title text-white" id="titulo-modal-confirmacion"><i class="bi bi-exclamation-triangle-fill me-2 text-white"></i> ¿Estás seguro?</h5>
+        <button type="button" id="btn-cerrar-confirmacion" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center" id="body-confirmacion">
+        <p class="mb-0" id="mensajeConfirmacion">¿Está seguro de que desea eliminar esta ejecución?<br><strong>Esta acción no se puede deshacer.</strong></p>
+      </div>
+      <div class="modal-footer" id="footer-confirmacion">
+        <button type="button" id="btn-cancelar-confirmacion" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="btnConfirmarEliminar">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  // Inyectar el ID del sistema de forma segura
+  const ID_SISTEMA = {{ id_sistema | tojson }};
+  // Variables globales
+  let idDatcontmonActual = null;
+  let debounceTimer = null;
+
+  function abrirModalDetalle(idDatcontmon) {
+    idDatcontmonActual = idDatcontmon;
+    fetch(`/monitoreo/detalle/${idDatcontmon}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          cargarDatosDetalle(data.control);
+          cargarEjecuciones(idDatcontmon);
+          const modal = new bootstrap.Modal(document.getElementById('modalDetalleControl'));
+          modal.show();
+        } else {
+          alert('Error al cargar el detalle: ' + (data.error || 'Error desconocido'));
+        }
+      })
+      .catch(error => {
+        alert('Error de conexión al cargar el detalle');
+      });
+  }
+
+  function cargarDatosDetalle(control) {
+    document.getElementById('detalle_id_datcontmon').value = control.id_datcontmon;
+    document.getElementById('detalle_descripcion_control').textContent = control.descripcion_control || '';
+
+    const madInicialSelect = control.madureces.find(m => m.id == control.madurez_inicial_id);
+    document.getElementById('detalle_madurez_inicial').value = madInicialSelect ? madInicialSelect.texto : '';
+
+    // ✅ NUEVO: Configurar fecha de última ejecución según si hay ejecuciones
+    const inputFechaUltima = document.getElementById('detalle_fecha_ultima');
+
+    if (control.tiene_ejecuciones) {
+      // Si hay ejecuciones, mostrar la máxima fecha y deshabilitar
+      inputFechaUltima.value = control.fecha_ultima_ejecucion || '';
+      inputFechaUltima.disabled = true;
+      inputFechaUltima.style.backgroundColor = '#e9ecef';
+    } else {
+      // Si NO hay ejecuciones, dejar el campo vacío y habilitado
+      inputFechaUltima.value = ''; // ✅ Vacío
+      inputFechaUltima.disabled = false;
+      inputFechaUltima.style.backgroundColor = '';
+      // Establecer máximo a fecha de hoy para evitar futuras fechas
+      const hoy = new Date();
+      const yyyy = hoy.getFullYear();
+      const mm = String(hoy.getMonth() + 1).padStart(2, '0');
+      const dd = String(hoy.getDate()).padStart(2, '0');
+      // ✅ Establecer máximo a fecha de hoy (ya lo hacemos arriba)
+      inputFechaUltima.max = `${yyyy}-${mm}-${dd}`;
+    }
+    document.getElementById('detalle_responsable').value = control.responsable || '';
+    document.getElementById('detalle_descripcion').value = control.descripcion || '';
+
+    // Estados
+    const selectEstado = document.getElementById('detalle_estado');
+    selectEstado.innerHTML = '<option value="">Seleccionar...</option>';
+    control.estados.forEach(estado => {
+      const option = document.createElement('option');
+      option.value = estado.id;
+      option.textContent = estado.texto;
+      if (estado.id == control.estado_id) option.selected = true;
+      selectEstado.appendChild(option);
+    });
+
+    // Madureces
+    cargarSelectMadureces('detalle_madurez_actual', control.madureces, control.madurez_actual_id);
+    cargarSelectMadureces('detalle_madurez_objetivo', control.madureces, control.madurez_objetivo_id);
+
+    // Frecuencias
+    const selectFrecuencia = document.getElementById('detalle_frecuencia');
+    selectFrecuencia.innerHTML = '<option value="">Seleccionar...</option>';
+    control.frecuencias.forEach(frec => {
+      const option = document.createElement('option');
+      option.value = frec.id;
+      option.textContent = frec.texto;
+      option.setAttribute('data-codigo', frec.valor || '');
+      if (frec.id == control.frecuencia_id) option.selected = true;
+      selectFrecuencia.appendChild(option);
+    });
+
+    document.getElementById('detalle_fecha_proxima').value = control.fecha_proxima_ejecucion || '';
+    actualizarEstadoFechaProxima(control.frecuencia_codigo);
+  }
+
+  function cargarSelectMadureces(selectId, madureces, valorSeleccionado) {
+    const select = document.getElementById(selectId);
+    select.innerHTML = '<option value="">Seleccionar...</option>';
+    madureces.forEach(mad => {
+      const option = document.createElement('option');
+      option.value = mad.id;
+      option.textContent = mad.texto;
+      if (mad.id == valorSeleccionado) option.selected = true;
+      select.appendChild(option);
+    });
+  }
+
+  function actualizarEstadoFechaProxima(codigoFrecuencia) {
+    const input = document.getElementById('detalle_fecha_proxima');
+    if (codigoFrecuencia === 'P') {
+      input.disabled = false;
+      input.style.backgroundColor = '';
+    } else {
+      input.disabled = true;
+      input.style.backgroundColor = '#e9ecef';
+    }
+  }
+
+  function guardarCampoMonitoreo(campo, valor) {
+    // ✅ Validar que idDatcontmonActual esté definido y sea un número válido
+    if (!idDatcontmonActual || idDatcontmonActual <= 0) {
+      return;
+    }
+    const idDatcontmon = document.getElementById('detalle_id_datcontmon').value;
+    if (!idDatcontmon) {
+      return;
+    }
+
+    if (campo === 'frecuencia') {
+      const select = document.getElementById('detalle_frecuencia');
+      const opt = select.options[select.selectedIndex];
+      const codigo = opt.getAttribute('data-codigo');
+      actualizarEstadoFechaProxima(codigo);
+    }
+
+    fetch('/monitoreo/actualizar-campo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id_datcontmon: idDatcontmon, campo, valor })
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.success) {
+          alert('Error al guardar: ' + (data.error || 'Error desconocido'));
+        } else if (campo === 'frecuencia' && data.fecha_proxima) {
+          document.getElementById('detalle_fecha_proxima').value = data.fecha_proxima;
+        }
+      })
+      .catch(() => {});
+  }
+
+  function debounceGuardarCampo(campo, valor) {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => guardarCampoMonitoreo(campo, valor), 500);
+  }
+
+  function cargarEjecuciones(id) {
+    fetch(`/monitoreo/ejecuciones/${id}`)
+      .then(r => r.json())
+      .then(data => {
+        const tbody = document.getElementById('tbody_ejecuciones');
+        tbody.innerHTML = '';
+        if (data.ejecuciones?.length) {
+          data.ejecuciones.forEach(ej => {
+            const desc = ej.descripcion.length > 50 ? ej.descripcion.substring(0, 50) + '...' : ej.descripcion;
+            const tr = document.createElement('tr');
+            tr.id = `fila-ejecucion-${ej.id}`;
+            tr.innerHTML = `
+            <td class="text-center">${formatearFecha(ej.fecha)}</td>
+            <td>${desc}</td>
+            <td class="text-center">
+              <button class="btn btn-sm btn-primary me-1" id="btn-editar-ejecucion-${ej.id}" onclick="editarEjecucion(${ej.id})" title="Editar">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="btn btn-sm btn-danger" id="btn-eliminar-ejecucion-${ej.id}" onclick="confirmarEliminarEjecucion(${ej.id})" title="Eliminar">
+                <i class="bi bi-trash"></i>
+              </button>
+            </td>`;
+            tbody.appendChild(tr);
+          });
+        } else {
+          tbody.innerHTML = `<tr id="fila-sin-ejecuciones"><td colspan="3" class="text-center text-muted">No hay ejecuciones registradas</td></tr>`;
+        }
+      })
+      .catch(() => {});
+  }
+
+  function confirmarEliminarEjecucion(idEjecucion) {
+    // ✅ Reemplazamos confirm() por el modal de confirmación
+    document.getElementById('mensajeConfirmacion').innerHTML = '¿Está seguro de que desea eliminar esta ejecución?<br><strong>Esta acción no se puede deshacer.</strong>';
+    const modalConfirmacion = new bootstrap.Modal(document.getElementById('modalConfirmacion'));
+    modalConfirmacion.show();
+
+    // Configuramos el botón "Eliminar" del modal para que llame a eliminarEjecucion con el ID correcto
+    document.getElementById('btnConfirmarEliminar').onclick = function () {
+      eliminarEjecucion(idEjecucion); // Llamamos a la función de eliminación
+      modalConfirmacion.hide(); // Cerramos el modal después de eliminar
+    };
+  }
+
+  function eliminarEjecucion(idEjecucion) {
+    fetch(`/monitoreo/eliminar-ejecucion/${idEjecucion}`, {
+      method: 'DELETE'
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          document.getElementById('mensajeExito').textContent = 'Ejecución eliminada correctamente.';
+          const modalExito = new bootstrap.Modal(document.getElementById('modalExito'));
+          modalExito.show();
+
+          // ✅ Recargar la lista de ejecuciones en el modal
+          cargarEjecuciones(idDatcontmonActual);
+
+          // 🔄 ACTUALIZAR LA FILA EN LA TABLA PRINCIPAL DINÁMICAMENTE (similar a guardarEjecucion)
+          const fila = document.querySelector(
+            `button[onclick="abrirModalDetalle(${idDatcontmonActual})"]`
+          )?.closest('tr');
+
+          if (fila) {
+            // Obtener la última fecha de ejecución actualizada desde el servidor
+            fetch(`/monitoreo/detalle/${idDatcontmonActual}`)
+              .then(response => response.json())
+              .then(detalleData => {
+                if (detalleData.success) {
+                  // Formatear la fecha para mostrarla en la tabla
+                  const ultimaFechaFormateada = formatearFecha(detalleData.control.fecha_ultima_ejecucion);
+                  // Actualizar la celda de "Última Ejecución"
+                  fila.querySelector('td:nth-child(9)').textContent = ultimaFechaFormateada;
+
+                  // Opcional: Actualizar también la "Próxima Fecha" si es necesario
+                  const proximaFechaFormateada = formatearFecha(detalleData.control.fecha_proxima_ejecucion);
+                  fila.querySelector('td:nth-child(10)').textContent = proximaFechaFormateada;
+                }
+              })
+              .catch(err => {
+              });
+          }
+
+          // 🔄 Actualizar panel de monitoreo
+          actualizarPanelMonitoreo();
+        } else {
+          alert('❌ Error al eliminar: ' + (data.error || 'Error desconocido'));
+        }
+      })
+      .catch(err => {
+        alert('❌ Error de conexión al eliminar la ejecución');
+      });
+  }
+
+  function abrirModalNuevaEjecucion() {
+    document.getElementById('tituloModalEjecucion').innerHTML = '<i class="bi bi-calendar-plus"></i> Nueva Ejecución';
+    document.getElementById('ejecucion_id').value = '';
+    document.getElementById('ejecucion_fecha').value = new Date().toISOString().split('T')[0];
+    document.getElementById('ejecucion_observaciones').value = '';
+    new bootstrap.Modal(document.getElementById('modalEjecucion')).show();
+  }
+
+  function editarEjecucion(id) {
+    fetch(`/monitoreo/ejecucion/${id}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          document.getElementById('tituloModalEjecucion').innerHTML = '<i class="bi bi-pencil-square"></i> Editar Ejecución';
+          document.getElementById('ejecucion_id').value = data.ejecucion.id;
+          document.getElementById('ejecucion_fecha').value = data.ejecucion.fecha;
+          document.getElementById('ejecucion_observaciones').value = data.ejecucion.descripcion;
+          new bootstrap.Modal(document.getElementById('modalEjecucion')).show();
+        }
+      })
+      .catch(() => {});
+  }
+
+
+  function guardarEjecucion() {
+    const idEjec = document.getElementById('ejecucion_id').value;
+    const fecha = document.getElementById('ejecucion_fecha').value;
+    const obs = document.getElementById('ejecucion_observaciones').value.trim();
+
+    if (!fecha || !obs) {
+      alert('⚠️ La fecha y las observaciones son obligatorias');
+      return;
+    }
+
+    fetch('/monitoreo/guardar-ejecucion', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id_datcontmon: idDatcontmonActual,
+        id_ejecucion: idEjec || null,
+        fecha,
+        descripcion: obs
+      })
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          // ✅ Cerrar el modal de ejecución
+          bootstrap.Modal.getInstance(document.getElementById('modalEjecucion')).hide();
+
+          // ✅ Recargar lista de ejecuciones en el modal
+          cargarEjecuciones(idDatcontmonActual);
+
+          // ✅ Actualizar fecha próxima si viene en la respuesta
+          if (data.proxima_fecha) {
+            document.getElementById('detalle_fecha_proxima').value = data.proxima_fecha;
+          }
+
+          // ✅ ACTUALIZAR LA FILA EN LA TABLA PRINCIPAL DINÁMICAMENTE
+          // Buscar la fila correspondiente en la tabla principal por su ID_DATCONTMON
+          const fila = document.querySelector(
+            `button[onclick="abrirModalDetalle(${idDatcontmonActual})"]`
+          )?.closest('tr');
+
+          if (fila) {
+            // Obtener la última fecha de ejecución desde el servidor
+            // Hacemos una llamada adicional para obtener la fecha más reciente
+            fetch(`/monitoreo/detalle/${idDatcontmonActual}`)
+              .then(response => response.json())
+              .then(detalleData => {
+                if (detalleData.success) {
+                  // Formatear la fecha para mostrarla en la tabla
+                  const ultimaFechaFormateada = formatearFecha(detalleData.control.fecha_ultima_ejecucion);
+                  // Actualizar la celda de "Última Ejecución"
+                  fila.querySelector('td:nth-child(9)').textContent = ultimaFechaFormateada;
+
+                  // Opcional: Actualizar también la "Próxima Fecha" si es necesario
+                  const proximaFechaFormateada = formatearFecha(detalleData.control.fecha_proxima_ejecucion);
+                  fila.querySelector('td:nth-child(10)').textContent = proximaFechaFormateada;
+                }
+              })
+              .catch(err => {
+              });
+          }
+
+          // 🔄 Actualizar panel de monitoreo
+          actualizarPanelMonitoreo();
+          alert('✅ Ejecución guardada correctamente');
+        } else {
+          alert('❌ Error al guardar: ' + (data.error || 'Error desconocido'));
+        }
+      })
+      .catch(err => {
+        alert('❌ Error de conexión al guardar la ejecución');
+      });
+  }
+  // Guardar todo el control de una vez
+  function guardarControlCompleto() {
+    const idDatcontmon = document.getElementById('detalle_id_datcontmon').value;
+    if (!idDatcontmon) {
+      alert("⚠️ No se puede guardar: control no identificado.");
+      return;
+    }
+    // ✅ Validar fecha última si está habilitada (sin ejecuciones previas)
+    const inputFechaUltima = document.getElementById('detalle_fecha_ultima');
+    const fechaUltima = inputFechaUltima.value;
+    if (!inputFechaUltima.disabled && fechaUltima) {
+      const [year, month, day] = fechaUltima.split('-').map(Number);
+      const fechaUltimaObj = new Date(year, month - 1, day);
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+      if (fechaUltimaObj > hoy) {
+        alert('⚠️ La fecha de última ejecución no puede ser posterior a la fecha actual');
+        return;
+      }
+    }
+    const datos = {
+      id_datcontmon: idDatcontmon,
+      estado: document.getElementById('detalle_estado').value || null,
+      responsable: document.getElementById('detalle_responsable').value.trim() || "",
+      madurez_actual: document.getElementById('detalle_madurez_actual').value || null,
+      madurez_objetivo: document.getElementById('detalle_madurez_objetivo').value || null,
+      frecuencia: document.getElementById('detalle_frecuencia').value || null,
+      descripcion: document.getElementById('detalle_descripcion').value.trim() || "",
+      fecha_proxima: document.getElementById('detalle_fecha_proxima').value || "",
+      fecha_ultima: inputFechaUltima.disabled ? null : (fechaUltima || null)
+    };
+    fetch('/monitoreo/guardar-control', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(datos)
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          document.getElementById('mensajeExito').textContent = 'Control guardado correctamente.';
+          const modalExito = new bootstrap.Modal(document.getElementById('modalExito'));
+          modalExito.show();
+          // 🔄 Recargar datos del modal
+          recargarDatosModal(idDatcontmon);
+          // 🔄 Actualizar panel de monitoreo
+          actualizarPanelMonitoreo();
+          // ✅ ACTUALIZAR LA FILA EN LA TABLA PRINCIPAL SIN RECARGAR LA PÁGINA
+          const fila = document.querySelector(
+            `button[onclick="abrirModalDetalle(${idDatcontmon})"]`
+          )?.closest('tr');
+          if (fila && data.control_actualizado) {
+            const c = data.control_actualizado;
+            // Estado → columna 3
+            fila.querySelector('td:nth-child(3)').textContent = c.estado || '—';
+            // Madurez Inicial → columna 4
+            fila.querySelector('td:nth-child(4)').textContent = c.madurez_inicial || '—';
+            // Madurez Actual → columna 5
+            fila.querySelector('td:nth-child(5)').textContent = c.madurez_actual || '—';
+            // Madurez Objetivo → columna 6
+            fila.querySelector('td:nth-child(6)').textContent = c.madurez_objetivo || '—';
+            // Frecuencia → columna 7
+            fila.querySelector('td:nth-child(7)').textContent = c.frecuencia || '—';
+            // Última Ejecución → columna 8
+            fila.querySelector('td:nth-child(8)').textContent = formatearFecha(c.fecha_ultima_ejecucion);
+            // Próxima Ejecución → columna 9
+            fila.querySelector('td:nth-child(9)').textContent = formatearFecha(c.fecha_proxima_ejecucion);
+          }
+        } else {
+          alert('❌ Error al guardar: ' + (data.error || 'Error desconocido'));
+        }
+      })
+      .catch(error => {
+        alert('❌ Error de conexión al guardar el control');
+      });
+  }
+
+
+  // --- Función auxiliar para formatear la fecha ---
+  function formatearFecha(fechaStr) {
+    if (!fechaStr) return '—'; // Devuelve '—' si no hay fecha
+    const fecha = new Date(fechaStr + 'T00:00:00'); // Añadir tiempo para evitar errores de zona horaria
+    // Verificar si la fecha es válida
+    if (isNaN(fecha.getTime())) {
+      return '—'; // O puedes retornar fechaStr si prefieres mostrarla como está
+    }
+    const dia = String(fecha.getDate()).padStart(2, '0');
+    const mes = String(fecha.getMonth() + 1).padStart(2, '0'); // Los meses son 0-indexados
+    const anio = fecha.getFullYear();
+    return `${dia}/${mes}/${anio}`;
+  }
+  // --- Fin de la función auxiliar ---
+
+  function recargarDatosModal(idDatcontmon) {
+    // Recargar datos del control sin cerrar/abrir el modal
+    fetch(`/monitoreo/detalle/${idDatcontmon}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Actualizar solo los campos que pueden haber cambiado
+          cargarDatosDetalle(data.control);
+          cargarEjecuciones(idDatcontmon);
+        }
+      })
+      .catch(error => {
+      });
+  }
+
+  function actualizarPanelMonitoreo() {
+    // Validar que ID_SISTEMA sea un número válido
+    if (typeof ID_SISTEMA !== 'number' || ID_SISTEMA <= 0) {
+      return;
+    }
+
+    fetch(`/api/estadisticas_monitoreo/${ID_SISTEMA}`)
+      .then(response => {
+        if (!response.ok) throw new Error('Error en la respuesta del servidor');
+        return response.json();
+      })
+      .then(data => {
+        // === Actualizar los 4 indicadores principales (usando <span.fw-bold>) ===
+        const indicadores = document.querySelectorAll('.row.g-2.mb-3 .col-md-3 .fw-bold');
+        if (indicadores.length >= 4) {
+          indicadores[0].textContent = data.total_controles;
+          indicadores[1].textContent = data.controles_activos;
+          indicadores[2].textContent = data.controles_suspendidos;
+          // El cuarto incluye un ícono, así que lo reconstruimos
+          indicadores[3].innerHTML = `<i class="bi bi-calendar-event me-1"></i> ${data.controles_proxima_ejecucion}`;
+        }
+
+        // === Actualizar Madurez Inicial, Actual y Mejora (usando la fila .row.g-3) ===
+        const filaMadurez = document.querySelector('.row.g-3');
+        if (!filaMadurez) {
+          return;
+        }
+
+        const cols = filaMadurez.querySelectorAll('.col-md-4');
+        if (cols.length < 3) {
+          return;
+        }
+
+        // Madurez Inicial
+        const h5Inicial = cols[0].querySelector('h5');
+        const barraInicial = cols[0].querySelector('.progress-bar');
+        if (h5Inicial && barraInicial) {
+          h5Inicial.textContent = data.madurez_promedio_inicial.toFixed(1);
+          barraInicial.style.width = `${(data.madurez_promedio_inicial / 4 * 100).toFixed(1)}%`;
+        }
+
+        // Madurez Actual
+        const h5Actual = cols[1].querySelector('h5');
+        const barraActual = cols[1].querySelector('.progress-bar');
+        if (h5Actual && barraActual) {
+          h5Actual.textContent = data.madurez_promedio_actual.toFixed(1);
+          barraActual.style.width = `${(data.madurez_promedio_actual / 4 * 100).toFixed(1)}%`;
+        }
+
+        // Mejora
+        const mejoraCard = cols[2].querySelector('.card');
+        const mejoraH5 = cols[2].querySelector('h5');
+        const mejoraSmall = document.getElementById('porcentaje_cambio_mejora');
+
+        if (!mejoraCard || !mejoraH5 || !mejoraSmall) {
+          return;
+        }
+
+        // Limpiar clases de borde anteriores
+        mejoraCard.className = mejoraCard.className.replace(/border-\w+/g, '');
+
+        let textoMejora = data.mejora_madurez.toFixed(1);
+        let icono = 'bi-dash-circle';
+        let color = 'text-secondary';
+        let borde = 'border-secondary';
+
+        if (data.mejora_madurez > 0) {
+          textoMejora = '+' + textoMejora;
+          icono = 'bi-arrow-up-circle-fill';
+          color = 'text-success';
+          borde = 'border-success';
+        } else if (data.mejora_madurez < 0) {
+          icono = 'bi-arrow-down-circle-fill';
+          color = 'text-danger';
+          borde = 'border-danger';
+        }
+
+        mejoraH5.innerHTML = textoMejora + ' <i class="bi ' + icono + '"></i>';
+        mejoraH5.className = color + ' mb-1';
+        mejoraCard.classList.add(borde);
+
+        // Actualizar porcentaje de cambio
+        if (data.madurez_promedio_inicial > 0) {
+          const pct = ((data.mejora_madurez / data.madurez_promedio_inicial) * 100).toFixed(1);
+          mejoraSmall.textContent = `${pct}% de cambio`;
+        } else {
+          mejoraSmall.textContent = 'Sin baseline';
+        }
+      })
+      .catch(error => {
+      });
+  }
+</script>
+
+{% endblock %}

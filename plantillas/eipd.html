@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EIPD Completa - Sistemas de Inteligencia Artificial</title>
+    <style>
+        @page {
+            margin: 2cm;
+            size: A4;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 11pt;
+            line-height: 1.4;
+            color: #333;
+            max-width: 210mm;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            padding: 0;
+            box-shadow: none;
+        }
+        
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #2e7d32;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .logo-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .ctpda-logo {
+            font-size: 12pt;
+            color: #666;
+            text-align: left;
+        }
+        
+        h1 {
+            font-size: 16pt;
+            color: #2e7d32;
+            margin: 15px 0 5px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .section {
+            margin-bottom: 25px;
+            page-break-inside: avoid;
+        }
+        
+        .section-title {
+            font-size: 13pt;
+            font-weight: bold;
+            color: #2e7d32;
+            background-color: #f5f5f5;
+            padding: 8px 12px;
+            margin-bottom: 15px;
+            border-left: 4px solid #2e7d32;
+        }
+        
+        .subsection {
+            margin-bottom: 20px;
+            padding: 15px 0;
+        }
+        
+        .subsection-title {
+            font-size: 11pt;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 15px;
+            background-color: #f5f5f5;
+            padding: 8px 12px;
+            border-left: 4px solid #2e7d32;
+        }
+        
+        /* Nueva clase para contenido de texto - reemplaza textarea */
+        .field-content {
+            border: 1px solid #666;
+            background: white;
+            display: block;
+            width: 100%;
+            min-height: 60px;
+            margin: 10px 0;
+            padding: 8px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 11pt;
+            line-height: 1.4;
+            box-sizing: border-box;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        /* Mantener textarea por compatibilidad pero con auto-ajuste */
+        .field-text-area {
+            border: 1px solid #666;
+            background: white;
+            display: block;
+            width: 100%;
+            min-height: 80px;
+            margin: 10px 0;
+            padding: 8px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 11pt;
+            line-height: 1.4;
+            resize: vertical;
+        }
+        
+        .instruction {
+            font-style: italic;
+            color: #666;
+            margin: 8px 0;
+            padding: 8px 10px;
+            background: #f8f9fa;
+            border-radius: 3px;
+            border-left: 3px solid #666;
+            font-size: 10pt;
+        }
+        
+        .source-reference {
+            color: #0056b3;
+            font-weight: bold;
+            font-family: monospace;
+            background: #e7f3ff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin: 0 2px;
+            font-size: 10pt;
+        }
+        
+        .adi-reference {
+            color: #6f42c1;
+            font-weight: bold;
+            font-family: monospace;
+            background: #f0eaff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin: 0 2px;
+            font-size: 10pt;
+        }
+        
+        .field {
+            margin-bottom: 15px;
+        }
+        
+        .field-label {
+            font-weight: 500;
+            margin-bottom: 3px;
+        }
+        
+        p strong {
+            color: #2e7d32;
+            font-weight: bold;
+        }
+
+        .risk-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .risk-table th, .risk-table td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: center;
+        }
+        .risk-table th {
+            background-color: #f5f5f5;
+            color: #2e7d32;
+            font-weight: bold;
+        }
+        .risk-table td {
+            background-color: #fff;
+        }
+        
+        .recommendation-box {
+            border: 1px solid #ddd;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .recommendation-box p {
+            margin-top: 0;
+        }
+
+        .checkbox-label {
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .checkbox {
+            width: 14px;
+            height: 14px;
+            border: 1.5px solid #333;
+            display: inline-block;
+            margin-right: 8px;
+            vertical-align: middle;
+            text-align: center;
+            line-height: 12px;
+            font-size: 11pt;
+            font-weight: bold;
+            color: #2e7d32;
+        }
+        
+        .footer {
+            font-size: 9pt;
+            color: #666;
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+        }
+        
+        .page-break {
+            page-break-before: always;
+        }
+        
+        @media print {
+            body { margin: 0; padding: 0; }
+            .page-break { page-break-before: always; }
+            .field-content {
+                overflow: visible;
+                height: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>EVALUACIÓN DE IMPACTO EN PROTECCIÓN DE DATOS<br>SISTEMAS DE INTELIGENCIA ARTIFICIAL</h1>
+        </div>
+
+        <!-- SECCIÓN 1: DESCRIPCIÓN SISTEMÁTICA DE LOS TRATAMIENTOS -->
+        <div class="section">
+            <div class="section-title">SECCIÓN 1: DESCRIPCIÓN SISTEMÁTICA DE LOS TRATAMIENTOS (Art. 35.7.a RGPD)</div>
+            
+            <div class="subsection">
+                <div class="subsection-title">1.1: CONTEXTO GENERAL Y FINALIDAD</div>
+
+                <div class="field">
+                    <p><strong>1.1.1. Identificación del proyecto y necesidad pública:</strong></p>
+                    <div class="field-content">{{1.1.1}}</div>
+                    <div class="instruction">Fuente: <span class="source-reference">ED 1.1</span></div>
+                </div>
+
+                <div class="field">
+                    <p><strong>1.1.2. Actividades de tratamiento y finalidades específicas:</strong></p>
+                    <div class="field-content">{{1.1.2}}</div>
+                    <div class="instruction">Fuentes: <span class="source-reference">ED 4.2</span> (Actividades) y <span class="source-reference">ED 4.3</span> (Finalidades)</div>
+                </div>
+
+                <div class="field">
+                    <p><strong>1.1.3. Bases jurídicas (Art. 6 RGPD) para cada finalidad:</strong></p>
+                    <div class="field-content">{{1.1.3}}</div>
+                    <div class="instruction">Fuente: <span class="source-reference">ED 4.5</span></div>
+                </div>
+                
+                <div class="field">
+                    <p><strong>1.1.4. Consulta a los interesados (Art. 35.9 RGPD):</strong></p>
+                    <div class="field-content">{{1.1.4}}</div>
+                    <div class="instruction">Fuente: <span class="source-reference">Conclusión del responsable del tratamiento.</span></div>
+                </div>
+            </div>
+
+            <div class="subsection">
+                <div class="subsection-title">1.2: DESCRIPCIÓN TÉCNICA Y OPERATIVA</div>
+                
+                <div class="field">
+                    <p><strong>1.2.1. Tipo de tecnología y justificación de su uso:</strong></p>
+                    <div class="field-content">{{1.2.1}}</div>
+                    <div class="instruction">Fuentes: <span class="source-reference">ED 5.1</span> (Tipo de tecnología) y <span class="source-reference">ED 1.2</span> (Justificación del uso de IA)</div>
+                </div>
+
+                <div class="field">
+                    <p><strong>1.2.2. Funcionalidades principales del SIA:</strong></p>
+                    <div class="field-content">{{1.2.2}}</div>
+                    <div class="instruction">Fuente: <span class="source-reference">ED 5.2</span></div>
+                </div>
+                
+                <div class="field">
+                    <p><strong>1.2.3. Limitaciones conocidas del SIA:</strong></p>
+                    <div class="field-content">{{1.2.3}}</div>
+                    <div class="instruction">Fuente: <span class="source-reference">ED 5.3</span></div>
+                </div>
+
+                <div class="field">
+                    <p><strong>1.2.4. Alcance de las decisiones automatizadas (Art. 22 RGPD):</strong></p>
+                    <div class="field-content">{{1.2.4}}</div>
+                    <div class="instruction">Fuente: <span class="source-reference">ED 1.5</span></div>
+                </div>
+
+                <div class="field">
+                    <p><strong>1.2.5. Clasificación según el Reglamento de IA:</strong></p>
+                    <div class="field-content">{{1.2.5}}</div>
+                    <div class="instruction">Fuentes: <span class="source-reference">ED 6.1</span> y <span class="source-reference">ED 6.2</span></div>
+                </div>
+            </div>
+
+            <div class="subsection">
+                <div class="subsection-title">1.3: NATURALEZA Y ALCANCE DE LOS TRATAMIENTOS</div>
+
+                <div class="field">
+                    <p><strong>1.3.1. Categorías de datos personales tratados:</strong></p>
+                    <div class="field-content">{{1.3.1}}</div>
+                    <div class="instruction">Fuente: <span class="source-reference">ED 4.6</span></div>
+                </div>
+
+                <div class="field">
+                    <p><strong>1.3.2. Tratamiento de categorías especiales (Art. 9 y 10 RGPD):</strong></p>
+                    <div class="field-content">{{1.3.2}}</div>
+                    <div class="instruction">Fuente: <span class="source-reference">ED 4.7</span></div>
+                </div>
+                
+                <div class="field">
+                    <p><strong>1.3.3. Colectivos afectados y análisis de vulnerabilidad:</strong></p>
+                    <div class="field-content">{{1.3.3}}</div>
+                    <div class="instruction">Fuente: <span class="source-reference">ED 4.4</span></div>
+                </div>
+
+                <div class="field">
+                    <p><strong>1.3.4. Plazos de conservación:</strong></p>
+                    <div class="field-content">{{1.3.4}}</div>
+                    <div class="instruction">Fuente: <span class="source-reference">ED 4.8</span></div>
+                </div>
+            </div>
+
+            <div class="subsection">
+                <div class="subsection-title">1.4: ACTORES Y FLUJOS DE DATOS</div>
+
+                <div class="field">
+                    <p><strong>1.4.1. Actores y responsabilidades (Responsable, Encargados, etc.):</strong></p>
+                    <div class="field-content">{{1.4.1}}</div>
+                    <div class="instruction">Fuentes: <span class="source-reference">ED 3.1</span> y <span class="source-reference">ED 3.3</span></div>
+                </div>
+                
+                <div class="field">
+                    <p><strong>1.4.2. Flujo de datos y arquitectura de interconexión:</strong></p>
+                    <div class="field-content">{{1.4.2}}</div>
+                    <div class="instruction">Fuentes: <span class="source-reference">ED 4.9</span> (Flujo) y <span class="source-reference">ED 5.4</span> (Arquitectura). </div>
+                </div>
+
+                <div class="field">
+                    <p><strong>1.4.3. Transferencias internacionales de datos:</strong></p>
+                    <div class="field-content">{{1.4.3}}</div>
+                    <div class="instruction">Fuente: <span class="source-reference">ED 4.10</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 2: EVALUACIÓN DE NECESIDAD Y PROPORCIONALIDAD -->
+        <div class="page-break"></div>
+        <div class="section">
+            <div class="section-title">SECCIÓN 2: EVALUACIÓN DE NECESIDAD Y PROPORCIONALIDAD (Art. 35.7.b RGPD)</div>
+            
+            <div class="subsection">
+                <div class="subsection-title">2.1. Juicio de necesidad del tratamiento</div>
+                
+                <div class="field">
+                    <p><strong>2.1.1. Justificación de la idoneidad y necesidad de los tratamientos con el SIA</strong></p>
+                    <div class="field-content">{{2.1.1}}</div>
+                    <div class="instruction">
+                        <strong>Fuentes:</strong> 
+                        <span class="source-reference">ED 1.1</span>, 
+                        <span class="source-reference">ED 1.2</span>,
+                        <span class="source-reference">ED 2.1</span>						
+                    </div>
+                </div>
+
+                <div class="field">
+                    <p><strong>2.1.2. Análisis de alternativas consideradas</strong></p>
+                    <div class="field-content">{{2.1.2}}</div>
+                    <div class="instruction">
+                        <strong>Fuentes:</strong> 
+                        <span class="source-reference">ED 1.3</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="subsection">
+                <div class="subsection-title">2.2. Juicio de proporcionalidad del tratamiento</div>
+
+                <div class="field">
+                    <p><strong>2.2.1. Proporcionalidad de los datos: análisis del principio de minimización (Art. 5.1.c RGPD)</strong></p>
+                    <div class="field-content">{{2.2.1}}</div>
+                    <div class="instruction">
+                        <strong>Fuente Principal:</strong> <span class="source-reference">ED 4.6</span>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <p><strong>2.2.2. Proporcionalidad temporal: análisis de la limitación del plazo de conservación (Art. 5.1.e RGPD)</strong></p>
+                    <div class="field-content">{{2.2.2}}</div>
+                    <div class="instruction">
+                        <strong>Fuentes:</strong> 
+                        <span class="source-reference">ED 4.8</span>, 
+                        <span class="source-reference">ED 2.1</span>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <p><strong>2.2.3. Proporcionalidad de las medidas: garantías para los derechos de los interesados</strong></p>
+                    <div class="field-content">{{2.2.3}}</div>
+                </div>
+
+                <div class="field">
+                    <p><strong>2.2.4. Ponderación final y juicio de proporcionalidad en sentido estricto</strong></p>
+                    <div class="field-content">{{2.2.4}}</div>
+                    <div class="instruction">
+                        <p><strong>Fuentes:</strong> Referencias cruzadas a la <strong>Sección 2.1</strong> (Beneficios), <strong>Sección 3</strong> (Riesgos) y <strong>Sección 4</strong> (Medidas) de esta EIPD.</p>
+                        <strong>Nota sobre el proceso:</strong> La redacción definitiva del juicio de ponderación debe realizarse al <strong>final de la Fase 3</strong>, una vez que la evaluación de riesgos (Sección 3) y la implementación de medidas (Sección 4) estén completas y se tenga una visión global del impacto residual y las garantías efectivas.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 3: EVALUACIÓN DE LOS RIESGOS -->
+        <div class="page-break"></div>
+        <div class="section">
+            <div class="section-title">SECCIÓN 3: EVALUACIÓN DE LOS RIESGOS PARA LOS DERECHOS Y LIBERTADES (Art. 35.7.c RGPD)</div>
+            
+            <div class="subsection">
+                <div class="subsection-title">3.1. Metodología de análisis de riesgos aplicada</div>
+                
+                <div class="field">
+                    <div class="field-content">{{SEC3.1}}</div>
+                    <div class="instruction">
+                        <strong>Fuentes:</strong> 
+                        <span class="source-reference">Análisis y Gestión de Riesgos</span>, 
+                        <span class="source-reference">Asistente a la Decisión Inicial</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="subsection">
+                <div class="subsection-title">3.2. Resumen cuantitativo de los resultados</div>
+
+                <div class="field">
+                    <p>Visión de alto nivel del resultado del proceso de gestión de riesgos, mostrando la distribución de los mismos antes y después de aplicar las medidas de mitigación.</p>
+                    <table class="risk-table">
+                        <thead>
+                            <tr>
+                                <th>Nivel de Criticidad</th>
+                                <th>Riesgos Inherentes (Nº)</th>
+                                <th>Riesgos Residuales (Nº)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>CRÍTICO</strong></td>
+                                <td>{{R_CRITICO_I}}</td>
+                                <td>{{R_CRITICO_R}}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>ALTO</strong></td>
+                                <td>{{R_ALTO_I}}</td>
+                                <td>{{R_ALTO_R}}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>MEDIO</strong></td>
+                                <td>{{R_MEDIO_I}}</td>
+                                <td>{{R_MEDIO_R}}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>BAJO</strong></td>
+                                <td>{{R_BAJO_I}}</td>
+                                <td>{{R_BAJO_R}}</td>
+                            </tr>
+                            <tr>
+                                <th>TOTAL ANALIZADO</th>
+                                <th>{{R_TOTAL_I}}</th>
+                                <th>{{R_TOTAL_R}}</th>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="instruction">
+                        <strong>Nota sobre el proceso:</strong> La columna "Riesgos Inherentes" se completa al finalizar la <strong>Fase 2</strong> de la metodología (Diseño avanzado / Pre-Licitación). La columna "Riesgos Residuales" se completa al finalizar la <strong>Fase 3</strong> (Desarrollo y preparación), una vez evaluada la madurez de los controles implementados. Como requisito para la puesta en producción, ningún riesgo residual debe permanecer en nivel ALTO o CRÍTICO.
+                    </div>
+                </div>
+            </div>
+
+            <div class="subsection">
+                <div class="subsection-title">3.3. Nivel de Riesgo Global de los Tratamientos</div>
+                
+                <div class="field">
+                    <div class="field-content">{{riesgoglobal}}</div>
+                </div>
+            </div>
+
+
+            <div class="subsection">
+                <div class="subsection-title">3.4. Descripción de los principales riesgos identificados</div>
+                
+                <div class="field">
+                    <div class="field-content">{{SEC3.4}}</div>
+                    <div class="instruction">
+                        <strong>Fuente:</strong> 
+                        <span class="source-reference">Análisis y Gestión de Riesgos</span> 
+                    </div>
+                </div>
+            </div>
+
+            <div class="subsection">
+                <div class="subsection-title">3.5. Conclusión del análisis y juicio de aceptabilidad del riesgo</div>
+
+                <div class="field">
+                    <div class="field-content">{{SEC3.5}}</div>
+                    <div class="instruction">
+                        <strong>Fuentes:</strong> Este apartado es una <strong>conclusión que se formaliza al final de la Fase 3</strong> basada en los resultados de esta sección 3, y sirve como transición a la sección 4.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 4: MEDIDAS PREVISTAS PARA AFRONTAR LOS RIESGOS -->
+        <div class="page-break"></div>
+        <div class="section">
+            <div class="section-title">SECCIÓN 4: MEDIDAS PREVISTAS PARA AFRONTAR LOS RIESGOS (Art. 35.7.d RGPD)</div>
+            
+            <div class="instruction" style="border-left-color: #2e7d32; color: #155724; background-color: #d4edda;">
+                <strong>Nota sobre el proceso:</strong> Esta sección se cumplimenta en dos momentos. Al <strong>final de la Fase 2</strong>, se realiza una planificación preliminar de las medidas. Al <strong>final de la Fase 3</strong>, se documenta la versión definitiva de las medidas efectivamente implementadas y evaluadas.
+            </div>
+
+            <div class="subsection">
+                <div class="subsection-title">4.1. Marco general de mitigación de riesgos</div>
+                
+                <div class="field">
+                    <div class="field-content">{{SEC4.1}}</div>
+                    <div class="instruction">
+                        <strong>Fuentes:</strong> <span class="source-reference">Grupos de controles cumplimiento</span> y resultados de la Fase 3 de la metodología.
+                    </div>
+                </div>
+            </div>
+
+            <div class="subsection">
+                <div class="subsection-title">4.2. Resumen cuantitativo de los controles implementados</div>
+
+                <div class="field">
+                    <p>La siguiente tabla resume el esfuerzo de mitigación realizado, en función del nivel de exigencia del proyecto.</p>
+                    <table class="risk-table" style="width: 80%; margin-left: auto; margin-right: auto;">
+                        <thead>
+                            <tr>
+                                <th>Perfil de Cumplimiento Asignado</th>
+                                <th>Controles Totales Aplicados (Nº)</th>
+                                <th>Nivel de Madurez Medio Alcanzado (Escala 1-4)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>{{PERFIL}}</td>
+                                <td>{{NUM_CONTROLES}}</td>
+                                <td>{{MADUREZ_MEDIA}}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="instruction">
+                        <strong>Fuentes:</strong> Resultado del <span class="source-reference">Perfil de Cumplimiento (ADI)</span> y cómputo final de la evaluación de madurez de controles en la Fase 3.
+                    </div>
+                </div>
+            </div>
+
+            <div class="subsection">
+                <div class="subsection-title">4.3. Descripción de las medidas por área de protección</div>
+                <p>Principales salvaguardas implementadas, agrupadas por temáticas de protección de datos. El detalle exhaustivo de cada control está disponible en los Grupos de Control.</p>
+                <div class="instruction" style="border-left-color: #ff9800;">
+                    <strong>Guía de cumplimentación por fases:</strong>
+                    <ul style="margin: 0; padding-left: 20px;">
+                        <li><strong>Al finalizar la Fase 2 (Planificación):</strong> Describa de forma preliminar las medidas que se planea implementar para esta área de protección.</li>
+                        <li><strong>Al finalizar la Fase 3 (Versión Definitiva):</strong> Realice la descripción final de las medidas efectivamente implementadas, su funcionamiento y su nivel de eficacia (madurez), basándose en los resultados de la evaluación de controles.</li>
+                    </ul>
+                </div>
+                
+                <div class="field">
+                    <p><strong>4.3.1. Gobernanza, gestión de riesgos y responsabilidad proactiva</strong></p>
+                    <div class="field-content">{{4.3.1}}</div>
+                </div>
+                
+                <div class="field">
+                    <p><strong>4.3.2. Cumplimiento normativo y derechos de los interesados</strong></p>
+                    <div class="field-content">{{4.3.2}}</div>
+                </div>
+                
+                <div class="field">
+                    <p><strong>4.3.3. Gobernanza del dato (calidad, minimización, anonimización)</strong></p>
+                    <div class="field-content">{{4.3.3}}</div>
+                </div>
+                
+                <div class="field">
+                    <p><strong>4.3.4. Seguridad, continuidad e incidentes</strong></p>
+                    <div class="field-content">{{4.3.4}}</div>
+                </div>
+                
+                <div class="field">
+                    <p><strong>4.3.5. Equidad, sesgos y no discriminación</strong></p>
+                    <div class="field-content">{{4.3.5}}</div>
+                </div>
+                
+                <div class="field">
+                    <p><strong>4.3.6. Transparencia, documentación y explicabilidad</strong></p>
+                    <div class="field-content">{{4.3.6}}</div>
+                </div>
+                
+                <div class="field">
+                    <p><strong>4.3.7. Supervisión humana y control operativo</strong></p>
+                    <div class="field-content">{{4.3.7}}</div>
+                </div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-title">4.4. Juicio sobre la suficiencia de las medidas</div>
+
+                <div class="field">
+                    <div class="field-content">{{SEC4.4}}</div>
+                    <div class="instruction">
+                        <strong>Fuente:</strong> Conclusión que se formaliza <strong>al final de la Fase 3</strong> basada en los resultados de las Secciones 3 y 4.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 5: VALORACIÓN Y ASESORAMIENTO DEL DPD -->
+        <div class="page-break"></div>
+        <div class="section">
+            <div class="section-title">SECCIÓN 5: VALORACIÓN Y ASESORAMIENTO DEL DELEGADO DE PROTECCIÓN DE DATOS (DPD)</div>
+            
+            <div class="instruction" style="border-left-color: #2e7d32; color: #155724; background-color: #d4edda;">
+                <strong>Nota sobre el proceso:</strong> Esta sección es cumplimentada por el Delegado de Protección de Datos (DPD) al <strong>final de la Fase 3</strong>.
+            </div>
+
+            <div class="subsection">
+                <div class="subsection-title">5.1. Participación y alcance de la supervisión</div>
+                
+                <div class="field">
+                    <div class="field-content">{{SEC5.1}}</div>
+                    <div class="instruction">
+                        Este apartado documenta que el DPD ha participado de forma adecuada y en tiempo oportuno, en cumplimiento de los Art. 35.2 y 38.1 del RGPD.
+                    </div>
+                </div>
+            </div>
+
+            <div class="subsection">
+                <div class="subsection-title">5.2. Valoración sobre los riesgos residuales y la suficiencia de las medidas</div>
+
+                <div class="field">
+                    <div class="field-content">{{SEC5.2}}</div>
+                    <div class="instruction">
+                        Esta valoración refleja la función supervisora del DPD, conforme al Art. 39.1.b del RGPD.
+                    </div>
+                </div>
+            </div>
+
+            <div class="subsection">
+                <div class="subsection-title">5.3. Recomendaciones y condiciones</div>
+                
+                <div class="field">
+                    <div class="field-content">{{SEC5.3}}</div>
+                    <div class="instruction">
+                        Este apartado materializa la función de asesoramiento del DPD, conforme al Art. 39.1.a del RGPD.
+                    </div>
+                </div>
+            </div>
+            
+            <div class="subsection">
+                <div class="subsection-title">5.4. Recomendación final del Delegado de Protección de Datos</div>
+                <div class="field">
+                    <div class="recommendation-box">
+                        <p>A la vista del análisis contenido en la presente Evaluación de Impacto, el Delegado de Protección de Datos emite la siguiente recomendación al responsable del tratamiento:</p>
+                        <div class="checkbox-label">
+                            <span class="checkbox">{{SEC5.4A}}</span><strong>RECOMENDACIÓN FAVORABLE:</strong> Se considera que los tratamientos descritos, con las medidas implementadas, son conformes a la normativa y que los riesgos residuales son aceptables.
+                        </div>
+                        <div class="checkbox-label">
+                            <span class="checkbox">{{SEC5.4B}}</span><strong>RECOMENDACIÓN FAVORABLE CONDICIONADA:</strong> Se recomienda proceder con el tratamiento, siempre y cuando se implementen de forma efectiva las condiciones detalladas en el apartado 5.3.
+                        </div>
+                        <div class="checkbox-label">
+                            <span class="checkbox">{{SEC5.4C}}</span><strong>RECOMENDACIÓN DE REVISIÓN:</strong> Se considera que el tratamiento, tal y como está planteado, presenta riesgos para los derechos y libertades que no han sido mitigados adecuadamente. Se recomienda una revisión en profundidad de los puntos señalados en esta valoración antes de proceder.
+                        </div>
+                        <hr style="margin: 20px 0;">
+                        <p><strong>Sobre la consulta previa a la Autoridad de Control (Art. 36 RGPD):</strong></p>
+                        <div class="checkbox-label">
+                            <span class="checkbox">{{SEC5.5A}}</span>A juicio del DPD, y a pesar de las medidas implementadas, el tratamiento entraña un alto riesgo residual, por lo que se <strong>recomienda</strong> al responsable del tratamiento realizar una consulta previa a la Autoridad de Control antes de proceder.
+                        </div>
+                        <div class="checkbox-label">
+                            <span class="checkbox">{{SEC5.5B}}</span>A juicio del DPD, el riesgo residual ha sido mitigado a un nivel aceptable y <strong>no se considera necesaria</strong> la consulta previa a la Autoridad de Control.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            Protección de Datos en Sistemas de IA<br>
+            Consejo de Transparencia y Protección de Datos de Andalucía<br>
+        </div>
+    </div>
+</body>
+</html>

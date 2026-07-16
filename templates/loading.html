@@ -1,0 +1,321 @@
+<!--
+    Aplicación para la protección de datos en Sistemas IA
+    Copyright (C) 2025-2026 Consejo de Transparencia y Protección de Datos de Andalucía
+
+    Licenciado bajo EUPL v1.2: https://eupl.eu/1.2/es/
+-->
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ nombre_aplicacion }} - Iniciando...</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 50%, #2c3e50 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: #ecf0f1;
+            overflow: hidden;
+        }
+        
+        .container {
+            text-align: center;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 500px;
+            width: 90%;
+        }
+        
+        .logo {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+        }
+        
+        h1 {
+            font-size: 2rem;
+            font-weight: 300;
+            margin-bottom: 8px;
+            letter-spacing: 2px;
+        }
+        
+        .subtitle {
+            font-size: 0.95rem;
+            color: #bdc3c7;
+            margin-bottom: 40px;
+        }
+        
+        .loader-container {
+            margin: 30px 0;
+        }
+        
+        .loader {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .loader-bar {
+            width: 30%;
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #2ecc71, #3498db);
+            background-size: 200% 100%;
+            border-radius: 2px;
+            position: absolute;
+            animation: loading 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes loading {
+            0% {
+                left: -30%;
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+            100% {
+                left: 100%;
+                background-position: 0% 50%;
+            }
+        }
+        
+        .status {
+            font-size: 1rem;
+            color: #95a5a6;
+            margin-top: 25px;
+            min-height: 24px;
+        }
+        
+        .status-icon {
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        .dots {
+            display: inline-block;
+        }
+        
+        .dots::after {
+            content: '';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+        
+        @keyframes dots {
+            0%, 20% { content: ''; }
+            40% { content: '.'; }
+            60% { content: '..'; }
+            80%, 100% { content: '...'; }
+        }
+        
+        .error-container {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(231, 76, 60, 0.2);
+            border: 1px solid rgba(231, 76, 60, 0.5);
+            border-radius: 8px;
+        }
+        
+        .error-container.show {
+            display: block;
+        }
+        
+        .retry-btn {
+            margin-top: 15px;
+            padding: 10px 25px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .retry-btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+        
+        .footer {
+            margin-top: 40px;
+            font-size: 0.8rem;
+            color: #7f8c8d;
+        }
+        
+        /* Estado de éxito */
+        .success .loader-bar {
+            animation: none;
+            width: 100%;
+            left: 0;
+            background: #2ecc71;
+        }
+        
+        .success .status {
+            color: #2ecc71;
+        }
+        
+        .checkmark {
+            display: none;
+            font-size: 4rem;
+            color: #2ecc71;
+            animation: checkmark-appear 0.5s ease-out;
+        }
+        
+        .success .checkmark {
+            display: block;
+        }
+        
+        .success .logo {
+            display: none;
+        }
+        
+        @keyframes checkmark-appear {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="mainContainer">
+        <div class="logo">🛡️</div>
+        <div class="checkmark">✓</div>
+        <h1>{{ nombre_aplicacion }}</h1>
+        <p class="subtitle">Protección de Datos en Sistemas de IA</p>
+        
+        <div class="loader-container">
+            <div class="loader">
+                <div class="loader-bar"></div>
+            </div>
+        </div>
+        
+        <p class="status" id="status">
+            <span class="status-icon">⏳</span>
+            <span id="statusText">Iniciando aplicación</span><span class="dots"></span>
+        </p>
+        
+        <div class="error-container" id="errorContainer">
+            <p>⚠️ La aplicación está tardando más de lo esperado.</p>
+            <p style="font-size: 0.85rem; margin-top: 10px;">
+                Si el problema persiste, cierre esta ventana y vuelva a ejecutar la aplicación.
+            </p>
+            <button class="retry-btn" onclick="location.reload()">Reintentar conexión</button>
+        </div>
+        
+        <p class="footer">Consejo de Transparencia y Protección de Datos de Andalucía</p>
+    </div>
+
+    <script>
+        // Configuración
+        const CHECK_INTERVAL = 500;      // Intervalo de comprobación en ms
+        const MAX_ATTEMPTS = 120;        // Máximo de intentos (60 segundos)
+        const REDIRECT_URL = '/seleccionar-proyecto';
+        const HEALTH_CHECK_URL = '/health';
+        
+        let attempts = 0;
+        let statusMessages = [
+            'Iniciando aplicación',
+            'Verificando configuración',
+            'Preparando base de datos',
+            'Cargando componentes',
+            'Casi listo'
+        ];
+        let messageIndex = 0;
+        
+        // Actualizar mensaje de estado cada pocos segundos
+        setInterval(() => {
+            if (messageIndex < statusMessages.length - 1) {
+                messageIndex++;
+                document.getElementById('statusText').textContent = statusMessages[messageIndex];
+            }
+        }, 3000);
+        
+        // Función para verificar si el servidor está listo
+        async function checkServerReady() {
+            attempts++;
+            
+            try {
+                const response = await fetch(HEALTH_CHECK_URL, {
+                    method: 'GET',
+                    cache: 'no-cache'
+                });
+                
+                if (response.ok) {
+                    // ¡Servidor listo!
+                    serverReady();
+                    return;
+                }
+            } catch (error) {
+                // El servidor aún no está disponible
+            }
+            
+            // Si excedemos el máximo de intentos, mostrar error
+            if (attempts >= MAX_ATTEMPTS) {
+                showError();
+                return;
+            }
+            
+            // Programar siguiente intento
+            setTimeout(checkServerReady, CHECK_INTERVAL);
+        }
+        
+        // Función cuando el servidor está listo
+        function serverReady() {
+            const container = document.getElementById('mainContainer');
+            const status = document.getElementById('status');
+            const statusText = document.getElementById('statusText');
+            
+            container.classList.add('success');
+            statusText.textContent = '¡Aplicación lista!';
+            
+            // Eliminar los puntos suspensivos
+            const dots = document.querySelector('.dots');
+            if (dots) dots.style.display = 'none';
+            
+            // Redirigir después de un breve momento
+            setTimeout(() => {
+                window.location.href = REDIRECT_URL;
+            }, 800);
+        }
+        
+        // Función para mostrar error
+        function showError() {
+            document.getElementById('errorContainer').classList.add('show');
+            document.getElementById('statusText').textContent = 'Tiempo de espera agotado';
+            const dots = document.querySelector('.dots');
+            if (dots) dots.style.display = 'none';
+        }
+        
+        // Iniciar verificación cuando carga la página
+        document.addEventListener('DOMContentLoaded', () => {
+            // Comenzar a verificar inmediatamente
+            checkServerReady();
+        });
+    </script>
+</body>
+</html>

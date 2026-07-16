@@ -1,0 +1,803 @@
+
+<!--
+    Aplicación para la protección de datos en Sistemas IA
+    Copyright (C) 2025-2026 Consejo de Transparencia y Protección de Datos de Andalucía
+
+    Licenciado bajo EUPL v1.2: https://eupl.eu/1.2/es/
+-->
+
+
+{% extends "base.html" %}
+{% block title %}ADI Elementos de Descripción - {{ nombre_aplicacion }}
+{% endblock %}
+{% block content %}
+
+<div id="contenedor-cabecera-elementos" class="d-flex justify-content-between align-items-center mb-4">
+  <img id="logo-ctpd" src="{{ url_for('static', filename='img/logo_ctpdandalucia.png') }}" alt="Logo" style="height: 80px;">
+  <h1 class="text-center flex-grow-1" id="cabecera">Elementos de Descripción</h1>
+  <img id="logo-junta" src="{{ url_for('static', filename='img/logo_junta.png') }}" alt="Logo Junta" style="height: 80px;">
+</div>
+
+{% if exito %}
+  <div
+    id="alerta-exito-guardado"
+    class="alert alert-success d-flex justify-content-between align-items-center"
+    role="alert">
+    <span id="mensaje-exito-guardado">✅ Justificaciones guardadas correctamente</span>
+  </div>
+{% endif %}
+
+<!-- Agregar un aviso visual si está en fase 4 -->
+{% if monitoreo %} <!-- Variable calculada en main.py y pasada a la plantilla -->
+<div id="alerta-monitoreo-activo" class="alert alert-info" role="alert">
+    <i class="bi bi-info-circle"></i> <strong>Fase de Monitoreo Activa:</strong> Los campos están en modo lectura.
+</div>
+{% endif %}
+
+<div id="contenedor-principal-elementos" class="container mt-5">
+  <div id="indicador-guardado-auto" class="d-flex justify-content-end mb-2" style="color: #28a745; font-size: 16px;">
+  💾 <strong>Guardado automático activado</strong>
+</div>
+  <div id="card-tabla-resumen" class="card shadow-sm mb-4">
+    <div id="header-tabla-resumen" class="card-header bg-white border-bottom-0">
+      <h4 id="titulo-tabla-resumen" class="text-primary mb-1 color-titulo">Elementos Descriptivos del Proyecto</h4>
+    </div>
+    <div id="body-tabla-resumen" class="card-body pt-0">
+    <table id="tabla-resumen-elementos" class="table table-bordered table-hover mb-0">
+    <thead id="thead-resumen-elementos" class="table-success">
+      <tr>
+        <th id="th-numero" class="text-center">Número</th>
+        <th id="th-elemento">Elemento</th>
+        <th id="th-estado" class="text-center">Estado</th>
+        <th id="th-progreso" class="text-center">Progreso</th>
+        <th id="th-accion" class="text-center">Acción</th>
+      </tr>
+    </thead>
+    <tbody id="tbody-resumen-elementos">
+      {# --- Agrupar preguntas por ID_ELEM --- #}
+      {% set processed_elems = [] %}
+      {% for data in preguntas %}
+        {% if data.elemento.ID_ELEM not in processed_elems %}
+          {% set _ = processed_elems.append(data.elemento.ID_ELEM) %}
+          {# --- Obtener todas las iteraciones de este elemento --- #}
+          {% set iteraciones_elem = preguntas|selectattr('elemento.ID_ELEM', 'equalto', data.elemento.ID_ELEM)|list %}
+          {# --- Calcular progreso global para este elemento --- #}
+          {% set total_elem = 0 %}
+          {% set completos_elem = 0 %}
+          {% for d2 in iteraciones_elem %}
+            {% set total_elem = total_elem + d2.subelementos|length %}
+            {% for sub in d2.subelementos %}
+              {% set clave = (d2.elemento.ID_ELEM, d2.n_iteracion, sub.ID_SUBELEM) %}
+              {% if clave in definiciones and definiciones[clave]|trim %}
+                {% set completos_elem = completos_elem + 1 %}
+              {% endif %}
+            {% endfor %}
+          {% endfor %}
+          {# --- Fila principal del elemento (con botón de acordeón si hay múltiples iteraciones) --- #}
+          <tr id="fila-elemento-{{ data.elemento.ID_ELEM }}" data-idelem="{{ data.elemento.ID_ELEM }}" class="fila-elemento-principal" style="cursor: pointer;" onclick="navegarYDesplegarElemento('{{ data.elemento.C_ELEMENTO }}');">
+            <td id="celda-numero-{{ data.elemento.ID_ELEM }}" class="text-center">
+              {{ data.elemento.C_ELEMENTO }}
+              {% if iteraciones_elem|length > 1 %}
+                <i id="toggle-iteraciones-{{ data.elemento.ID_ELEM }}" class="bi bi-chevron-down toggle-iteraciones ms-1" data-idelem="{{ data.elemento.ID_ELEM }}" onclick="event.stopPropagation();"></i>
+              {% endif %}
+            </td>
+            <td id="celda-elemento-{{ data.elemento.ID_ELEM }}">
+              <strong id="nombre-elemento-{{ data.elemento.ID_ELEM }}">{{ data.elemento.D_ELEMENTO }}</strong>
+              {% if iteraciones_elem|length > 1 %}
+                <small id="contador-iteraciones-{{ data.elemento.ID_ELEM }}" class="text-muted d-block">({{ iteraciones_elem|length }} elementos)</small>
+              {% endif %}
+            </td>
+            <td id="celda-estado-{{ data.elemento.ID_ELEM }}" class="text-center estado">⏳ Pendiente</td>
+            <td id="celda-progreso-{{ data.elemento.ID_ELEM }}" class="text-center progreso">0/{{ total_elem }}</td>
+            <td id="celda-accion-{{ data.elemento.ID_ELEM }}" class="text-center">
+              <span class="text-primary">
+                <i class="bi bi-box-arrow-in-right"></i> IR AL ELEMENTO
+              </span>
+            </td>
+          </tr>
+
+          {# --- Subfilas por iteración (solo si hay más de una) --- #}
+          {% if iteraciones_elem|length > 1 %}
+            {% for iter_data in iteraciones_elem %}
+              {% set total_iter = iter_data.subelementos|length %}
+              {% set completos_iter = 0 %}
+              {% for sub in iter_data.subelementos %}
+                {% set clave = (iter_data.elemento.ID_ELEM, iter_data.n_iteracion, sub.ID_SUBELEM) %}
+                {% if clave in definiciones and definiciones[clave]|trim %}
+                  {% set completos_iter = completos_iter + 1 %}
+                {% endif %}
+              {% endfor %}
+              <tr id="fila-iteracion-{{ iter_data.elemento.ID_ELEM }}-{{ iter_data.n_iteracion }}" data-idelem="{{ iter_data.elemento.ID_ELEM }}" data-niteracion="{{ iter_data.n_iteracion }}" class="fila-iteracion" style="display: none; background-color: #f8f9fa; border-left: 3px solid #0d6efd;">
+                <td id="celda-orden-iter-{{ iter_data.elemento.ID_ELEM }}-{{ iter_data.n_iteracion }}" class="text-center ps-4">{{ iter_data.elemento.N_ORDEN }}.{{ iter_data.n_iteracion }}</td>
+                <td id="celda-desc-iter-{{ iter_data.elemento.ID_ELEM }}-{{ iter_data.n_iteracion }}" class="ps-4 descripcion-iteracion-cell" data-descripcion-default="{{ iter_data.elemento.D_ELEMENTO }} ({{ iter_data.n_iteracion }})"> {% if iter_data.primera_descripcion %}
+                                    {{ iter_data.primera_descripcion }}
+                                  {% else %}
+                                    {{ iter_data.elemento.D_ELEMENTO }} ({{ iter_data.n_iteracion }})
+                                  {% endif %}
+                </td>
+                <td id="celda-estado-iter-{{ iter_data.elemento.ID_ELEM }}-{{ iter_data.n_iteracion }}" class="text-center estado">⏳ Pendiente</td>
+                <td id="celda-progreso-iter-{{ iter_data.elemento.ID_ELEM }}-{{ iter_data.n_iteracion }}" class="text-center progreso">0/{{ total_iter }}</td>
+                <td class="text-center"></td>
+              </tr>
+            {% endfor %}
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+    </tbody>
+    </table>
+    </div>
+  </div>
+  <form id="form-elementos" method="POST" action="{{ url_for('guardar_justificaciones') }}">
+    <input type="hidden" name="id_sistema" id="input-id-sistema" value="{{ session['id_sistema'] }}">
+    {% if preguntas %}
+      {# --- Agrupar visualmente por elemento --- #}
+      {% set processed_elems = [] %}
+      {% for data in preguntas %}
+        {% if data.elemento.ID_ELEM not in processed_elems %}
+          {% set _ = processed_elems.append(data.elemento.ID_ELEM) %}
+          {% set iteraciones_elem = preguntas|selectattr('elemento.ID_ELEM', 'equalto', data.elemento.ID_ELEM)|list %}
+          <div id="contenedor-elemento-{{ data.elemento.ID_ELEM }}" class="table-container p-3 mb-4 bg-light rounded shadow-sm">
+            <div id="header-elemento-{{ data.elemento.ID_ELEM }}" class="d-flex justify-content-between align-items-start">
+              <h5 id="elemento_{{ data.elemento.C_ELEMENTO }}" class="table-title mb-1 text-primary">
+                {# ✅ SIEMPRE mostrar el toggle de collapse a nivel de elemento #}
+                <span id="toggle-elemento-{{ data.elemento.ID_ELEM }}" style="cursor: pointer;"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#collapse_elemento_{{ data.elemento.ID_ELEM }}"
+                      aria-expanded="false">
+                  <i class="bi bi-chevron-right toggle-icon me-2"></i>
+                  ELEMENTO {{ data.elemento.C_ELEMENTO }}: {{ data.elemento.D_ELEMENTO }}
+                </span>
+              </h5>
+              {% if data.elemento.L_MULTIPLE == 1 %}
+                <button type="button" id="btn-anadir-iteracion-{{ data.elemento.ID_ELEM }}" class="btn btn-sm btn-primary rounded-pill btn-anadir-iteracion" data-idelem="{{ data.elemento.ID_ELEM }}" {% if monitoreo %}disabled{% endif %}>
+                  + Añadir elemento
+                </button>
+              {% endif %}
+            </div>
+
+            {# ✅ SIEMPRE envolver TODO en collapse del elemento #}
+            <div class="collapse" id="collapse_elemento_{{ data.elemento.ID_ELEM }}">
+
+              {# --- Mostrar cada iteración como subbloque --- #}
+              {% for iter_data in iteraciones_elem %}
+                <div id="elemento_{{ data.elemento.N_ORDEN }}_iter{{ iter_data.n_iteracion }}">
+                  {% if iteraciones_elem|length > 1 %}
+                    {# ✅ MÚLTIPLES ITERACIONES: Colapso por iteración con botón eliminar #}
+                    <div id="header-iteracion-{{ data.elemento.ID_ELEM }}-{{ iter_data.n_iteracion }}" class="d-flex justify-content-between align-items-center mt-3 mb-2">
+                      <h6 id="titulo-iteracion-{{ data.elemento.ID_ELEM }}-{{ iter_data.n_iteracion }}" class="mb-0 d-flex align-items-center titulo-iteracion-collapse" style="cursor: pointer;"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#collapse_{{ data.elemento.ID_ELEM }}_{{ iter_data.n_iteracion }}"
+                          data-idelem="{{ data.elemento.ID_ELEM }}"
+                          data-niteracion="{{ iter_data.n_iteracion }}"
+                          data-descripcion-default="Tratamiento {{ iter_data.n_iteracion }}"
+                          aria-expanded="false">
+                        <i class="bi bi-chevron-right toggle-icon me-2"></i>
+                        <span class="texto-descripcion">{% if iter_data.primera_descripcion %}
+                          {{ iter_data.primera_descripcion }}
+                        {% else %}
+                          Tratamiento {{ iter_data.n_iteracion }}
+                        {% endif %}</span>
+                      </h6>
+                      <button type="button"
+                              id="btn-eliminar-iteracion-{{ data.elemento.ID_ELEM }}-{{ iter_data.n_iteracion }}"
+                              class="btn btn-sm btn-warning btn-borrar-iteracion"
+                              style="font-size: 0.85rem; padding: 0.2rem 0.5rem;"
+                              data-id-sistema="{{ id_sistema }}"
+                              data-id-elemento="{{ data.elemento.ID_ELEM }}"
+                              data-n-iteracion="{{ iter_data.n_iteracion }}"
+                              title="Eliminar tratamiento" {% if monitoreo %}disabled{% endif %}>
+                        Eliminar elemento
+                      </button>
+                    </div>
+                    <div class="collapse" id="collapse_{{ data.elemento.ID_ELEM }}_{{ iter_data.n_iteracion }}">
+                  {% elif data.elemento.L_MULTIPLE == 1 %}
+                    {# ✅ UNA ITERACIÓN PERO L_MULTIPLE=1: Mostrar línea identificativa SIN botón eliminar #}
+                    <div id="header-iteracion-unica-{{ data.elemento.ID_ELEM }}-{{ iter_data.n_iteracion }}" class="d-flex justify-content-between align-items-center mt-3 mb-2">
+                      <h6 id="titulo-iteracion-unica-{{ data.elemento.ID_ELEM }}-{{ iter_data.n_iteracion }}" class="mb-0 d-flex align-items-center titulo-iteracion-collapse" style="cursor: pointer;"
+                          data-bs-toggle="collapse"
+                          data-bs-target="#collapse_{{ data.elemento.ID_ELEM }}_{{ iter_data.n_iteracion }}"
+                          data-idelem="{{ data.elemento.ID_ELEM }}"
+                          data-niteracion="{{ iter_data.n_iteracion }}"
+                          data-descripcion-default="Tratamiento {{ iter_data.n_iteracion }}"
+                          aria-expanded="false">
+                        <i class="bi bi-chevron-right toggle-icon me-2"></i>
+                        <span class="texto-descripcion">{% if iter_data.primera_descripcion %}
+                          {{ iter_data.primera_descripcion }}
+                        {% else %}
+                          Tratamiento {{ iter_data.n_iteracion }}
+                        {% endif %}</span>
+                      </h6>
+                      {# NO SE MUESTRA EL BOTÓN DE ELIMINAR #}
+                    </div>
+                    <div class="collapse" id="collapse_{{ data.elemento.ID_ELEM }}_{{ iter_data.n_iteracion }}">
+                  {% endif %}
+
+                  <table id="tabla-subelementos-{{ data.elemento.ID_ELEM }}-{{ iter_data.n_iteracion }}" class="table table-bordered">
+                    <thead id="thead-subelementos-{{ data.elemento.ID_ELEM }}-{{ iter_data.n_iteracion }}" class="table-dark">
+                      <tr>
+                        <th id="th-subelemento-{{ data.elemento.ID_ELEM }}-{{ iter_data.n_iteracion }}" class="text-center" style="width: 50%;">Elemento</th>
+                        <th id="th-descripcion-{{ data.elemento.ID_ELEM }}-{{ iter_data.n_iteracion }}" class="text-center" style="width: 50%;">Descripción</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tbody-subelementos-{{ data.elemento.ID_ELEM }}-{{ iter_data.n_iteracion }}">
+                      {% if iter_data.subelementos %}
+                        {% for sub in iter_data.subelementos %}
+                        <tr id="fila-subelem-{{ iter_data.elemento.ID_ELEM }}-{{ iter_data.n_iteracion }}-{{ sub.ID_SUBELEM }}">
+                          <td id="subelemento_{{ iter_data.elemento.C_ELEMENTO }}_{{ sub.N_SUBORD }}" data-ayuda-control="subelemento_{{ iter_data.elemento.C_ELEMENTO }}_{{ sub.N_SUBORD }}">{{ sub.D_SUBELEM }}</td>
+                          <td id="celda-textarea-{{ iter_data.elemento.ID_ELEM }}-{{ iter_data.n_iteracion }}-{{ sub.ID_SUBELEM }}">
+                            <textarea
+                              name="justificacion_{{ iter_data.elemento.ID_ELEM }}_{{ iter_data.n_iteracion }}_{{ sub.ID_SUBELEM }}"
+                              id="textarea-{{ iter_data.elemento.ID_ELEM }}-{{ iter_data.n_iteracion }}-{{ sub.ID_SUBELEM }}"
+                              class="form-control observacion-textarea auto-save-desc"
+                              rows="2"
+                              data-idelem="{{ iter_data.elemento.ID_ELEM }}"
+                              data-niteracion="{{ iter_data.n_iteracion }}"
+                              data-idsubelem="{{ sub.ID_SUBELEM }}"
+                              {% if loop.first %}data-primer-subelem="true"{% endif %}
+                              placeholder="Escriba su descripción..."
+                              {% if monitoreo %}disabled{% endif %}>{{ definiciones.get((iter_data.elemento.ID_ELEM, iter_data.n_iteracion, sub.ID_SUBELEM), '')|trim }}</textarea>
+                          </td>
+                        </tr>
+                        {% endfor %}
+                      {% else %}
+                      <tr id="fila-sin-subelementos-{{ iter_data.elemento.ID_ELEM }}-{{ iter_data.n_iteracion }}">
+                        <td colspan="2" class="text-muted text-center">No hay subelementos activos.</td>
+                      </tr>
+                      {% endif %}
+                    </tbody>
+                  </table>
+
+                  {# ✅ CERRAR collapse de iteración si hay múltiples O si L_MULTIPLE=1 #}
+                  {% if iteraciones_elem|length > 1 or data.elemento.L_MULTIPLE == 1 %}
+                    </div> {# Cierre del collapse de iteración #}
+                  {% endif %}
+                </div>
+              {% endfor %}
+
+              {# ✅ BLOQUE DE CONTROL: Configuración común (N_ITERACION=0) #}
+              {% if iteraciones_elem|length > 0 and iteraciones_elem[0].id_datelemcontr %}
+              {% set iter_control = iteraciones_elem[0] %}
+              <div id="card-control-pliegos-{{ data.elemento.ID_ELEM }}" class="card mb-3 bg-light border-primary mt-3">
+                <div id="header-control-pliegos-{{ data.elemento.ID_ELEM }}" class="card-header bg-primary text-white">
+                  <strong id="titulo-control-pliegos-{{ data.elemento.ID_ELEM }}">Análisis de Traslado a Pliegos</strong>
+                  {% if iteraciones_elem|length > 1 %}
+                    <small id="subtitulo-control-pliegos-{{ data.elemento.ID_ELEM }}" class="ms-2">(Configuración común para todos los tratamientos)</small>
+                  {% endif %}
+                </div>
+                <div id="body-control-pliegos-{{ data.elemento.ID_ELEM }}" class="card-body">
+                  <div id="fila-campos-control-{{ data.elemento.ID_ELEM }}" class="row g-3">
+                    <!-- ¿Se traslada a pliego? -->
+                    <div class="col-md-3">
+                      <label class="form-label" id="th_traslado_{{ data.elemento.ID_ELEM }}"><strong>¿Se traslada a pliego?</strong></label>
+                      <select id="select-traslado-{{ iter_control.id_datelemcontr }}" class="form-select form-select-sm auto-save-control-pliego"
+                              data-id-datelemcontr="{{ iter_control.id_datelemcontr }}" {% if monitoreo %}disabled{% endif %}>
+                        <option value="">—</option>
+                        <option value="1" {% if iter_control.l_traslapli == 1 %}selected{% endif %}>Sí</option>
+                        <option value="0" {% if iter_control.l_traslapli == 0 %}selected{% endif %}>No</option>
+                      </select>
+                    </div>
+
+                    <!-- Instrumento contractual de destino -->
+                    <div class="col-md-4">
+                      <label class="form-label" id="th_instrumento_{{ data.elemento.ID_ELEM }}"><strong>Instrumento contractual de destino</strong></label>
+                      <select id="select-instrumento-{{ iter_control.id_datelemcontr }}" class="form-select form-select-sm auto-save-control-intensidad select-intensidad"
+                              data-id-datelemcontr="{{ iter_control.id_datelemcontr }}" {% if monitoreo %}disabled{% endif %}>
+                        <option value="">—</option>
+                        {% for inten in intensidades_condiciones %}
+                        <option value="{{ inten.id }}" {% if iter_control.v_intscondes == inten.id %}selected{% endif %}>
+                          {{ inten.texto }}
+                        </option>
+                        {% endfor %}
+                      </select>
+                    </div>
+
+                    <!-- Observaciones traslado a pliegos (modal) -->
+                    <div class="col-md-5" >
+                      <label class="form-label" id="th_observaciones_{{ data.elemento.ID_ELEM }}"><strong>Observaciones traslado a pliegos</strong></label>
+                      <button type="button"
+                              id="btn-observaciones-{{ iter_control.id_datelemcontr }}"
+                              class="btn btn-outline-secondary btn-sm w-100 text-start btn-observaciones-pliego"
+                              data-bs-toggle="modal"
+                              data-bs-target="#modalClausulaElem{{ iter_control.id_datelemcontr }}"
+                              title="Editar observaciones" {% if monitoreo %}disabled{% endif %}>
+                        {% if iter_control.t_espclausula and iter_control.t_espclausula.strip() %}
+                          {{ iter_control.t_espclausula | truncate(40, True) }}
+                        {% else %}
+                          <em>No hay observaciones</em>
+                        {% endif %}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Modal para Observaciones -->
+              <div class="modal fade" id="modalClausulaElem{{ iter_control.id_datelemcontr }}" tabindex="-1" data-bs-focus="false">
+                <div class="modal-dialog modal-lg" id="dialog-clausula-{{ iter_control.id_datelemcontr }}">
+                  <div class="modal-content" id="content-clausula-{{ iter_control.id_datelemcontr }}">
+                    <div class="modal-header" id="header-clausula-{{ iter_control.id_datelemcontr }}">
+                      <h5 class="modal-title" id="titulo-modal-clausula-{{ iter_control.id_datelemcontr }}">Observaciones: Traslado a Pliegos</h5>
+                      <button type="button" id="btn-cerrar-clausula-{{ iter_control.id_datelemcontr }}" class="btn-close" data-bs-dismiss="modal"
+                              style="color: red; filter: invert(25%) sepia(100%) saturate(10000%) hue-rotate(0deg);"></button>
+                    </div>
+                    <div class="modal-body" id="body-clausula-{{ iter_control.id_datelemcontr }}">
+                      <textarea id="textarea-clausula-{{ iter_control.id_datelemcontr }}" class="form-control textarea-clausula-elem"
+                                rows="8"
+                                data-id-datelemcontr="{{ iter_control.id_datelemcontr }}"
+                                placeholder="Escribe aquí las observaciones sobre el traslado a pliegos...">{{ iter_control.t_espclausula }}</textarea>
+                    </div>
+                    <div class="modal-footer" id="footer-clausula-{{ iter_control.id_datelemcontr }}">
+                      <button type="button" id="btn-cancelar-clausula-{{ iter_control.id_datelemcontr }}" class="btn btn-danger" data-bs-dismiss="modal">Cerrar</button>
+                      <button type="button" id="btn-guardar-clausula-{{ iter_control.id_datelemcontr }}" class="btn btn-primary btn-guardar-clausula-elem"
+                              data-id-datelemcontr="{{ iter_control.id_datelemcontr }}"
+                              data-bs-dismiss="modal">
+                        Guardar y Cerrar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endif %}
+              {# FIN BLOQUE DE CONTROL #}
+
+            </div> {# ✅ Cierre del collapse_elemento #}
+          </div>
+        {% endif %}
+      {% endfor %}
+
+      <div id="contenedor-navegacion-elementos" class="d-grid gap-3 d-md-flex justify-content-between mt-4">
+        <a id="btn-navegacion-atras" href="{{ url_for('formulario_fases') }}" class="btn btn-outline-secondary btn-lg rounded-pill">⬅ Atrás</a>
+
+        {% if hay_requisitos_visibles %}
+        {# Si hay requisitos visibles, el siguiente paso es ir a requisitos #}
+        <a id="btn-navegacion-siguiente" href="{{ url_for('formulario_requisitos') }}" class="btn btn-primary btn-lg rounded-pill d-inline">Siguiente ➡</a>
+        {% elif fase_actual and fase_actual.orden == 1 %}
+        {# Si no hay requisitos y es fase 1, ir a controles #}
+        <a id="btn-navegacion-siguiente" href="{{ url_for('formulario_controles') }}" class="btn btn-primary btn-lg rounded-pill d-inline">Siguiente ➡</a>
+        {% else %}
+        {# Si no hay requisitos y no es fase 1, ir a riesgos #}
+        <a id="btn-navegacion-siguiente" href="{{ url_for('formulario_riesgos') }}" class="btn btn-primary btn-lg rounded-pill d-inline">Siguiente ➡</a>
+        {% endif %}
+
+      </div>
+    {% else %}
+    <p id="mensaje-sin-elementos" class="text-muted text-center">No se encontraron elementos ADI.</p>
+    {% endif %}
+  </form>
+</div>
+
+<script>
+// ✅ FUNCIÓN GLOBAL PARA NAVEGAR Y DESPLEGAR ELEMENTO (llamada desde onclick de filas)
+function navegarYDesplegarElemento(codigoElemento) {
+    const targetId = 'elemento_' + codigoElemento;
+    const targetElement = document.getElementById(targetId);
+
+    if (!targetElement) {
+        return;
+    }
+
+
+    // Extraer el ID_ELEM del h5 que tiene el collapse
+    const h5Element = targetElement.closest('h5');
+    if (!h5Element) {
+        return;
+    }
+
+    // Buscar el span que tiene el data-bs-target
+    const toggleSpan = h5Element.querySelector('[data-bs-toggle="collapse"]');
+    if (!toggleSpan) {
+        return;
+    }
+
+    const collapseTarget = toggleSpan.getAttribute('data-bs-target');
+    const collapseElement = document.querySelector(collapseTarget);
+
+    if (collapseElement) {
+        // Desplegar el collapse del elemento
+        const bsCollapse = new bootstrap.Collapse(collapseElement, {
+            toggle: false
+        });
+
+        bsCollapse.show();
+
+        // Actualizar el icono
+        const icon = toggleSpan.querySelector('.toggle-icon');
+        if (icon) {
+            icon.classList.remove('bi-chevron-right');
+            icon.classList.add('bi-chevron-down');
+        }
+
+
+        // Esperar a que se complete la animación del collapse antes de hacer scroll
+        collapseElement.addEventListener('shown.bs.collapse', function scrollToElement() {
+            // Hacer scroll al elemento con un pequeño offset
+            const yOffset = -100; // Offset para que no quede pegado arriba
+            const y = targetElement.getBoundingClientRect().top + window.pageYOffset + yOffset;
+
+            window.scrollTo({
+                top: y,
+                behavior: 'smooth'
+            });
+
+        }, { once: true });
+
+        // Si el collapse ya estaba abierto, hacer scroll inmediatamente
+        if (collapseElement.classList.contains('show')) {
+            const yOffset = -100;
+            const y = targetElement.getBoundingClientRect().top + window.pageYOffset + yOffset;
+
+            window.scrollTo({
+                top: y,
+                behavior: 'smooth'
+            });
+
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // === DIAGNÓSTICO ===
+
+    // Mostrar IDs
+    document.querySelectorAll('.auto-save-control-pliego').forEach(select => {
+    });
+
+    // === Autoguardado para descripciones ===
+    function autoSaveElemento(elemId, iteracion, subelemId, value) {
+        fetch("{{ url_for('guardar_cambio_elemento') }}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                id_elem: elemId,
+                n_iteracion: iteracion,
+                id_subelem: subelemId,
+                valor: value
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+            }
+        })
+        .catch(error => {
+        });
+    }
+
+    // ✅ FUNCIÓN: Actualizar descripciones en tiempo real cuando se escribe en el primer subelemento
+    function actualizarDescripcionPrimeraIteracion(textarea) {
+        // Solo procesar si es el primer subelemento
+        if (!textarea.dataset.primerSubelem) return;
+
+        const elemId = textarea.dataset.idelem;
+        const iteracion = textarea.dataset.niteracion;
+        const value = textarea.value.trim();
+        const textoMayusculas = value.toUpperCase();
+
+
+        // 1. Actualizar la fila de iteración en la tabla superior (si existe)
+        const filaIteracion = document.querySelector(
+            `tr.fila-iteracion[data-idelem="${elemId}"][data-niteracion="${iteracion}"] .descripcion-iteracion-cell`
+        );
+        if (filaIteracion) {
+            if (textoMayusculas) {
+                filaIteracion.textContent = textoMayusculas;
+            } else {
+                // Restaurar texto por defecto
+                const defaultText = filaIteracion.dataset.descripcionDefault;
+                filaIteracion.textContent = defaultText || '';
+            }
+        }
+
+        // 2. Actualizar el título del collapse de la iteración
+        const tituloIteracion = document.querySelector(
+            `.titulo-iteracion-collapse[data-idelem="${elemId}"][data-niteracion="${iteracion}"] .texto-descripcion`
+        );
+        if (tituloIteracion) {
+            if (textoMayusculas) {
+                tituloIteracion.textContent = textoMayusculas;
+            } else {
+                // Restaurar texto por defecto
+                const h6Element = tituloIteracion.closest('h6');
+                const defaultText = h6Element ? h6Element.dataset.descripcionDefault : `Tratamiento ${iteracion}`;
+                tituloIteracion.textContent = defaultText;
+            }
+        }
+    }
+
+    document.querySelectorAll('.auto-save-desc').forEach(textarea => {
+        let timeout;
+        textarea.addEventListener('input', function() {
+            clearTimeout(timeout);
+            const elemId = this.dataset.idelem;
+            const iteracion = this.dataset.niteracion;
+            const subelemId = this.dataset.idsubelem;
+            const value = this.value;
+
+            // ✅ Actualizar descripciones en tiempo real (si es el primer subelemento)
+            actualizarDescripcionPrimeraIteracion(this);
+
+            timeout = setTimeout(() => {
+                autoSaveElemento(elemId, iteracion, subelemId, value);
+            }, 1000);
+        });
+    });
+
+    // ✅ NUEVO: Autoguardado para campos de control
+    function autoSaveControlCampo(idDatelemContr, campo, valor) {
+
+        fetch("{{ url_for('guardar_cambio_elemento_control') }}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                id_datelemcontr: idDatelemContr,
+                campo: campo,
+                valor: valor
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+            } else {
+            }
+        })
+        .catch(error => {
+        });
+    }
+
+    // ✅ Autoguardado para select "¿Se traslada a pliego?"
+    document.querySelectorAll('.auto-save-control-pliego').forEach(select => {
+        select.addEventListener('change', function() {
+            const idDatelemContr = this.dataset.idDatelemcontr;
+            const valor = this.value;
+            autoSaveControlCampo(idDatelemContr, 'pliego', valor);
+        });
+    });
+
+    // ✅ Autoguardado para select "Instrumento contractual"
+    document.querySelectorAll('.auto-save-control-intensidad').forEach(select => {
+        select.addEventListener('change', function() {
+            const idDatelemContr = this.dataset.idDatelemcontr;
+            const valor = this.value;
+            autoSaveControlCampo(idDatelemContr, 'intensidad', valor);
+        });
+    });
+
+    // ✅ Guardar textarea de observaciones desde modal Y ACTUALIZAR BOTÓN
+    document.querySelectorAll('.btn-guardar-clausula-elem').forEach(button => {
+        button.addEventListener('click', function() {
+            const idDatelemContr = this.dataset.idDatelemcontr;
+            const textarea = document.querySelector(`.textarea-clausula-elem[data-id-datelemcontr="${idDatelemContr}"]`);
+            const valor = textarea.value;
+
+            // Guardar en BD
+            autoSaveControlCampo(idDatelemContr, 'clausula', valor);
+
+            // ✅ ACTUALIZAR el botón que abre el modal
+            const botonModal = document.querySelector(`button[data-bs-target="#modalClausulaElem${idDatelemContr}"]`);
+            if (botonModal) {
+                if (valor && valor.trim()) {
+                    const textoTruncado = valor.length > 40 ? valor.substring(0, 37) + '...' : valor;
+                    botonModal.textContent = textoTruncado;
+                } else {
+                    botonModal.innerHTML = '<em>No hay observaciones</em>';
+                }
+            }
+        });
+    });
+
+    // === Lógica original: añadir iteración ===
+    const buttons = document.querySelectorAll('.btn-anadir-iteracion');
+    buttons.forEach(button => {
+        button.addEventListener('click', function() {
+            const idElemento = this.getAttribute('data-idelem');
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Añadiendo...';
+            fetch('{{ url_for("anadir_iteracion_route") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    'id_elemento': idElemento
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    (function(){ var u=new URL(window.location.href); u.searchParams.set("_t",Date.now()); window.location.href=u.toString(); })();
+                } else {
+                    alert("Error al añadir elemento: " + data.message);
+                    this.disabled = false;
+                    this.innerHTML = '+ Añadir elemento';
+                }
+            })
+            .catch(error => {
+                alert("Error de red o comunicación con el servidor.");
+                this.disabled = false;
+                this.innerHTML = '+ Añadir elemento';
+            });
+        });
+    });
+
+    // ✅ NUEVO: Lógica para eliminar iteración
+    document.querySelectorAll('.btn-borrar-iteracion').forEach(button => {
+        button.addEventListener('click', function() {
+            const idSistema = this.dataset.idSistema;
+            const idElemento = this.dataset.idElemento;
+            const nIteracion = this.dataset.nIteracion;
+
+            if (!confirm('¿Estás seguro de eliminar este tratamiento? Esta acción no se puede deshacer.')) {
+                return;
+            }
+
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Eliminando...';
+
+            fetch('{{ url_for("eliminar_iteracion") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    id_elemento: idElemento,
+                    n_iteracion: nIteracion
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    (function(){ var u=new URL(window.location.href); u.searchParams.set("_t",Date.now()); window.location.href=u.toString(); })();
+                } else {
+                    alert("Error: " + data.message);
+                    this.disabled = false;
+                    this.innerHTML = 'Eliminar elemento';
+                }
+            })
+            .catch(error => {
+                alert("Error de red al eliminar.");
+                this.disabled = false;
+                this.innerHTML = 'Eliminar elemento';
+            });
+        });
+    });
+
+    // ✅ DESPLIEGUE AUTOMÁTICO DE ITERACIÓN ÚNICA
+    function configurarDespliegueAutomatico() {
+        document.querySelectorAll('[data-bs-toggle="collapse"][data-bs-target^="#collapse_elemento_"]').forEach(toggle => {
+            const targetSelector = toggle.getAttribute('data-bs-target');
+            const targetElement = document.querySelector(targetSelector);
+
+            if (targetElement) {
+                targetElement.addEventListener('shown.bs.collapse', function() {
+                    const match = targetSelector.match(/collapse_elemento_(\d+)/);
+                    if (match) {
+                        const idElemento = match[1];
+                        const iteracionCollapses = this.querySelectorAll(`[id^="collapse_${idElemento}_"]`);
+
+                        if (iteracionCollapses.length === 1) {
+                            const collapseIteracion = iteracionCollapses[0];
+
+                            if (!collapseIteracion.classList.contains('show')) {
+                                const bsCollapse = new bootstrap.Collapse(collapseIteracion, {
+                                    toggle: true
+                                });
+
+                                const iconoIteracion = this.querySelector(`[data-bs-target="#${collapseIteracion.id}"] .toggle-icon`);
+                                if (iconoIteracion) {
+                                    iconoIteracion.classList.remove('bi-chevron-right');
+                                    iconoIteracion.classList.add('bi-chevron-down');
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    // ✅ ANIMACIÓN DEL ICONO DE COLAPSO
+    function configurarAnimacionIconos() {
+        document.querySelectorAll('[data-bs-toggle="collapse"]').forEach(toggle => {
+            const target = document.querySelector(toggle.getAttribute('data-bs-target'));
+            if (target) {
+                target.addEventListener('show.bs.collapse', function() {
+                    const icon = toggle.querySelector('.toggle-icon');
+                    if (icon) {
+                        icon.classList.remove('bi-chevron-right');
+                        icon.classList.add('bi-chevron-down');
+                    }
+                });
+                target.addEventListener('hide.bs.collapse', function() {
+                    const icon = toggle.querySelector('.toggle-icon');
+                    if (icon) {
+                        icon.classList.remove('bi-chevron-down');
+                        icon.classList.add('bi-chevron-right');
+                    }
+                });
+            }
+        });
+    }
+
+    // ✅ EJECUTAR EN ORDEN
+    configurarDespliegueAutomatico();
+    configurarAnimacionIconos();
+
+    // ✅ MANTENER COMPATIBILIDAD: Desplegar elemento al hacer clic en enlaces (si existen)
+    document.querySelectorAll('a[href^="#elemento_"]').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault(); // Prevenir el scroll automático del navegador
+            const targetId = this.getAttribute('href').substring(1); // Quitar el #
+            const codigoElemento = targetId.replace('elemento_', '');
+            navegarYDesplegarElemento(codigoElemento);
+        });
+    });
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Función para verificar condiciones de cambio de fase
+    function verificarCondicionesFase() {
+        fetch('/api/validar-fase')
+            .then(response => response.json())
+            .then(data => {
+                if (data.puede_avanzar) {
+                    mostrarAlertaExito();
+                }
+            })
+            .catch(error => {
+            });
+    }
+
+    // Mostrar alerta cuando se cumplen las condiciones
+    function mostrarAlertaExito() {
+        // Verificar si ya se mostró
+        if (sessionStorage.getItem('alerta_fase_mostrada_{{ session["id_sistema"] }}')) {
+            return;
+        }
+
+        // Crear y mostrar alerta
+        const alertaHTML = `
+            <div id="alerta-fase-completada" class="alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3"
+                 style="z-index: 9999; max-width: 600px;" role="alert">
+                <h5 class="alert-heading">
+                    <i class="bi bi-check-circle-fill"></i>
+                    ¡Fase completada!
+                </h5>
+                <p class="mb-0">
+                    Has cumplido todas las condiciones para avanzar a la siguiente fase.
+                    Dirígete a <strong>Seguimiento de Fases</strong> para continuar.
+                </p>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('afterbegin', alertaHTML);
+
+        // Marcar como mostrada
+        sessionStorage.setItem('alerta_fase_mostrada_{{ session["id_sistema"] }}', 'true');
+
+        // Auto-cerrar después de 8 segundos
+        setTimeout(() => {
+            const alerta = document.querySelector('.alert-success');
+            if (alerta) {
+                alerta.remove();
+            }
+        }, 8000);
+    }
+
+    // Verificar cada vez que se guarda un cambio (debounce)
+    let timeoutValidacion;
+    document.addEventListener('input', function(e) {
+        if (e.target.classList.contains('auto-save-desc')) {
+            clearTimeout(timeoutValidacion);
+            timeoutValidacion = setTimeout(verificarCondicionesFase, 2000);
+        }
+    });
+});
+
+</script>
+
+{% endblock %}

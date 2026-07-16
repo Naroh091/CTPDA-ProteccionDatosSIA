@@ -1,0 +1,1717 @@
+
+<!--
+    Aplicación para la protección de datos en Sistemas IA
+    Copyright (C) 2025-2026 Consejo de Transparencia y Protección de Datos de Andalucía
+
+    Licenciado bajo EUPL v1.2: https://eupl.eu/1.2/es/
+-->
+
+
+{% extends "base.html" %}
+{% block title %}Controles - {{ nombre_aplicacion }}{% endblock %}
+{% block content %}
+<div id="contenedor-cabecera-controles" class="d-flex justify-content-between align-items-center mb-4">
+  <img id="logo-ctpd" src="{{ url_for('static', filename='img/logo_ctpdandalucia.png') }}" alt="Logo" style="height: 80px;">
+  <h1 class="text-center flex-grow-1" id="cabecera">Controles</h1>
+  <img id="logo-junta" src="{{ url_for('static', filename='img/logo_junta.png') }}" alt="Logo Junta" style="height: 80px;">
+</div>
+
+{% if exito %}
+<div id="alerta-exito-guardado" class="alert alert-success d-flex justify-content-between align-items-center" role="alert">
+  <span id="mensaje-exito-guardado">✅ Datos de controles guardados correctamente</span>
+</div>
+{% endif %}
+
+<!-- Agregar un aviso visual si está en fase 4 -->
+{% if monitoreo %} <!-- Variable calculada en main.py y pasada a la plantilla -->
+<div id="alerta-monitoreo-activo" class="alert alert-info" role="alert">
+  <i class="bi bi-info-circle"></i> <strong>Fase de Monitoreo Activa:</strong> Los campos están en modo lectura.
+</div>
+{% endif %}
+
+
+
+<!-- ===== NUEVO CUADRO RESUMEN DE CONTROLES ===== -->
+<div id="card-resumen-controles" class="card mb-3 shadow-sm">
+  <div id="header-resumen-controles" class="card-header bg-dark text-white py-2 cuadro-resumen-header" data-bs-toggle="collapse" data-bs-target="#collapseResumenControles" aria-expanded="true" aria-controls="collapseResumenControles" style="cursor: pointer;">
+    <h6 id="titulo-resumen-controles" class="mb-0 text-white d-flex align-items-center justify-content-between">
+      <span>
+        <i class="bi bi-chevron-down me-2 icono-collapse-resumen"></i>
+        <i class="bi bi-shield-check"></i> Resumen de Controles
+      </span>
+    </h6>
+  </div>
+  <div class="collapse show" id="collapseResumenControles">
+    <div id="body-resumen-controles" class="card-body p-3">
+      <!-- Fila superior: 4 indicadores en línea -->
+      <div id="fila-indicadores-controles" class="row g-2 mb-3">
+        <div class="col-3">
+          <div id="indicador-total-activos" class="d-flex align-items-center justify-content-between border rounded p-2 bg-light">
+            <small class="text-muted"><strong>Total Activos</strong></small>
+            <h5 class="text-primary mb-0 ms-2" id="resumen-total-activos-controles">
+              {{ controles|selectattr('l_activa', 'equalto', 1)|selectattr('debe_validarse_fase', 'equalto', 1)|list|length }}
+            </h5>
+          </div>
+        </div>
+        <div class="col-3">
+          <div id="indicador-aplicables" class="d-flex align-items-center justify-content-between border rounded p-2 bg-light">
+            <small class="text-muted"><strong>Aplicables</strong></small>
+            <h5 class="text-success mb-0 ms-2" id="resumen-total-aplicables-controles">
+              {{ controles|selectattr('l_activa', 'equalto', 1)|selectattr('l_aplica', 'equalto', 1)|selectattr('debe_validarse_fase', 'equalto', 1)|list|length }}
+            </h5>
+          </div>
+        </div>
+        <div class="col-3">
+          <div id="indicador-valorados" class="d-flex align-items-center justify-content-between border rounded p-2 bg-light">
+            <small class="text-muted"><strong>Valorados</strong></small>
+            <h5 class="text-info mb-0 ms-2" id="resumen-valorados-controles">
+              {{ controles|selectattr('l_activa', 'equalto', 1)|selectattr('v_madurez', 'ne', None)|selectattr('debe_validarse_fase', 'equalto', 1)|list|length }}
+            </h5>
+          </div>
+        </div>
+        <div class="col-3">
+          <div id="indicador-estado-analisis" class="d-flex align-items-center justify-content-between border rounded p-2 bg-light">
+            <small class="text-muted"><strong>Estado de análisis</strong></small>
+            <h5 class="{% if todos_completos %}text-success{% else %}text-warning{% endif %} mb-0 ms-2" id="resumen-completitud-controles">
+              {% if todos_completos %}
+              <i class="bi bi-check-circle-fill"></i> 100%
+              {% else %}
+              <i class="bi bi-hourglass-split"></i> <span id="contador-pendientes-controles">{{ controles_pendientes }}</span> de <span id="contador-total-controles">{{ total_controles_aplicables }}</span>
+              {% endif %}
+            </h5>
+          </div>
+        </div>
+      </div>
+      <!-- Tabla de distribución por nivel de madurez -->
+      <div id="contenedor-tabla-distribucion" class="table-responsive">
+        <table id="tabla-distribucion-madurez" class="table table-sm table-bordered mb-0">
+          <thead id="thead-distribucion" class="table-light">
+            <tr>
+              <th id="th-nivel-madurez" class="text-center align-middle" style="width: 30%;">
+                <i class="bi bi-clipboard-data-fill"></i> Nivel de Madurez
+              </th>
+              <th id="th-distribucion" class="text-center align-middle" style="width: 70%;">
+                <i class="bi bi-bar-chart-fill"></i> Distribución de Controles Aplicables
+              </th>
+            </tr>
+          </thead>
+          <tbody id="tbody-distribucion">
+            {% set total_aplicables = controles|selectattr('l_activa', 'equalto', 1)|selectattr('l_aplica', 'equalto', 1)|selectattr('debe_validarse_fase', 'equalto', 1)|list|length %}
+            {% for mad in madurez_valores|reverse %}
+            {% set controles_nivel = controles|selectattr('l_activa', 'equalto', 1)|selectattr('l_aplica', 'equalto', 1)|selectattr('v_madurez', 'equalto', mad.id)|selectattr('debe_validarse_fase', 'equalto', 1)|list|length %}
+            <tr id="fila-madurez-{{ mad.valor }}">
+              <td class="text-center align-middle">
+                <span class="badge
+                                {% if mad.valor == 4 %}bg-success
+                                {% elif mad.valor == 3 %}bg-info  text-dark
+                                {% elif mad.valor == 2 %}bg-warning text-dark
+                                {% elif mad.valor == 1 %}bg-danger
+                                {% else %}bg-secondary
+                                {% endif %} w-100">
+                  {{ mad.texto }}
+                </span>
+              </td>
+              <td class="text-center align-middle">
+                <div class="d-flex align-items-center">
+                  <span class="badge
+                                    {% if mad.valor == 4 %}bg-success
+                                    {% elif mad.valor == 3 %}bg-info text-dark
+                                    {% elif mad.valor == 2 %}bg-warning text-dark
+                                    {% elif mad.valor == 1 %}bg-danger
+                                    {% else %}bg-secondary
+                                    {% endif %} me-2" id="resumen-madurez-{{ mad.valor }}">
+                    {{ controles_nivel }}
+                  </span>
+                  <div id="barra-progreso-madurez-{{ mad.valor }}" class="progress flex-grow-1" style="height: 20px;">
+                    <div class="progress-bar
+                                        {% if mad.valor == 4 %}bg-success
+                                        {% elif mad.valor == 3 %}bg-info
+                                        {% elif mad.valor == 2 %}bg-warning
+                                        {% elif mad.valor == 1 %}bg-danger
+                                        {% else %}bg-secondary
+                                        {% endif %}" role="progressbar" style="width: {% if total_aplicables > 0 %}{{ (controles_nivel / total_aplicables * 100) | round(1) }}%{% else %}0%{% endif %}">
+                    </div>
+                  </div>
+                  <!-- Porcentaje al lado del progress bar -->
+                  <!--
+                <small class="text-muted ms-2" style="min-width: 45px;">
+                  {% if total_aplicables > 0 %}
+                  {{ (controles_nivel / total_aplicables * 100) | round(1) }}%
+                  {% else %}
+                  0%
+                  {% endif %}
+                </small>
+                -->
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+            <!-- Fila para controles sin madurez definida (SIEMPRE visible) -->
+            {% set controles_sin_madurez = controles|selectattr('l_activa', 'equalto', 1)|selectattr('l_aplica', 'equalto', 1)|selectattr('v_madurez', 'none')|selectattr('debe_validarse_fase', 'equalto', 1)|list|length %}
+            <tr id="fila-madurez-sin-valorar">
+              <td class="text-center align-middle">
+                <span class="badge bg-secondary w-100">SIN VALORAR</span>
+              </td>
+              <td class="text-center align-middle">
+                <div class="d-flex align-items-center">
+                  <span class="badge bg-secondary me-2" id="resumen-madurez-sin-valorar">
+                    {{ controles_sin_madurez }}
+                  </span>
+                  <div id="barra-progreso-sin-valorar" class="progress flex-grow-1" style="height: 20px;">
+                    <div class="progress-bar bg-secondary" role="progressbar" style="width: {% if total_aplicables > 0 %}{{ (controles_sin_madurez / total_aplicables * 100) | round(1) }}%{% else %}0%{% endif %}">
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ===== FIN NUEVO CUADRO RESUMEN DE CONTROLES ===== -->
+
+<!-- ✨ NUEVO: Barra de filtrado por riesgo -->
+<div id="card-filtro-riesgo" class="card mb-4 {% if nivel_riesgo != 'R' %}d-none{% endif %}">
+  <div id="body-filtro-riesgo" class="card-body p-3">
+    <div id="contenedor-filtros-riesgo" class="d-flex align-items-center flex-wrap gap-3">
+      <!-- Select de riesgos -->
+      <div class="flex-grow-1">
+        <label for="filtro-riesgo" id="label-filtro-riesgo" class="form-label mb-1 fw-bold">
+          🏷️ Filtrar riesgo a mitigar:
+        </label>
+        <select id="filtro-riesgo" class="form-select form-select">
+          <option value="" data-inherente="—" data-residual="—">
+            📋 Mostrar todos los controles
+          </option>
+          {% for riesgo in riesgos_activos %}
+          <option value="{{ riesgo.id }}" data-inherente="{{ riesgo.nivel_inherente or '—' }}" data-residual="{{ riesgo.nivel_residual or '—' }}">
+            {{ riesgo.descripcion }} - {{ riesgo.categoria }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Inherente -->
+      <div id="contenedor-riesgo-inherente" class="d-flex flex-column text-center">
+        <label id="label-riesgo-inherente" class="form-label mb-1 text-muted w-100">Inherente</label>
+        <span id="riesgo-inherente" class="fw-bold text-muted">—</span>
+      </div>
+
+      <!-- Residual -->
+      <div id="contenedor-riesgo-residual" class="d-flex flex-column text-center">
+        <label id="label-riesgo-residual" class="form-label mb-1 text-muted w-100">Residual</label>
+        <span id="riesgo-residual" class="fw-bold text-muted">—</span>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ✨ NUEVO: Barra de filtrado por requisito -->
+<!-- Solo se muestra si hay al menos un requisito visible en la fase actual -->
+{% if mostrar_filtro_requisitos %}
+<div id="card-filtro-requisito" class="card mb-4">
+  <div id="body-filtro-requisito" class="card-body p-3">
+    <div id="contenedor-filtros-requisito" class="d-flex align-items-center flex-wrap gap-3">
+      <!-- Select de requisitos -->
+      <div class="flex-grow-1">
+        <label for="filtro-requisito" id="label-filtro-requisito" class="form-label mb-1 fw-bold">
+          📋 Filtrar por requisito:
+        </label>
+        <select id="filtro-requisito" class="form-select form-select">
+          <option value="">
+            📋 Mostrar todos los controles
+          </option>
+          {% for requisito in requisitos_activos %}
+          <option value="{{ requisito.id }}">
+            {{ requisito.denominacion }} - {{ requisito.base_normativa }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div id="barra-acciones-controles" class="d-flex justify-content-between align-items-center">
+  <div id="contenedor-botones-filtro" class="d-flex justify-content-start mb-2 gap-2">
+    {% if not modo_todos %}
+    <a href="#" class="btn btn-sm btn-outline-primary btn-custom" id="btn-ver-todos" onclick="verTodosLosControles(event)">
+      📊 Ver Todos los Controles
+    </a>
+    <button type="button" class="btn btn-sm btn-outline-danger btn-custom ms-2" id="btn-filtrar-invalidos"  onclick="filtrarControlesInvalidos()">
+      ⚠️ Controles sin madurez suficiente
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-success btn-custom ms-2" id="btn-filtrar-aplicables" onclick="filtrarControlesAplicables()">
+      ✓ Solo controles aplicables
+    </button>
+    {% else %}
+    <a href="#" class="btn btn-sm btn-outline-primary btn-custom" id="btn-volver-activos" onclick="volverAControlesActivos(event)">
+      🔍 Volver a Controles Activos
+    </a>
+    {% endif %}
+  </div>
+  <div id="contenedor-info-registros" class="d-flex align-items-center gap-3">
+    <div id="wrapper-contador-registros" class="contador-registros-wrapper">
+      <span class="badge contador-registros-badge" id="contador-registros">0</span>
+    </div>
+    <div id="indicador-guardado-auto" style="color: #28a745; font-size: 16px;">
+      💾 <strong>Guardado automático activado</strong>
+    </div>
+  </div>
+</div>
+
+<form id="form-controles" method="POST" action="{{ url_for('guardar_controles') }}">
+  <input type="hidden" name="id_sistema" id="input-id-sistema" value="{{ id_sistema }}">
+
+  <div id="contenedor-tabla-controles" class="table-responsive">
+    <table class="table table-bordered table-hover align-middle" id="tabla-controles">
+      <thead id="thead-controles" class="table-dark">
+        <tr>
+          <th class="text-center" id="th_control" style="max-width: 150px; min-width: 150px;">
+            Control</th>
+          <th class="text-center" id="th_descripcion">Descripción</th>
+          <th class="text-center" id="th_grupo">Grupo</th>
+          <th class="text-center" id="th_aplica">¿Aplica?</th>
+          <th class="text-center" id="th_madurez">Madurez</th>
+          {% if fase_actual.C_FASE != 1 %}
+          <th class="text-center" id="th_traslado">¿Traslada pliego?</th>
+          <th class="text-center" id="th_instrumento">Instr. contractual</th>
+          {% endif %}
+          <th class="text-center" id="th_observaciones" style="min-width: 300px;">Observaciones del control</th>
+        </tr>
+      </thead>
+      <tbody id="tbody-controles">
+
+        {% for control in controles %}
+        <tr id="fila-control-{{ control.id_dat_control }}" class="fila-control {% if control.id_dat_control in controles_invalidos %}fila-control-invalida{% endif %} {% if control.l_activa == 0 %}fila-control-inactivo{% endif %}" data-id-control="{{ control.id_dat_control }}" data-riesgos-ids="{{ control.riesgos_ids|join(',') }}" data-debe-validarse="{{ '1' if control.debe_validarse_fase else '0' }}" data-l-activa="{{ control.l_activa }}" data-l-aplica="{{ control.l_aplica }}" {% if control.l_activa==0 %}data-inactivo="true" {% endif %}>
+
+          <!-- Control -->
+          <td id="celda-control-{{ control.id_dat_control }}" style="max-width: 300px; white-space: normal; word-break: break-word;">
+            <strong id="nombre-control-{{ control.id_dat_control }}">{{ control.descripcion_control }}</strong>
+            <small class="text-muted">
+              <i id="btn-info-control-{{ control.id_dat_control }}" class="bi bi-info-circle text-primary" data-bs-toggle="modal" data-bs-target="#modalDescripcionControl{{ control.id_dat_control }}" style="cursor: pointer; margin-right: 5px;" title="Ver detalles"></i>
+            </small>
+
+            <!-- Botón "Activar" (solo si L_ACTIVA=0) -->
+            {% if control.l_activa == 0 %}
+            <div id="contenedor-btn-activar-{{ control.id_dat_control }}" class="mt-2">
+              <button type="button" id="btn-activar-control-{{ control.id_dat_control }}" class="btn btn-sm btn-warning w-100 btn-activar-control" data-id-dat-control="{{ control.id_dat_control }}" data-id-control-original="{{ control.id_control_original }}" onclick="activarControl({{ control.id_control_original }})" {% if monitoreo %}disabled{% endif %}>
+                ✓ Activar
+              </button>
+            </div>
+            {% endif %}
+
+            <!-- Modal descripción -->
+            <div class="modal fade" id="modalDescripcionControl{{ control.id_dat_control }}" tabindex="-1">
+              <div class="modal-dialog" id="dialog-descripcion-{{ control.id_dat_control }}">
+                <div class="modal-content" id="content-descripcion-{{ control.id_dat_control }}">
+                  <div class="modal-header" id="header-descripcion-{{ control.id_dat_control }}">
+                    <h5 class="modal-title" id="titulo-modal-descripcion-{{ control.id_dat_control }}">Descripción del Control</h5>
+                    <button type="button" id="btn-cerrar-descripcion-{{ control.id_dat_control }}" class="btn-close" data-bs-dismiss="modal" style="color: red; filter: invert(25%) sepia(100%) saturate(10000%) hue-rotate(0deg);"></button>
+                  </div>
+                  <div class="modal-body" id="body-descripcion-{{ control.id_dat_control }}">
+                    {% if control.riesgos_mitigados %}
+                    <p id="titulo-riesgos-mitigados-{{ control.id_dat_control }}"><strong>Este control mitiga los siguientes
+                        riesgos:</strong></p>
+                    <ul id="lista-riesgos-mitigados-{{ control.id_dat_control }}">
+                      {% for riesgo in control.riesgos_mitigados %}
+                      <li>{{ riesgo }}</li>
+                      {% endfor %}
+                    </ul>
+                    {% endif %}
+                    <p id="texto-instrucciones-{{ control.id_dat_control }}">{{ control.instrucciones | safe }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </td>
+
+          <!-- Descripción -->
+          <td id="celda-descripcion-{{ control.id_dat_control }}" class="text-start">{{ control.descripcion_detallada }}</td>
+
+          <!-- Grupo -->
+          <td id="celda-grupo-{{ control.id_dat_control }}" class="text-center" {% if control.codigo_grupo_control %}data-ayuda-control="GC_{{ control.codigo_grupo_control }}"{% endif %}>{{ control.descripcion_grupo }}</td>
+
+          <!-- ¿Aplica? -->
+          <td id="celda-aplica-{{ control.id_dat_control }}" class="text-center">
+            <select name="aplica_{{ control.id_dat_control }}" id="select-aplica-{{ control.id_dat_control }}" class="form-select form-select-sm aplica-select-control" data-id-control="{{ control.id_dat_control }}" {% if control.es_grupo_obligatorio %}disabled{% endif %} {% if monitoreo or control.l_activa==0 %}disabled{% endif %}>
+
+              <!-- Si es obligatorio, forzar a "Sí" (1) -->
+              {% if control.es_grupo_obligatorio %}
+              <option value="1" selected>Sí</option>
+              {% elif control.l_activa == 0 %}
+              <!-- Si el control está inactivo, mostrar NO por defecto -->
+              <option value="1">Sí</option>
+              <option value="0" selected>No</option>
+              {% else %}
+              <option value="1" {% if control.l_aplica==1 %}selected{% endif %}>Sí
+              </option>
+              <option value="0" {% if control.l_aplica==0 %}selected{% endif %}>No
+              </option>
+              {% endif %}
+            </select>
+
+            <!-- Campo oculto para enviar valor si está deshabilitado -->
+            {% if control.es_grupo_obligatorio %}
+            <input type="hidden" name="aplica_{{ control.id_dat_control }}" value="1">
+            {% elif control.l_activa == 0 %}
+            <!-- Campo oculto para controles inactivos -->
+            <input type="hidden" name="aplica_{{ control.id_dat_control }}" value="0">
+            {% endif %}
+          </td>
+
+          <!-- Madurez -->
+          <td id="celda-madurez-{{ control.id_dat_control }}" class="text-center">
+            <select name="madurez_{{ control.id_dat_control }}" id="select-madurez-{{ control.id_dat_control }}" class="form-select form-select-sm select-madurez" data-id-control="{{ control.id_dat_control }}" data-madurez-minima="{{ control.madurez_minima_valor if control.madurez_minima_valor else 0 }}" {% if monitoreo or control.l_activa==0 %}disabled{% endif %}>
+              <option value="">—</option>
+              {% for mad in madurez_valores %}
+              <option value="{{ mad.id }}" data-valor="{{ mad.valor }}" {% if control.v_madurez==mad.id %}selected{% endif %}>
+                {{ mad.texto }}
+              </option>
+              {% endfor %}
+            </select>
+          </td>
+
+          <!-- ¿Se traslada a pliego? -->
+          {% if fase_actual.C_FASE != 1 %}
+          <td id="celda-pliego-{{ control.id_dat_control }}" class="text-center">
+            <select name="pliego_{{ control.id_dat_control }}" id="select-pliego-{{ control.id_dat_control }}" class="form-select form-select-sm pliego-select" data-id-control="{{ control.id_dat_control }}" {% if monitoreo or control.l_activa==0 %}disabled{% endif %}>
+              <option value="">—</option>
+              <option value="1" {% if control.l_traslape==1 %}selected{% endif %}>Sí</option>
+              <option value="0" {% if control.l_traslape==0 %}selected{% endif %}>No</option>
+            </select>
+          </td>
+          {% endif %}
+
+          <!-- Intensidad -->
+          {% if fase_actual.C_FASE != 1 %}
+          <td id="celda-intensidad-{{ control.id_dat_control }}" class="text-center">
+            <select name="intensidad_{{ control.id_dat_control }}" id="select-intensidad-{{ control.id_dat_control }}" class="form-select form-select-sm select-intensidad" data-id-control="{{ control.id_dat_control }}" {% if monitoreo or control.l_activa==0 %}disabled{% endif %}>
+              <option value="">—</option>
+              {% for inten in intensidades_condiciones %}
+              <option value="{{ inten.id }}" data-valor="{{ inten.valor }}" {% if control.v_intcondes==inten.id %}selected{% endif %}>
+                {{ inten.texto }}
+              </option>
+              {% endfor %}
+            </select>
+          </td>
+          {% endif %}
+
+          <!-- Justificación y Observaciones -->
+          <td id="celda-observaciones-{{ control.id_dat_control }}" class="text-start" style="min-width: 300px; padding: 0.5rem;">
+            <div id="contenedor-justificaciones-{{ control.id_dat_control }}" class="d-flex flex-column gap-2">
+              <!-- Justificación - Solo visible si NO es fase 1 -->
+              {% if fase_actual.C_FASE != 1 %}
+              <div id="grupo-just-clausula-{{ control.id_dat_control }}">
+                <label id="label-just-clausula-{{ control.id_dat_control }}" class="form-label small mb-1 w-100 text-center">
+                  <strong>Traslado a pliegos</strong>
+                </label>
+                <button type="button" id="btn-just-clausula-{{ control.id_dat_control }}" class="btn btn-outline-secondary btn-sm w-100 text-start color-text-area" data-bs-toggle="modal" data-bs-target="#modalJustifClausula{{ control.id_dat_control }}" title="Editar justificación" {% if monitoreo or control.l_activa==0 %}disabled{% endif %}>
+                  {% if control.justificacion_clausula and
+                  control.justificacion_clausula.strip() %}
+                  {{ control.justificacion_clausula | truncate(40, True) }}
+                  {% else %}
+                  <em>No hay información</em>
+                  {% endif %}
+                </button>
+              </div>
+              {% endif %}
+              <!-- Observaciones -->
+              <div id="grupo-observaciones-{{ control.id_dat_control }}">
+                <label id="label-observaciones-{{ control.id_dat_control }}" class="form-label small mb-1 w-100 text-center">
+                  <strong>Implementación</strong>
+                </label>
+                <button type="button" id="btn-observaciones-{{ control.id_dat_control }}" class="btn btn-outline-secondary btn-sm w-100 text-start color-text-area observaciones-textarea" data-bs-toggle="modal" data-bs-target="#modalObservaciones{{ control.id_dat_control }}" title="Editar observaciones" {% if monitoreo or control.l_activa==0 %}disabled{% endif %}>
+                  {% if control.observaciones and control.observaciones.strip()
+                  %}
+                  {{ control.observaciones | truncate(40, True) }}
+                  {% else %}
+                  <em>No hay información</em>
+                  {% endif %}
+                </button>
+              </div>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Modales (sin cambios) -->
+        <div class="modal fade" id="modalJustifClausula{{ control.id_dat_control }}" tabindex="-1" data-bs-focus="false">
+          <div class="modal-dialog modal-lg" id="dialog-just-clausula-{{ control.id_dat_control }}">
+            <div class="modal-content" id="content-just-clausula-{{ control.id_dat_control }}">
+              <div class="modal-header" id="header-just-clausula-{{ control.id_dat_control }}">
+                <h5 class="modal-title" id="titulo-modal-just-clausula-{{ control.id_dat_control }}">Justificación: Clausula/Cláusula
+                  Especial</h5>
+                <button type="button" id="btn-cerrar-just-clausula-{{ control.id_dat_control }}" class="btn-close" data-bs-dismiss="modal" style="color: red; filter: invert(25%) sepia(100%) saturate(10000%) hue-rotate(0deg);"></button>
+              </div>
+              <div class="modal-body" id="body-just-clausula-{{ control.id_dat_control }}">
+                <textarea name="jus_clausula_{{ control.id_dat_control }}" id="textarea-just-clausula-{{ control.id_dat_control }}" class="form-control" rows="8" placeholder="Escribe aquí tu justificación o cláusula especial..." {% if monitoreo %}disabled{% endif %}>{{ control.justificacion_clausula }}</textarea>
+              </div>
+              <div class="modal-footer" id="footer-just-clausula-{{ control.id_dat_control }}">
+                <button type="button" id="btn-cancelar-just-clausula-{{ control.id_dat_control }}" class="btn btn-danger" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" id="btn-guardar-just-clausula-{{ control.id_dat_control }}" class="btn btn-primary" onclick="updateModalTextarea('jus_clausula_{{ control.id_dat_control }}', 'modalJustifClausula{{ control.id_dat_control }}', 'control')">
+                  Guardar y Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal fade" id="modalObservaciones{{ control.id_dat_control }}" tabindex="-1" data-bs-focus="false">
+          <div class="modal-dialog modal-lg" id="dialog-observaciones-{{ control.id_dat_control }}">
+            <div class="modal-content" id="content-observaciones-{{ control.id_dat_control }}">
+              <div class="modal-header" id="header-observaciones-{{ control.id_dat_control }}">
+                <h5 class="modal-title" id="titulo-modal-observaciones-{{ control.id_dat_control }}">Observaciones</h5>
+                <button type="button" id="btn-cerrar-observaciones-{{ control.id_dat_control }}" class="btn-close" data-bs-dismiss="modal" style="color: red; filter: invert(25%) sepia(100%) saturate(10000%) hue-rotate(0deg);"></button>
+              </div>
+              <div class="modal-body" id="body-observaciones-{{ control.id_dat_control }}">
+                <textarea name="observaciones_{{ control.id_dat_control }}" id="textarea-observaciones-{{ control.id_dat_control }}" class="form-control" rows="8" placeholder="Escribe aquí tus observaciones..." {% if monitoreo %}disabled{% endif %}>{{ control.observaciones }}</textarea> <!-- Añadir esta condición -->
+              </div>
+              <div class="modal-footer" id="footer-observaciones-{{ control.id_dat_control }}">
+                <button type="button" id="btn-cancelar-observaciones-{{ control.id_dat_control }}" class="btn btn-danger" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" id="btn-guardar-observaciones-{{ control.id_dat_control }}" class="btn btn-primary" onclick="updateModalTextarea('observaciones_{{ control.id_dat_control }}', 'modalObservaciones{{ control.id_dat_control }}', 'control')">
+                  Guardar y Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {% else %}
+        <tr id="fila-sin-controles">
+          <td colspan="{% if fase_actual.C_FASE == 1 %}6{% else %}8{% endif %}" class="text-center text-muted">No hay controles
+            activos para este sistema.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div id="contenedor-navegacion-controles" class="d-grid gap-3 d-md-flex justify-content-between mt-4">
+    {% if fase_actual and fase_actual.orden == 1 %}
+    <a id="btn-navegacion-atras" href="{{ url_for('formulario_elementos') }}" class="btn btn-outline-secondary btn-lg rounded-pill">
+      ⬅ Atrás
+    </a>
+    {% else %}
+    <a id="btn-navegacion-atras" href="{{ url_for('formulario_riesgos') }}" class="btn btn-outline-secondary btn-lg rounded-pill">
+      ⬅ Atrás
+    </a>
+    {% endif %}
+    {% if todos_completos %}
+    {% if monitoreo %}
+    <a id="btn-navegacion-siguiente" href="{{ url_for('formulario_monitoreo') }}" class="btn btn-primary btn-lg rounded-pill d-inline">
+      Siguiente ➡
+    </a>
+    {% else %}
+    <a id="btn-navegacion-siguiente" href="{{ url_for('formulario_documentos') }}" class="btn btn-primary btn-lg rounded-pill d-inline">
+      Siguiente ➡
+    </a>
+    {% endif %}
+    {% endif %}
+  </div>
+
+  <!-- Modal de confirmación para activar control -->
+  <div class="modal fade" id="modalConfirmarActivarControl" tabindex="-1" aria-labelledby="modalConfirmarActivarControlLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" id="dialog-confirmar-activar-control">
+      <div class="modal-content border-0 shadow" id="content-confirmar-activar-control">
+        <div class="modal-header bg-warning text-white" id="header-confirmar-activar-control">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          <h5 class="modal-title text-white" id="modalConfirmarActivarControlLabel">Confirmar activación</h5>
+          <button type="button" id="btn-cerrar-confirmar-activar" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body text-center py-3" id="body-confirmar-activar-control">
+          <p id="pregunta-confirmar-activar" class="mb-0">¿Está seguro de que desea activar este riesgo?</p>
+          <p id="info-confirmar-activar" class="text-muted small">Se marcará como <strong>aplicable</strong> y deberá evaluarse.</p>
+        </div>
+        <div class="modal-footer justify-content-center" id="footer-confirmar-activar-control">
+          <button type="button" id="btn-cancelar-activar" class="btn btn-danger" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary text-white" id="btnConfirmarActivacionControl">Sí, activar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+
+<!-- Modal de Error de Validación -->
+<div class="modal fade" id="modalErrorValidacion" tabindex="-1" aria-labelledby="modalErrorValidacionLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" id="dialog-error-validacion">
+    <div class="modal-content" id="content-error-validacion">
+      <div class="modal-header bg-danger text-dark" id="header-error-validacion">
+        <h5 class="modal-title text-dark" id="modalErrorValidacionLabel">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>Acción no permitida
+        </h5>
+        <button type="button" id="btn-cerrar-error-validacion" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter: invert(1)"></button>
+      </div>
+      <div class="modal-body" id="body-error-validacion">
+        <p id="mensajeErrorValidacion">El control no se puede desactivar.</p>
+      </div>
+      <div class="modal-footer" id="footer-error-validacion">
+        <button type="button" id="btn-aceptar-error" class="btn btn-primary" data-bs-dismiss="modal">Entendido</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // PASAR LA VARIABLE MONITOREO DESDE JINJA A JAVASCRIPT
+  const monitoreoActivo = {{ monitoreo | lower }};
+
+  // --- FUNCIÓN PARA FORZAR DISABLED ---
+  function forzarDisabledMonitoreo() {
+    if (!monitoreoActivo) {
+      return;
+    }
+
+
+    // Deshabilitar TODOS los selects
+    document.querySelectorAll('select[name^="aplica_"]').forEach(function (select) {
+      select.disabled = true;
+      select.setAttribute('disabled', 'disabled');
+    });
+
+    document.querySelectorAll('select[name^="madurez_"]').forEach(function (select) {
+      select.disabled = true;
+      select.setAttribute('disabled', 'disabled');
+    });
+
+    document.querySelectorAll('select[name^="pliego_"]').forEach(function (select) {
+      select.disabled = true;
+      select.setAttribute('disabled', 'disabled');
+    });
+
+    // ⭐ REFUERZO ESPECIAL PARA INTENSIDAD
+    document.querySelectorAll('select[name^="intensidad_"]').forEach(function (select) {
+      select.disabled = true;
+      select.setAttribute('disabled', 'disabled');
+      select.style.pointerEvents = 'none';
+      select.style.opacity = '0.6';
+      select.style.cursor = 'not-allowed';
+    });
+
+    // También deshabilitar por clases (por si acaso)
+    document.querySelectorAll('.select-intensidad').forEach(function (select) {
+      select.disabled = true;
+      select.setAttribute('disabled', 'disabled');
+      select.style.pointerEvents = 'none';
+      select.style.opacity = '0.6';
+    });
+
+    // Deshabilitar botones de modales (Traslado a pliegos e Implementación)
+    document.querySelectorAll('button[data-bs-toggle="modal"][data-bs-target^="#modalJustif"], button[data-bs-toggle="modal"][data-bs-target^="#modalObservaciones"]').forEach(function (button) {
+      button.disabled = true;
+      button.classList.add('disabled');
+      button.style.opacity = '0.6';
+      button.style.cursor = 'not-allowed';
+      button.style.pointerEvents = 'none';
+      button.title = 'Fase de monitoreo - Edición bloqueada';
+    });
+
+    // Deshabilitar textareas dentro de los modales
+    document.querySelectorAll('textarea[name^="jus_clausula_"], textarea[name^="observaciones_"]').forEach(function (textarea) {
+      textarea.disabled = true;
+      textarea.readOnly = true;
+    });
+
+    // Deshabilitar botones de "Guardar y Cerrar" dentro de modales
+    document.querySelectorAll('.modal-footer button.btn-primary').forEach(function (button) {
+      if (button.hasAttribute('onclick') && button.getAttribute('onclick').includes('updateModalTextarea')) {
+        button.disabled = true;
+        button.classList.add('disabled');
+        button.style.opacity = '0.6';
+        button.style.cursor = 'not-allowed';
+      }
+    });
+
+  }
+
+  // 🆕 FUNCIÓN: Gestionar habilitación/deshabilitación del select de instrumento contractual
+  function gestionarInstrumentoContractual(selectAplica) {
+    const idControl = selectAplica.getAttribute('data-id-control');
+    const valorAplica = selectAplica.value;
+
+    // Buscar el select de instrumento contractual correspondiente
+    const selectIntensidad = document.querySelector(`select[name="intensidad_${idControl}"]`);
+
+    if (!selectIntensidad) {
+      return;
+    }
+
+
+    if (valorAplica === '0') {
+      // Si Aplica = No, deshabilitar el select de instrumento contractual
+      // NO limpiamos el valor, solo deshabilitamos
+      selectIntensidad.disabled = true;
+      selectIntensidad.setAttribute('disabled', 'disabled');
+    } else {
+      // Si Aplica = Sí, habilitar el select (solo si no está en monitoreo o control inactivo)
+      const fila = selectAplica.closest('tr.fila-control');
+      const esInactivo = fila && fila.getAttribute('data-l-activa') === '0';
+
+      if (!monitoreoActivo && !esInactivo) {
+        selectIntensidad.disabled = false;
+        selectIntensidad.removeAttribute('disabled');
+      } else {
+        selectIntensidad.disabled = true;
+        selectIntensidad.setAttribute('disabled', 'disabled');
+      }
+    }
+  }
+
+  // 🆕 FUNCIÓN: Inicializar estado de todos los instrumentos contractuales
+  function inicializarEstadoInstrumentosContractuales() {
+
+    document.querySelectorAll('.aplica-select-control').forEach(selectAplica => {
+      gestionarInstrumentoContractual(selectAplica);
+    });
+
+  }
+
+  // ============================================================================
+  // 🆕 NUEVA FUNCIÓN: Actualizar contador de registros
+  // ============================================================================
+  function actualizarContadorRegistros() {
+    const filasVisibles = document.querySelectorAll('tr.fila-control:not([style*="display: none"])');
+    const contador = filasVisibles.length;
+
+    const elementoContador = document.getElementById('contador-registros');
+    if (elementoContador) {
+      elementoContador.textContent = contador;
+    }
+  }
+
+  // --- EJECUTAR AL CARGAR EL DOM ---
+  document.addEventListener('DOMContentLoaded', function () {
+    forzarDisabledMonitoreo();
+
+    actualizarResumenControles();
+
+    // 🆕 Actualizar contador de registros
+    actualizarContadorRegistros();
+
+    // 🎯 AGREGAR LISTENERS A LOS SELECTS DE APLICA Y MADUREZ
+    document.querySelectorAll('.aplica-select-control, .select-madurez').forEach(select => {
+      select.addEventListener('change', function () {
+        // Pequeño delay para asegurar que el cambio se haya aplicado
+        setTimeout(actualizarResumenControles, 100);
+      });
+    });
+
+    // 🆕 AGREGAR LISTENERS ESPECÍFICOS PARA APLICA -> INSTRUMENTO CONTRACTUAL
+    document.querySelectorAll('.aplica-select-control').forEach(selectAplica => {
+      selectAplica.addEventListener('change', function () {
+        gestionarInstrumentoContractual(this);
+
+        // 🆕 Actualizar el atributo data-l-aplica de la fila cuando cambia el select
+        const idControl = this.getAttribute('data-id-control');
+        const nuevoValor = this.value;
+        const fila = document.querySelector(`tr.fila-control[data-id-control="${idControl}"]`);
+        if (fila) {
+          fila.setAttribute('data-l-aplica', nuevoValor);
+        }
+      });
+    });
+
+    // 🆕 INICIALIZAR ESTADO AL CARGAR (con delay para ejecutar después de todos los refuerzos)
+    setTimeout(function() {
+      inicializarEstadoInstrumentosContractuales();
+    }, 100);
+  });
+
+  // --- REFUERZO ADICIONAL: Ejecutar después de un pequeño delay ---
+  // Por si hay scripts que modifican el DOM después de DOMContentLoaded
+  if (monitoreoActivo) {
+    setTimeout(function () {
+      forzarDisabledMonitoreo();
+    }, 500);
+  }
+
+  // 🆕 REFUERZO ADICIONAL: Reinicializar instrumentos contractuales después de todos los refuerzos
+  setTimeout(function () {
+    inicializarEstadoInstrumentosContractuales();
+  }, 600);
+
+  // --- PROTECCIÓN CONTRA CAMBIOS DINÁMICOS ---
+  // Observar cambios en los selects y forzar disabled si es necesario
+  if (monitoreoActivo && typeof MutationObserver !== 'undefined') {
+    const observer = new MutationObserver(function (mutations) {
+      mutations.forEach(function (mutation) {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'disabled') {
+          const target = mutation.target;
+          if (target.tagName === 'SELECT' && target.name.startsWith('intensidad_')) {
+            if (!target.disabled) {
+              target.disabled = true;
+              target.setAttribute('disabled', 'disabled');
+              target.style.pointerEvents = 'none';
+            }
+          }
+        }
+      });
+    });
+
+    // Observar todos los selects de intensidad
+    setTimeout(function () {
+      document.querySelectorAll('select[name^="intensidad_"]').forEach(function (select) {
+        observer.observe(select, { attributes: true });
+      });
+    }, 100);
+  }
+
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const select = document.getElementById('filtro-riesgo');
+    const spanInherente = document.getElementById('riesgo-inherente');
+    const spanResidual = document.getElementById('riesgo-residual');
+
+    if (!select || !spanInherente || !spanResidual) return;
+
+    const nivelAClase = {
+      "CRÍTICO": "text-danger",
+      "ALTO": "text-warning",
+      "MEDIO": "text-info",
+      "BAJO": "text-success",
+      "—": "text-muted"
+    };
+
+    function actualizar() {
+      const opt = select.options[select.selectedIndex];
+      const inh = opt.dataset.inherente || "—";
+      const res = opt.dataset.residual || "—";
+
+
+      spanInherente.textContent = inh;
+      spanInherente.className = "fw-bold " + (nivelAClase[inh] || "text-muted");
+
+      spanResidual.textContent = res;
+      spanResidual.className = "fw-bold " + (nivelAClase[res] || "text-muted");
+    }
+
+    // ✅ CORRECCIÓN: Redefinir guardarCambioControl solo UNA VEZ (fuera de actualizar)
+    // Esto evita el parpadeo del contador al cambiar de página
+    if (typeof guardarCambioControl !== 'undefined' && !window.guardarCambioControlExtendido) {
+      const originalGuardarCambioControl = guardarCambioControl;
+      window.guardarCambioControl = function (...args) {
+        return originalGuardarCambioControl(...args).then(() => {
+          actualizarResumenControles();
+        });
+      };
+      window.guardarCambioControlExtendido = true; // Marcar que ya se extendió
+    }
+
+    // 🆕 FUNCIÓN PARA RECALCULAR RIESGO RESIDUAL
+    function recalcularRiesgoResidual() {
+      const riesgoSeleccionado = select.value;
+
+      // Solo recalcular si hay un riesgo seleccionado (no la opción "Mostrar todos")
+      if (!riesgoSeleccionado) {
+        return;
+      }
+
+
+      // Buscar el primer dato de riesgo visible que tenga ID_DATRIES
+      const filaRiesgo = document.querySelector(`tr[data-riesgos-ids*="${riesgoSeleccionado}"]`);
+
+      if (!filaRiesgo) {
+        return;
+      }
+
+      // Obtener el ID_DATRIES desde el atributo data (necesitamos el ID del DatosRiesgo)
+      // Como no tenemos acceso directo, haremos una llamada AJAX al backend
+
+      fetch('/api/recalcular-riesgo-residual', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id_riesgo: parseInt(riesgoSeleccionado)
+        })
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+
+            // Actualizar el valor en el select option
+            const opt = select.options[select.selectedIndex];
+            opt.dataset.residual = data.nivel_residual.texto;
+
+            // Actualizar la visualización
+            spanResidual.textContent = data.nivel_residual.texto;
+            spanResidual.className = "fw-bold " + (nivelAClase[data.nivel_residual.texto] || "text-muted");
+          } else {
+          }
+        })
+        .catch(error => {
+        });
+    }
+
+    // 🆕 DETECTAR CAMBIOS EN APLICA Y MADUREZ
+    function configurarListenersControles() {
+      // Listener para cambios en "Aplica"
+      document.querySelectorAll('.aplica-select-control').forEach(selectAplica => {
+        selectAplica.addEventListener('change', function () {
+          const idControl = this.getAttribute('data-id-control');
+
+          // Recalcular con un pequeño delay para asegurar que se guardó el cambio
+          setTimeout(() => {
+            recalcularRiesgoResidual();
+          }, 500);
+        });
+      });
+
+      // Listener para cambios en "Madurez"
+      document.querySelectorAll('.select-madurez').forEach(selectMadurez => {
+        selectMadurez.addEventListener('change', function () {
+          const idControl = this.getAttribute('data-id-control');
+
+          // Recalcular con un pequeño delay para asegurar que se guardó el cambio
+          setTimeout(() => {
+            recalcularRiesgoResidual();
+          }, 500);
+        });
+      });
+    }
+
+    // Listener principal para cambios manuales del filtro
+    select.addEventListener('change', function () {
+      actualizar();
+    });
+
+    // 🆕 Configurar listeners de controles
+    configurarListenersControles();
+
+    // 🆕 COMPROBAR SI VIENE DESDE FORMULARIO DE RIESGOS
+    const riesgoAMitigar = sessionStorage.getItem('riesgo_a_mitigar');
+    if (riesgoAMitigar) {
+
+      // Buscar la opción correspondiente por value
+      const options = select.options;
+      let opcionEncontrada = false;
+
+      for (let i = 0; i < options.length; i++) {
+        if (options[i].value === riesgoAMitigar) {
+          select.selectedIndex = i;
+          opcionEncontrada = true;
+
+          // 🔥 PRIMERO actualizar los campos inherente/residual
+          actualizar();
+
+          // 🔥 LUEGO disparar el evento change para aplicar el filtro
+          setTimeout(() => {
+            const changeEvent = new Event('change', { bubbles: true });
+            select.dispatchEvent(changeEvent);
+
+            // 🔥 VOLVER A ACTUALIZAR después del filtro por si acaso
+            setTimeout(() => {
+              actualizar();
+            }, 50);
+          }, 50);
+
+          // Limpiar sessionStorage
+          sessionStorage.removeItem('riesgo_a_mitigar');
+          break;
+        }
+      }
+
+      if (!opcionEncontrada) {
+      }
+    }
+    // 🆕 COMPROBAR SI VIENE CON id_riesgo_filtro DESDE LA URL (al pulsar "Ver Todos")
+    else {
+      // Leer id_riesgo_filtro desde el backend (pasado por Jinja)
+      const idRiesgoFiltro = "{{ id_riesgo_filtro if id_riesgo_filtro else '' }}";
+
+      if (idRiesgoFiltro && idRiesgoFiltro !== '') {
+
+        // Buscar la opción correspondiente por value
+        const options = select.options;
+        let opcionEncontrada = false;
+
+        for (let i = 0; i < options.length; i++) {
+          if (options[i].value === idRiesgoFiltro) {
+            select.selectedIndex = i;
+            opcionEncontrada = true;
+
+            // 🔥 ACTUALIZAR los campos inherente/residual
+            actualizar();
+            break;
+          }
+        }
+
+        if (!opcionEncontrada) {
+          // Inicializar con valores por defecto
+          actualizar();
+        }
+      } else {
+        // Inicializar al cargar normalmente (sin riesgo desde ninguna fuente)
+        actualizar();
+      }
+    }
+  });
+
+  // 🆕 COMPROBAR SI VIENE DESDE FORMULARIO DE REQUISITOS
+  // ✅ MANEJO INTEGRADO: Botón Atrás + Filtro de Requisito
+  document.addEventListener('DOMContentLoaded', function () {
+    const origenNavegacion = sessionStorage.getItem('origen_navegacion');
+    const requisitoARevisar = sessionStorage.getItem('requisito_a_revisar');
+    const selectRequisito = document.getElementById('filtro-requisito');
+
+    // 🔷 PASO 1: Configurar botón "Atrás" ANTES de limpiar requisito
+    if (origenNavegacion === 'requisitos') {
+
+      const btnAtras = document.getElementById('btn-navegacion-atras');
+
+      if (btnAtras) {
+        // Cambiar el href para volver a requisitos
+        btnAtras.href = "{{ url_for('formulario_requisitos') }}";
+
+        // 🔄 SOLO limpiar el origen si NO hay requisito pendiente (que causaría recarga)
+        if (!requisitoARevisar) {
+          sessionStorage.removeItem('origen_navegacion');
+        } else {
+        }
+
+        // 🆕 Limpiar el origen cuando se hace click en Atrás
+        btnAtras.addEventListener('click', function() {
+          sessionStorage.removeItem('origen_navegacion');
+        });
+      } else {
+      }
+    } else {
+    }
+
+    // 🔷 PASO 2: Manejar filtro de requisito (DESPUÉS de configurar botón Atrás)
+    if (requisitoARevisar && selectRequisito) {
+
+      // Buscar la opción correspondiente por value
+      const optionsReq = selectRequisito.options;
+      let opcionEncontradaReq = false;
+
+      for (let i = 0; i < optionsReq.length; i++) {
+        if (optionsReq[i].value === requisitoARevisar) {
+          selectRequisito.selectedIndex = i;
+          opcionEncontradaReq = true;
+
+          // 🔥 Disparar el evento change para aplicar el filtro
+          setTimeout(() => {
+            const changeEvent = new Event('change', { bubbles: true });
+            selectRequisito.dispatchEvent(changeEvent);
+          }, 50);
+
+          // Limpiar sessionStorage AHORA (después de configurar botón Atrás)
+          sessionStorage.removeItem('requisito_a_revisar');
+          break;
+        }
+      }
+
+      if (!opcionEncontradaReq) {
+      }
+    }
+
+    // 🔷 PASO 3: Leer parámetro de URL y seleccionar opción en combo (sin disparar recarga)
+    if (selectRequisito) {
+      // Leer parámetro id_requisito_filtro de la URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const idRequisitoFiltro = urlParams.get('id_requisito_filtro');
+
+      if (idRequisitoFiltro) {
+
+        // Seleccionar la opción correspondiente en el combo
+        const optionsReq = selectRequisito.options;
+        let opcionEncontrada = false;
+
+        for (let i = 0; i < optionsReq.length; i++) {
+          if (optionsReq[i].value === idRequisitoFiltro) {
+            selectRequisito.selectedIndex = i;
+            opcionEncontrada = true;
+            break;
+          }
+        }
+
+        if (!opcionEncontrada) {
+        }
+      } else {
+      }
+    }
+
+    // 🆕 Listener para cambios en el filtro de requisito
+    // 🔄 MODIFICADO: Al seleccionar un requisito, se desactiva el filtro de riesgo
+    if (selectRequisito) {
+      selectRequisito.addEventListener('change', function () {
+        const requisitoSeleccionado = this.value;
+
+        // 🆕 Limpiar sessionStorage de riesgo (para que no se aplique tras la recarga)
+        sessionStorage.removeItem('riesgo_a_mitigar');
+
+        // 🆕 Resetear el filtro de riesgo visualmente si existe
+        const selectRiesgo = document.getElementById('filtro-riesgo');
+        if (selectRiesgo && selectRiesgo.value !== '') {
+          selectRiesgo.value = '';
+        }
+
+        // 🆕 Construir URL sin ningún filtro de riesgo (solo con filtro de requisito si está seleccionado)
+        const urlParams = new URLSearchParams(window.location.search);
+        // Eliminar parámetros de filtro de riesgo si existen
+        urlParams.delete('id_riesgo_filtro');
+        
+        if (requisitoSeleccionado) {
+          urlParams.set('id_requisito_filtro', requisitoSeleccionado);
+        } else {
+          urlParams.delete('id_requisito_filtro');
+        }
+
+        // Mantener otros parámetros importantes como ver_todos
+        const nuevaUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+        window.location.href = nuevaUrl;
+      });
+    }
+  });
+
+
+  // ✅ NUEVA VARIABLE: Lista de controles inválidos desde el backend
+  const controlesInvalidosIniciales = {{ controles_invalidos | tojson | safe }};
+
+  // ✅ NUEVA FUNCIÓN: Validar madurez de un control localmente
+  function validarMadurezControl(idDatControl) {
+    // ... código de validación ...
+  }
+
+  // ✅ NUEVA FUNCIÓN: Actualizar estilo visual de una fila
+  function actualizarEstiloControl(idDatControl, esValido) {
+    // ... código para agregar/quitar clase y icono ...
+  }
+
+  // ✅ NUEVA FUNCIÓN: Guardar madurez mínima en los selects
+  function guardarMadurezMinima() {
+    // ... código ...
+  }
+
+  // ✅ NUEVO: Listeners agregados en DOMContentLoaded
+  document.querySelectorAll('select[name^="aplica_"]').forEach(select => {
+    select.addEventListener('change', function () {
+      // ... validación automática ...
+    });
+  });
+
+  document.querySelectorAll('select[name^="madurez_"]').forEach(select => {
+    select.addEventListener('change', function () {
+      // ... validación automática ...
+    });
+  });
+
+  function actualizarResumenControles() {
+
+    // Contadores
+    let totalActivos = 0;
+    let totalAplicables = 0;
+    let totalValorados = 0;
+    const contadoresMadurez = { 'sin-valorar': 0, 1: 0, 2: 0, 3: 0, 4: 0 };
+    let controlesCompletos = 0;
+
+    // Recorrer solo las filas visibles de controles
+    document.querySelectorAll('tr.fila-control').forEach(fila => {
+      const esInactivo = fila.hasAttribute('data-inactivo');
+      if (esInactivo) {
+        return; // Saltar inactivos
+      }
+
+      // ✅ FILTRO POR FASE: Solo contar controles que deben validarse en esta fase
+      const debeValidarse = fila.getAttribute('data-debe-validarse');
+      if (debeValidarse !== '1') {
+        return; // Saltar controles cuya fase de validación aún no se ha alcanzado
+      }
+
+      // Contar como activo (solo las filas que no son inactivas y deben validarse)
+      totalActivos++;
+
+      const selectAplica = fila.querySelector('.aplica-select-control');
+      const aplica = selectAplica ? parseInt(selectAplica.value) : 0;
+      if (aplica === 1) {
+        totalAplicables++;
+        const selectMadurez = fila.querySelector('.select-madurez');
+        const madurezId = selectMadurez ? selectMadurez.value : '';
+        if (madurezId && madurezId !== '') {
+          totalValorados++;
+          const selectedOption = selectMadurez.querySelector(`option[value="${madurezId}"]`);
+          const madurezValor = selectedOption ? parseInt(selectedOption.getAttribute('data-valor')) : null;
+          const madurezMinima = parseInt(selectMadurez.getAttribute('data-madurez-minima')) || 0;
+
+          if (madurezValor !== null) {
+            contadoresMadurez[madurezValor] = (contadoresMadurez[madurezValor] || 0) + 1;
+            if (madurezValor >= madurezMinima) {
+              controlesCompletos++;
+            }
+          }
+        } else {
+          contadoresMadurez['sin-valorar']++;
+        }
+      }
+    });
+
+
+    // Actualizar DOM (sin jQuery)
+    document.getElementById('resumen-total-activos-controles').textContent = totalActivos;
+    document.getElementById('resumen-total-aplicables-controles').textContent = totalAplicables;
+    document.getElementById('resumen-valorados-controles').textContent = totalValorados;
+
+    // 🆕 CALCULAR CONTROLES PENDIENTES
+    // Un control está pendiente si NO está completo (no cumple madurez mínima o no tiene madurez)
+    const controlesPendientes = totalAplicables - controlesCompletos;
+
+    const todosCompletos = (totalAplicables > 0 && controlesCompletos === totalAplicables);
+    const completitudEl = document.getElementById('resumen-completitud-controles');
+    if (todosCompletos) {
+      completitudEl.innerHTML = '<i class="bi bi-check-circle-fill"></i> 100%';
+      completitudEl.className = 'text-success mb-0 ms-2';
+    } else {
+      // 🆕 MOSTRAR CONTADOR "N de T" en lugar de "Pendiente"
+      completitudEl.innerHTML = `<i class="bi bi-hourglass-split"></i> <span id="contador-pendientes-controles">${controlesPendientes}</span> de <span id="contador-total-controles">${totalAplicables}</span>`;
+      completitudEl.className = 'text-warning mb-0 ms-2';
+    }
+
+    // Actualizar distribución por madurez
+    const totalAplicablesNum = totalAplicables;
+    for (const nivel in contadoresMadurez) {
+      const cantidad = contadoresMadurez[nivel];
+      const badge = document.getElementById(`resumen-madurez-${nivel}`);
+      if (badge) {
+        badge.textContent = cantidad;
+        const progressBar = badge.closest('td').querySelector('.progress-bar');
+        const porcentaje = totalAplicablesNum > 0 ? (cantidad / totalAplicablesNum * 100).toFixed(1) : 0;
+        progressBar.style.width = `${porcentaje}%`;
+      }
+    }
+
+  }
+
+  // ========== FILTRADO DE CONTROLES INVÁLIDOS ==========
+  let filtroInvalidosActivo = false;
+  let filtroAplicablesActivo = false;
+
+  /**
+   * Filtra la tabla para mostrar solo los controles sin madurez suficiente
+   * (aquellos que tienen la clase 'fila-control-invalida')
+   * Si hay un filtro de riesgo activo, solo muestra los inválidos de ese riesgo
+   */
+  function filtrarControlesInvalidos() {
+
+    filtroInvalidosActivo = true;
+
+    // Obtener el riesgo seleccionado del filtro (si hay alguno)
+    const selectRiesgo = document.getElementById('filtro-riesgo');
+    const riesgoSeleccionado = selectRiesgo ? selectRiesgo.value : '';
+
+
+    // Obtener todas las filas de control
+    const filasControl = document.querySelectorAll('tr.fila-control');
+
+    filasControl.forEach(fila => {
+      let mostrarFila = false;
+
+      // Primera condición: debe tener la clase 'fila-control-invalida'
+      if (fila.classList.contains('fila-control-invalida')) {
+
+        // Si hay un riesgo seleccionado, verificar que el control pertenezca a ese riesgo
+        if (riesgoSeleccionado) {
+          const riesgosIds = fila.getAttribute('data-riesgos-ids');
+
+          // Verificar si el riesgo seleccionado está en la lista de riesgos del control
+          if (riesgosIds) {
+            const riesgosArray = riesgosIds.split(',').map(id => id.trim());
+            mostrarFila = riesgosArray.includes(riesgoSeleccionado);
+
+            if (mostrarFila) {
+            } else {
+            }
+          }
+        } else {
+          // No hay filtro de riesgo, mostrar todos los inválidos
+          mostrarFila = true;
+        }
+      }
+
+      // Aplicar la visibilidad
+      if (mostrarFila) {
+        fila.style.display = '';
+      } else {
+        fila.style.display = 'none';
+      }
+    });
+
+    // Gestionar visibilidad de botones
+    const btnFiltrar = document.getElementById('btn-filtrar-invalidos');
+    const btnFiltrarAplicables = document.getElementById('btn-filtrar-aplicables');
+    const btnVerTodos = document.getElementById('btn-ver-todos');
+    let btnTemporal = document.getElementById('btn-volver-temp');
+
+    // Ocultar todos los botones originales
+    if (btnFiltrar) btnFiltrar.style.display = 'none';
+    if (btnFiltrarAplicables) btnFiltrarAplicables.style.display = 'none';
+    if (btnVerTodos) btnVerTodos.style.display = 'none';
+
+    // Crear botón temporal solo si NO existe ya
+    if (!btnTemporal) {
+      btnTemporal = document.createElement('a');
+      btnTemporal.href = '#';
+      btnTemporal.className = 'btn btn-sm btn-outline-primary btn-custom';
+      btnTemporal.id = 'btn-volver-temp';
+      btnTemporal.innerHTML = '🔍 Volver a Controles Activos';
+      btnTemporal.onclick = function (e) {
+        e.preventDefault();
+        restaurarVistaControles();
+      };
+
+      // Insertar el botón temporal
+      if (btnFiltrar && btnFiltrar.parentNode) {
+        btnFiltrar.parentNode.insertBefore(btnTemporal, btnFiltrar);
+      }
+
+      window.AyudaContextual.procesar(btnTemporal, 'btn-volver-controles-activos');
+
+    } else {
+      // El botón ya existe, solo asegurarse de que sea visible
+      btnTemporal.style.display = 'inline-block';
+    }
+
+    // Actualizar el resumen con los controles visibles
+    actualizarResumenControles();
+
+    // 🆕 Actualizar contador de registros
+    actualizarContadorRegistros();
+
+  }
+
+  /**
+   * Filtra la tabla para mostrar solo los controles aplicables (L_APLICA = 1)
+   * Si hay un filtro de riesgo activo, solo muestra los aplicables de ese riesgo
+   */
+  function filtrarControlesAplicables() {
+
+    filtroAplicablesActivo = true;
+
+    // Obtener el riesgo seleccionado del filtro (si hay alguno)
+    const selectRiesgo = document.getElementById('filtro-riesgo');
+    const riesgoSeleccionado = selectRiesgo ? selectRiesgo.value : '';
+
+
+    // Obtener todas las filas de control
+    const filasControl = document.querySelectorAll('tr.fila-control');
+
+    filasControl.forEach(fila => {
+      let mostrarFila = false;
+
+      // Verificar si el control es aplicable (L_APLICA = 1)
+      const lAplica = fila.getAttribute('data-l-aplica');
+      const esInactivo = fila.hasAttribute('data-inactivo');
+
+
+      // Solo mostrar si es aplicable y no es inactivo
+      if (lAplica === '1' && !esInactivo) {
+        // Si hay filtro de riesgo, verificar que pertenezca a ese riesgo
+        if (riesgoSeleccionado) {
+          const riesgosIds = fila.getAttribute('data-riesgos-ids');
+
+          if (riesgosIds) {
+            const riesgosArray = riesgosIds.split(',').map(id => id.trim());
+            mostrarFila = riesgosArray.includes(riesgoSeleccionado);
+
+            if (mostrarFila) {
+            } else {
+            }
+          }
+        } else {
+          // No hay filtro de riesgo, mostrar todos los aplicables
+          mostrarFila = true;
+        }
+      }
+
+      // Aplicar la visibilidad
+      if (mostrarFila) {
+        fila.style.display = '';
+      } else {
+        fila.style.display = 'none';
+      }
+    });
+
+    // Gestionar visibilidad de botones
+    const btnFiltrarInvalidos = document.getElementById('btn-filtrar-invalidos');
+    const btnFiltrarAplicables = document.getElementById('btn-filtrar-aplicables');
+    const btnVerTodos = document.getElementById('btn-ver-todos');
+    let btnTemporal = document.getElementById('btn-volver-temp-aplicables');
+
+    // Ocultar los botones originales
+    if (btnFiltrarInvalidos) btnFiltrarInvalidos.style.display = 'none';
+    if (btnFiltrarAplicables) btnFiltrarAplicables.style.display = 'none';
+    if (btnVerTodos) btnVerTodos.style.display = 'none';
+
+    // Crear botón temporal solo si NO existe ya
+    if (!btnTemporal) {
+      btnTemporal = document.createElement('a');
+      btnTemporal.href = '#';
+      btnTemporal.className = 'btn btn-sm btn-outline-primary btn-custom';
+      btnTemporal.id = 'btn-volver-temp-aplicables';
+      btnTemporal.innerHTML = '🔍 Volver a Controles Activos';
+      btnTemporal.onclick = function (e) {
+        e.preventDefault();
+        restaurarVistaControlesDesdeAplicables();
+      };
+
+      // Insertar el botón temporal
+      if (btnFiltrarAplicables && btnFiltrarAplicables.parentNode) {
+        btnFiltrarAplicables.parentNode.insertBefore(btnTemporal, btnFiltrarAplicables);
+      }
+
+      window.AyudaContextual.procesar(btnTemporal, 'btn-volver-controles-aplicables');
+
+    } else {
+      // El botón ya existe, solo asegurarse de que sea visible
+      btnTemporal.style.display = 'inline-block';
+    }
+
+    // Actualizar el resumen con los controles visibles
+    actualizarResumenControles();
+
+    // Actualizar contador de registros
+    actualizarContadorRegistros();
+
+  }
+
+  /**
+   * Restaura la vista normal de controles desde el filtro de aplicables
+   */
+  function restaurarVistaControlesDesdeAplicables() {
+
+    filtroAplicablesActivo = false;
+
+    // Obtener el riesgo seleccionado del filtro (si hay alguno)
+    const selectRiesgo = document.getElementById('filtro-riesgo');
+    const riesgoSeleccionado = selectRiesgo ? selectRiesgo.value : '';
+
+
+    // Obtener todas las filas de control
+    const filasControl = document.querySelectorAll('tr.fila-control');
+
+    filasControl.forEach(fila => {
+      const esInactivo = fila.hasAttribute('data-inactivo');
+
+      // Si hay filtro de riesgo activo
+      if (riesgoSeleccionado) {
+        // Solo mostrar activos que pertenezcan al riesgo seleccionado
+        if (!esInactivo) {
+          const riesgosIds = fila.getAttribute('data-riesgos-ids');
+          if (riesgosIds) {
+            const riesgosArray = riesgosIds.split(',').map(id => id.trim());
+            if (riesgosArray.includes(riesgoSeleccionado)) {
+              fila.style.display = '';
+            } else {
+              fila.style.display = 'none';
+            }
+          } else {
+            fila.style.display = 'none';
+          }
+        } else {
+          fila.style.display = 'none';
+        }
+      } else {
+        // Sin filtro de riesgo: mostrar solo las activas
+        if (!esInactivo) {
+          fila.style.display = '';
+        } else {
+          fila.style.display = 'none';
+        }
+      }
+    });
+
+    // Restaurar visibilidad de botones
+    const btnFiltrarInvalidos = document.getElementById('btn-filtrar-invalidos');
+    const btnFiltrarAplicables = document.getElementById('btn-filtrar-aplicables');
+    const btnVerTodos = document.getElementById('btn-ver-todos');
+    const btnTemporal = document.getElementById('btn-volver-temp-aplicables');
+
+    // Mostrar los botones originales
+    if (btnFiltrarInvalidos) btnFiltrarInvalidos.style.display = 'inline-block';
+    if (btnFiltrarAplicables) btnFiltrarAplicables.style.display = 'inline-block';
+    if (btnVerTodos) btnVerTodos.style.display = 'inline-block';
+
+    // Eliminar botón temporal
+    if (btnTemporal) {
+      btnTemporal.remove();
+    }
+
+    // Actualizar el resumen con los controles visibles
+    actualizarResumenControles();
+
+    // Actualizar contador de registros
+    actualizarContadorRegistros();
+
+  }
+
+  /**
+   * Restaura la vista normal de controles (quita el filtro)
+   */
+  function restaurarVistaControles() {
+
+    filtroInvalidosActivo = false;
+
+    // Obtener el riesgo seleccionado del filtro (si hay alguno)
+    const selectRiesgo = document.getElementById('filtro-riesgo');
+    const riesgoSeleccionado = selectRiesgo ? selectRiesgo.value : '';
+
+
+    // Obtener todas las filas de control
+    const filasControl = document.querySelectorAll('tr.fila-control');
+
+    filasControl.forEach(fila => {
+      const esInactivo = fila.hasAttribute('data-inactivo');
+
+      // Si hay filtro de riesgo activo
+      if (riesgoSeleccionado) {
+        // Solo mostrar activos que pertenezcan al riesgo seleccionado
+        if (!esInactivo) {
+          const riesgosIds = fila.getAttribute('data-riesgos-ids');
+          if (riesgosIds) {
+            const riesgosArray = riesgosIds.split(',').map(id => id.trim());
+            if (riesgosArray.includes(riesgoSeleccionado)) {
+              fila.style.display = '';
+            } else {
+              fila.style.display = 'none';
+            }
+          } else {
+            fila.style.display = 'none';
+          }
+        } else {
+          fila.style.display = 'none';
+        }
+      } else {
+        // Sin filtro de riesgo: mostrar solo las activas
+        if (!esInactivo) {
+          fila.style.display = '';
+        } else {
+          fila.style.display = 'none';
+        }
+      }
+    });
+
+    // Restaurar visibilidad de botones
+    const btnFiltrar = document.getElementById('btn-filtrar-invalidos');
+    const btnFiltrarAplicables = document.getElementById('btn-filtrar-aplicables');
+    const btnVerTodos = document.getElementById('btn-ver-todos');
+    const btnTemporal = document.getElementById('btn-volver-temp');
+
+    // Mostrar los botones originales
+    if (btnFiltrar) btnFiltrar.style.display = 'inline-block';
+    if (btnFiltrarAplicables) btnFiltrarAplicables.style.display = 'inline-block';
+    if (btnVerTodos) btnVerTodos.style.display = 'inline-block';
+
+    // Eliminar botón temporal
+    if (btnTemporal) {
+      btnTemporal.remove();
+    }
+
+    // Actualizar el resumen con los controles visibles
+    actualizarResumenControles();
+
+    // 🆕 Actualizar contador de registros
+    actualizarContadorRegistros();
+
+  }
+
+  // Asegurar que cuando se cambia la madurez de un control, se actualice el filtro si está activo
+  document.addEventListener('DOMContentLoaded', function () {
+
+    // Escuchar cambios en los selectores de madurez y aplica
+    document.querySelectorAll('.select-madurez, .aplica-select-control').forEach(select => {
+      select.addEventListener('change', function () {
+
+        // Si el filtro de inválidos está activo, reaplicarlo después de que se procese el cambio
+        if (filtroInvalidosActivo) {
+          setTimeout(() => {
+
+            // Obtener el riesgo seleccionado del filtro (si hay alguno)
+            const selectRiesgo = document.getElementById('filtro-riesgo');
+            const riesgoSeleccionado = selectRiesgo ? selectRiesgo.value : '';
+
+            // Obtener todas las filas
+            const filasControl = document.querySelectorAll('tr.fila-control');
+
+            // Aplicar el filtro sin recrear el botón
+            filasControl.forEach(fila => {
+              let mostrarFila = false;
+
+              // Debe tener la clase 'fila-control-invalida'
+              if (fila.classList.contains('fila-control-invalida')) {
+
+                // Si hay un riesgo seleccionado, verificar que el control pertenezca a ese riesgo
+                if (riesgoSeleccionado) {
+                  const riesgosIds = fila.getAttribute('data-riesgos-ids');
+
+                  if (riesgosIds) {
+                    const riesgosArray = riesgosIds.split(',').map(id => id.trim());
+                    mostrarFila = riesgosArray.includes(riesgoSeleccionado);
+                  }
+                } else {
+                  // No hay filtro de riesgo, mostrar todos los inválidos
+                  mostrarFila = true;
+                }
+              }
+
+              // Aplicar la visibilidad
+              if (mostrarFila) {
+                fila.style.display = '';
+              } else {
+                fila.style.display = 'none';
+              }
+            });
+
+            // Actualizar resumen
+            actualizarResumenControles();
+
+            // 🆕 Actualizar contador de registros
+            actualizarContadorRegistros();
+
+          }, 300);
+        }
+
+        // Si el filtro de aplicables está activo, reaplicarlo
+        if (filtroAplicablesActivo) {
+          setTimeout(() => {
+
+            // Obtener el riesgo seleccionado del filtro (si hay alguno)
+            const selectRiesgo = document.getElementById('filtro-riesgo');
+            const riesgoSeleccionado = selectRiesgo ? selectRiesgo.value : '';
+
+            // Obtener todas las filas
+            const filasControl = document.querySelectorAll('tr.fila-control');
+
+            // Aplicar el filtro sin recrear el botón
+            filasControl.forEach(fila => {
+              let mostrarFila = false;
+
+              // Verificar si el control es aplicable (L_APLICA = 1)
+              const lAplica = fila.getAttribute('data-l-aplica');
+              const esInactivo = fila.hasAttribute('data-inactivo');
+
+              // Solo mostrar si es aplicable y no es inactivo
+              if (lAplica === '1' && !esInactivo) {
+                // Si hay filtro de riesgo, verificar que pertenezca a ese riesgo
+                if (riesgoSeleccionado) {
+                  const riesgosIds = fila.getAttribute('data-riesgos-ids');
+
+                  if (riesgosIds) {
+                    const riesgosArray = riesgosIds.split(',').map(id => id.trim());
+                    mostrarFila = riesgosArray.includes(riesgoSeleccionado);
+                  }
+                } else {
+                  // No hay filtro de riesgo, mostrar todos los aplicables
+                  mostrarFila = true;
+                }
+              }
+
+              // Aplicar la visibilidad
+              if (mostrarFila) {
+                fila.style.display = '';
+              } else {
+                fila.style.display = 'none';
+              }
+            });
+
+            // Actualizar resumen
+            actualizarResumenControles();
+
+            // Actualizar contador de registros
+            actualizarContadorRegistros();
+
+          }, 300);
+        }
+      });
+    });
+  });
+
+  // 🆕 FUNCIÓN: Ver todos los controles con filtro de riesgo opcional
+  // 🔄 MODIFICADO: Solo mantiene UN filtro activo (exclusividad entre riesgo y requisito)
+  function verTodosLosControles(event) {
+    event.preventDefault();
+
+    // Obtener el riesgo seleccionado del filtro
+    const filtroRiesgo = document.getElementById('filtro-riesgo');
+    const riesgoSeleccionado = filtroRiesgo ? filtroRiesgo.value : '';
+
+    // 🆕 Obtener el requisito seleccionado del filtro
+    const filtroRequisito = document.getElementById('filtro-requisito');
+    const requisitoSeleccionado = filtroRequisito ? filtroRequisito.value : '';
+
+    // Construir la URL base
+    let url = "{{ url_for('formulario_controles', ver_todos=1, id_sistema=id_sistema) }}";
+
+    // 🔄 EXCLUSIVIDAD DE FILTROS: Solo uno puede estar activo
+    // Prioridad al requisito porque es el que se aplica desde el servidor
+    if (requisitoSeleccionado && requisitoSeleccionado !== '') {
+      url += '&id_requisito_filtro=' + encodeURIComponent(requisitoSeleccionado);
+    } else if (riesgoSeleccionado && riesgoSeleccionado !== '') {
+      // Solo añadir riesgo si NO hay requisito seleccionado
+      url += '&id_riesgo_filtro=' + encodeURIComponent(riesgoSeleccionado);
+    } else {
+    }
+
+    // Navegar a la URL construida
+    window.location.href = url;
+  }
+
+  // 🆕 FUNCIÓN: Volver a controles activos manteniendo el filtro activo
+  // 🔄 MODIFICADO: Solo mantiene UN filtro activo (exclusividad entre riesgo y requisito)
+  function volverAControlesActivos(event) {
+    event.preventDefault();
+
+    // Obtener el riesgo seleccionado del filtro
+    const filtroRiesgo = document.getElementById('filtro-riesgo');
+    const riesgoSeleccionado = filtroRiesgo ? filtroRiesgo.value : '';
+
+    // 🆕 Obtener el requisito seleccionado del filtro
+    const filtroRequisito = document.getElementById('filtro-requisito');
+    const requisitoSeleccionado = filtroRequisito ? filtroRequisito.value : '';
+
+    // Construir la URL base (ver_todos=0 = modo controles activos)
+    let url = "{{ url_for('formulario_controles', ver_todos=0, id_sistema=id_sistema) }}";
+
+    // 🔄 EXCLUSIVIDAD DE FILTROS: Solo uno puede estar activo
+    // Prioridad al requisito porque es el que se aplica desde el servidor
+    if (requisitoSeleccionado && requisitoSeleccionado !== '') {
+      url += '&id_requisito_filtro=' + encodeURIComponent(requisitoSeleccionado);
+    } else if (riesgoSeleccionado && riesgoSeleccionado !== '') {
+      // Solo añadir riesgo si NO hay requisito seleccionado
+      url += '&id_riesgo_filtro=' + encodeURIComponent(riesgoSeleccionado);
+    } else {
+    }
+
+    // Navegar a la URL construida
+    window.location.href = url;
+  }
+
+  // ============================================================================
+  // 🆕 OBSERVER PARA ACTUALIZAR EL CONTADOR CUANDO CAMBIA LA VISIBILIDAD
+  // ============================================================================
+  document.addEventListener('DOMContentLoaded', function() {
+    // Crear un observer para detectar cambios en la visibilidad de las filas
+    const observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+          actualizarContadorRegistros();
+        }
+      });
+    });
+
+    // Observar todas las filas de control
+    const filasControl = document.querySelectorAll('tr.fila-control');
+    filasControl.forEach(function(fila) {
+      observer.observe(fila, {
+        attributes: true,
+        attributeFilter: ['style']
+      });
+    });
+  });
+</script>
+
+
+{% endblock %}

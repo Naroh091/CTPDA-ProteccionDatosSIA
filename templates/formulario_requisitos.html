@@ -1,0 +1,1691 @@
+
+<!--
+    Aplicación para la protección de datos en Sistemas IA
+    Copyright (C) 2025-2026 Consejo de Transparencia y Protección de Datos de Andalucía
+
+    Licenciado bajo EUPL v1.2: https://eupl.eu/1.2/es/
+-->
+
+
+{% extends "base.html" %}
+{% block title %}Requisitos de Cumplimiento - {{ nombre_aplicacion }}{% endblock %}
+
+{% block content %}
+<div id="contenedor-cabecera-requisitos" class="d-flex justify-content-between align-items-center mb-4">
+    <img id="logo-ctpd" src="{{ url_for('static', filename='img/logo_ctpdandalucia.png') }}" alt="Logo" style="height: 80px;">
+    <h1 id="cabecera">Requisitos</h1>
+    <img id="logo-junta" src="{{ url_for('static', filename='img/logo_junta.png') }}" alt="Logo Junta" style="height: 80px;">
+</div>
+
+{% if exito %}
+<div id="alerta-exito-guardado" class="alert alert-success d-flex justify-content-between align-items-center" role="alert">
+    <span id="mensaje-exito-guardado">✅ Datos de requisitos guardados correctamente</span>
+</div>
+{% endif %}
+
+<!-- Agregar un aviso visual si está en fase 4 -->
+{% if monitoreo %}
+<div id="alerta-monitoreo-activo" class="alert alert-info" role="alert">
+    <i class="bi bi-info-circle"></i> <strong>Fase de Monitoreo Activa:</strong> Los campos están en modo lectura.
+</div>
+{% endif %}
+
+<!-- ===== CUADRO RESUMEN DE REQUISITOS ===== -->
+<div id="card-resumen-requisitos" class="card mb-3 shadow-sm">
+    <div id="header-resumen-requisitos" class="card-header bg-dark text-white py-2 cuadro-resumen-header" data-bs-toggle="collapse" data-bs-target="#collapseResumenRequisitos" aria-expanded="true" aria-controls="collapseResumenRequisitos" style="cursor: pointer;">
+        <h6 id="titulo-resumen-requisitos" class="mb-0 text-white d-flex align-items-center justify-content-between">
+            <span>
+                <i class="bi bi-chevron-down me-2 icono-collapse-resumen"></i>
+                <i class="bi bi-clipboard-check"></i> Resumen de Requisitos
+            </span>
+        </h6>
+    </div>
+    <div class="collapse show" id="collapseResumenRequisitos">
+        <div id="body-resumen-requisitos" class="card-body p-3">
+            <!-- Fila de indicadores -->
+            <div id="fila-indicadores-requisitos" class="row g-2 mb-3">
+                <div class="col">
+                    <div id="indicador-total-requisitos" class="d-flex align-items-center justify-content-between border rounded p-2 bg-light h-100">
+                        <small class="text-muted"><strong>Total Requisitos</strong></small>
+                        <h5 class="text-primary mb-0 ms-2" id="resumen-total-requisitos">{{ total_requisitos }}</h5>
+                    </div>
+                </div>
+                <div class="col">
+                    <div id="indicador-aplicables" class="d-flex align-items-center justify-content-between border rounded p-2 bg-light h-100">
+                        <small class="text-muted"><strong>Aplicables</strong></small>
+                        <h5 class="text-success mb-0 ms-2" id="resumen-aplicables">{{ requisitos_aplicables }}</h5>
+                    </div>
+                </div>
+                <div class="col">
+                    <div id="indicador-no-aplicables" class="d-flex align-items-center justify-content-between border rounded p-2 bg-light h-100">
+                        <small class="text-muted"><strong>No Aplicables</strong></small>
+                        <h5 class="text-secondary mb-0 ms-2" id="resumen-no-aplicables">{{ requisitos_no_aplicables }}</h5>
+                    </div>
+                </div>
+                <div class="col">
+                    <div id="indicador-pendientes" class="d-flex align-items-center justify-content-between border rounded p-2 bg-light h-100">
+                        <small class="text-muted"><strong>Por Decidir</strong></small>
+                        <h5 class="text-warning mb-0 ms-2" id="resumen-pendientes">{{ requisitos_pendientes }}</h5>
+                    </div>
+                </div>
+                <!-- 🆕 Indicador de Estado de Análisis GLOBAL -->
+                <div class="col">
+                    <div id="indicador-estado-analisis" class="d-flex align-items-center justify-content-between border rounded p-2 bg-light h-100">
+                        <small class="text-muted"><strong>Estado de análisis</strong></small>
+                        <h5 class="{% if todos_completos %}text-success{% elif analisis_total == 0 %}text-secondary{% else %}text-warning{% endif %} mb-0 ms-2"
+                            id="resumen-completitud-requisitos"
+                            data-pendientes="{{ analisis_pendientes }}"
+                            data-total="{{ analisis_total }}">
+                            {% if todos_completos %}
+                            <i class="bi bi-check-circle-fill"></i> 100%
+                            {% elif analisis_total == 0 %}
+                            <i class="bi bi-dash-circle"></i> N/A
+                            {% else %}
+                            <i class="bi bi-hourglass-split"></i> {{ analisis_pendientes }} de {{ analisis_total }}
+                            {% endif %}
+                        </h5>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Línea de Estados de Planificación (solo si aplica) -->
+            {% if mostrar_resumen_planif and estados_planif_resumen %}
+            <div id="seccion-estados-planif" class="mb-3">
+                <h6 class="text-muted mb-2"><i class="bi bi-calendar-check"></i> Estados de Planificación</h6>
+                <div id="linea-estados-planif" class="row g-2">
+                    {% for estado in estados_planif_resumen %}
+                    <div class="col">
+                        <div class="resumen-estado-box">
+                            <small class="resumen-estado-label">{{ estado.D_ESTADO }}</small>
+                            <h5 class="resumen-estado-valor text-info mb-0" id="contador-planif-{{ estado.ID_ESTREQ }}">{{ estado.cantidad }}</h5>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Línea de Estados de Cumplimiento (solo si aplica) -->
+            {% if mostrar_resumen_cumpl and estados_cumpl_resumen %}
+            <div id="seccion-estados-cumpl" class="mb-0">
+                <h6 class="text-muted mb-2"><i class="bi bi-check-circle"></i> Estados de Cumplimiento</h6>
+                <div id="linea-estados-cumpl" class="row g-2">
+                    {% for estado in estados_cumpl_resumen %}
+                    <div class="col">
+                        <div class="resumen-estado-box">
+                            <small class="resumen-estado-label">{{ estado.D_ESTADO }}</small>
+                            <h5 class="resumen-estado-valor text-success mb-0" id="contador-cumpl-{{ estado.ID_ESTREQ }}">{{ estado.cantidad }}</h5>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- ===== TABLA DE REQUISITOS ===== -->
+
+<div id="barra-acciones-requisitos" class="d-flex justify-content-between align-items-center mb-2">
+    <div id="contenedor-botones-filtro" class="d-flex justify-content-start gap-3">
+        <!-- Botón siempre visible - se desactiva si no hay requisitos inválidos -->
+        <button type="button" class="btn btn-sm btn-outline-danger btn-custom" id="btn-filtrar-sin-verificar" onclick="filtrarRequisitosSinVerificar()" {% if requisitos_invalidos|length == 0 %}disabled title="No hay requisitos sin verificar"{% endif %}>
+            ⚠️ Requisitos sin verificar
+            {% if requisitos_invalidos|length > 0 %}
+            <span class="badge bg-danger ms-1">{{ requisitos_invalidos|length }}</span>
+            {% endif %}
+        </button>
+    </div>
+    <div id="contenedor-info-registros" class="d-flex align-items-center gap-3">
+        <div id="wrapper-contador-registros" class="contador-registros-wrapper">
+            <span class="badge contador-registros-badge" id="contador-registros">{{ total_requisitos }}</span>
+        </div>
+        <div id="indicador-guardado-auto" style="color: #28a745; font-size: 16px;">
+            💾 <strong>Guardado automático activado</strong>
+        </div>
+    </div>
+</div>
+
+<div id="contenedor-tabla-requisitos" class="table-responsive">
+        <table id="tabla-requisitos" class="table table-sm table-bordered table-hover">
+            <thead id="thead-requisitos" class="table-dark sticky-top">
+                <tr>
+                    <th id="th-req-denominacion" class="text-center align-middle" style="width: 20%;">
+                        Denominación
+                    </th>
+                    <th id="th-req-descripcion" class="text-center align-middle" style="width: 25%;">
+                        Descripción
+                    </th>
+                    <th id="th-req-aplica" class="text-center align-middle" style="width: 8%;">
+                        Aplica
+                    </th>
+                    <th id="th-req-estado-planif" class="text-center align-middle" style="width: 12%;">
+                        Estado Planificación
+                    </th>
+                    <th id="th-req-traslado-pliego" class="text-center align-middle" style="width: 8%;">
+                        Traslado a Pliegos
+                    </th>
+                    <th id="th-req-instrumento" class="text-center align-middle" style="width: 12%;">
+                        Instrumento Contractual
+                    </th>
+                    {% if not ocultar_cabecera_cumpl %}
+                    <th id="th-req-estado-cumpl" class="text-center align-middle" style="width: 10%;">
+                        Estado Cumplimiento
+                    </th>
+                    {% endif %}
+                    <th id="th-req-justificaciones" class="text-center align-middle" style="min-width: 300px;">
+                        Justificaciones
+                    </th>
+                </tr>
+            </thead>
+            <tbody id="tbody-requisitos">
+                {% for item in requisitos %}
+                {% set req = item.requisito %}
+                {% set dato = item.dato %}
+                <tr id="fila-requisito-{{ dato.ID_DATREQ }}" class="fila-requisito {% if dato.ID_DATREQ in requisitos_invalidos %}fila-requisito-invalida{% endif %}" data-requisito-id="{{ req.ID_REQ }}" data-dato-id="{{ dato.ID_DATREQ }}">
+
+                    <!-- DENOMINACIÓN -->
+                    <td id="celda-denominacion-{{ dato.ID_DATREQ }}" class="align-middle" style="white-space: normal; word-break: break-word;">
+                        {% if dato.ID_DATREQ in requisitos_invalidos %}
+                        <i class="bi bi-exclamation-triangle-fill text-danger me-2 icono-req-invalido" title="No cumple criterios de verificación: {{ motivos_invalidos.get(dato.ID_DATREQ, 'Verifique los campos obligatorios') }}"></i>
+                        {% endif %}
+                        <strong id="denominacion-req-{{ dato.ID_DATREQ }}">{{ req.D_REQUISITO }}</strong>
+                        <small class="text-muted d-block mt-1">
+                            {{ req.T_BASENORMATIVA }}
+                        </small>
+
+                        <!-- 🆕 BOTÓN "REVISAR CONTROLES" (solo si tiene controles asociados) -->
+                        {% if item.tiene_controles %}
+                        <div id="contenedor-btn-revisar-controles-{{ dato.ID_DATREQ }}" class="mt-2">
+                            <button type="button"
+                                id="btn-revisar-controles-{{ dato.ID_DATREQ }}"
+                                data-ayuda-control="th_revisar_controles"
+                                class="btn btn-sm btn-outline-primary w-100"
+                                data-id-requisito="{{ req.ID_REQ }}"
+                                onclick="irAControlesFiltradosPorRequisito(this.getAttribute('data-id-requisito'))"
+                                {% if monitoreo %}disabled{% endif %}>
+                                <i class="bi bi-shield-check"></i> Controles asociados
+                            </button>
+                        </div>
+                        {% endif %}
+                    </td>
+
+                    <!-- DESCRIPCIÓN -->
+                    <td id="celda-descripcion-{{ dato.ID_DATREQ }}" class="align-middle" style="white-space: normal; word-break: break-word;">
+                        <small id="descripcion-req-{{ dato.ID_DATREQ }}" class="text-muted">{{ req.T_DESCRIPCION }}</small>
+                    </td>
+
+                    <!-- APLICA (SI/NO) -->
+                    <!-- CAMBIO 1: El campo Aplica ahora también se deshabilita si habilitar_estado_planif es False -->
+                    <td id="celda-aplica-{{ dato.ID_DATREQ }}" class="text-center align-middle">
+                        <select
+                            id="aplica-req-{{ dato.ID_DATREQ }}"
+                            name="aplica_{{ dato.ID_DATREQ }}"
+                            class="form-select form-select-sm campo-autoguardado"
+                            data-campo-tipo="requisito"
+                            data-campo-nombre="L_APLICA"
+                            data-dato-id="{{ dato.ID_DATREQ }}"
+                            {% if req.L_APLICAOBLIG == 1 or monitoreo or not item.habilitar_estado_planif %}disabled{% endif %}>
+                            <option value="" {% if dato.L_APLICA is none %}selected{% endif %}>Por decidir</option>
+                            <option value="1" {% if dato.L_APLICA == 1 %}selected{% endif %}>Sí</option>
+                            <option value="0" {% if dato.L_APLICA == 0 %}selected{% endif %}>No</option>
+                        </select>
+                    </td>
+
+                    <!-- ESTADO PLANIFICACIÓN -->
+                    <td id="celda-estado-planif-{{ dato.ID_DATREQ }}" class="text-center align-middle" {% if not item.mostrar_estado_planif %}style="display: none;"{% endif %}>
+                        <select
+                            id="estado-planif-{{ dato.ID_DATREQ }}"
+                            name="estado_planif_{{ dato.ID_DATREQ }}"
+                            class="form-select form-select-sm campo-autoguardado"
+                            data-campo-tipo="requisito"
+                            data-campo-nombre="N_ESTPLANIF"
+                            data-dato-id="{{ dato.ID_DATREQ }}"
+                            {% if not item.habilitar_estado_planif or monitoreo %}disabled{% endif %}>
+                            {% for estado in item.estados_planif %}
+                            <option value="{{ estado.ID_ESTREQ }}"
+                                    {% if dato.N_ESTPLANIF == estado.ID_ESTREQ %}selected{% endif %}
+                                    {% if estado.L_NOAPLICA == 1 %}data-no-aplica="true"{% endif %}
+                                    data-justoblig="{{ estado.L_JUSTOBLIG if estado.L_JUSTOBLIG else 0 }}"
+                                    data-avancefase="{{ estado.L_AVANCEFASE if estado.L_AVANCEFASE else 0 }}">
+                                {{ estado.D_ESTADO }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </td>
+
+                    <!-- TRASLADO A PLIEGOS -->
+                    <td id="celda-traslado-pliego-{{ dato.ID_DATREQ }}" class="text-center align-middle">
+                        <select
+                            id="traslado-pliego-{{ dato.ID_DATREQ }}"
+                            name="traslado_pliego_{{ dato.ID_DATREQ }}"
+                            class="form-select form-select-sm campo-autoguardado"
+                            data-campo-tipo="requisito"
+                            data-campo-nombre="L_TRASLAPLI"
+                            data-dato-id="{{ dato.ID_DATREQ }}"
+                            {% if monitoreo %}disabled{% endif %}>
+                            <option value="" {% if dato.L_TRASLAPLI is none %}selected{% endif %}>Sin definir</option>
+                            <option value="1" {% if dato.L_TRASLAPLI == 1 %}selected{% endif %}>Sí</option>
+                            <option value="0" {% if dato.L_TRASLAPLI == 0 %}selected{% endif %}>No</option>
+                        </select>
+                    </td>
+
+                    <!-- INSTRUMENTO CONTRACTUAL -->
+                    <td id="celda-instrumento-{{ dato.ID_DATREQ }}" class="text-center align-middle">
+                        <select
+                            id="instrumento-{{ dato.ID_DATREQ }}"
+                            name="instrumento_{{ dato.ID_DATREQ }}"
+                            class="form-select form-select-sm campo-autoguardado"
+                            data-campo-tipo="requisito"
+                            data-campo-nombre="V_INSTRCONTR"
+                            data-dato-id="{{ dato.ID_DATREQ }}"
+                            {% if monitoreo %}disabled{% endif %}>
+                            <option value="">Sin definir</option>
+                            {% for instrumento in instrumentos_contractuales %}
+                            <option value="{{ instrumento.ID_VALDAT }}" {% if dato.V_INSTRCONTR == instrumento.ID_VALDAT %}selected{% endif %}>
+                                {{ instrumento.D_VALOR }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </td>
+
+
+                    <!-- ESTADO CUMPLIMIENTO -->
+                    {% if not ocultar_cabecera_cumpl %}
+                    <td id="celda-estado-cumpl-{{ dato.ID_DATREQ }}" class="text-center align-middle">
+                        {% if item.mostrar_estado_cumpl %}
+                        <select
+                            id="estado-cumpl-{{ dato.ID_DATREQ }}"
+                            name="estado_cumpl_{{ dato.ID_DATREQ }}"
+                            class="form-select form-select-sm campo-autoguardado"
+                            data-campo-tipo="requisito"
+                            data-campo-nombre="N_ESTCUMPL"
+                            data-dato-id="{{ dato.ID_DATREQ }}"
+                            {% if not item.habilitar_estado_cumpl or monitoreo %}disabled{% endif %}>
+                            {% for estado in item.estados_cumpl %}
+                            <option value="{{ estado.ID_ESTREQ }}"
+                                    {% if dato.N_ESTCUMPL == estado.ID_ESTREQ %}selected{% endif %}
+                                    data-justoblig="{{ estado.L_JUSTOBLIG if estado.L_JUSTOBLIG else 0 }}"
+                                    data-planmejora="{{ estado.L_PLANMEJORA if estado.L_PLANMEJORA else 0 }}"
+                                    data-avancefase="{{ estado.L_AVANCEFASE if estado.L_AVANCEFASE else 0 }}">
+                                {{ estado.D_ESTADO }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        {% else %}
+                        <!-- Celda vacía para mantener alineación -->
+                        &nbsp;
+                        {% endif %}
+                    </td>
+                    {% endif %}
+
+                    <!-- JUSTIFICACIONES -->
+                    <td id="celda-justificaciones-{{ dato.ID_DATREQ }}" class="align-middle" style="min-width: 300px; padding: 0.5rem;">
+                        <div id="contenedor-justificaciones-{{ dato.ID_DATREQ }}" class="d-flex flex-column gap-2">
+
+                            <!-- Justificación Aplica (siempre visible) -->
+                            <div id="grupo-just-aplica-{{ dato.ID_DATREQ }}">
+                                <label id="label-just-aplica-{{ dato.ID_DATREQ }}" class="form-label small mb-1 w-100 text-center">
+                                    <strong>Justificación Aplica</strong>
+                                    <span id="asterisco-just-aplica-{{ dato.ID_DATREQ }}" class="text-danger asterisco-obligatorio" style="display: none;" title="Campo obligatorio"> *</span>
+                                </label>
+                                <button
+                                    type="button"
+                                    id="btn-just-aplica-{{ dato.ID_DATREQ }}"
+                                    class="btn btn-outline-secondary btn-sm w-100 text-start color-text-area"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modalJustAplica{{ dato.ID_DATREQ }}"
+                                    title="Editar justificación de aplicabilidad"
+                                    {% if monitoreo %}disabled{% endif %}>
+                                    {% if dato.T_JUSTAPLICA and dato.T_JUSTAPLICA.strip() %}
+                                    {{ dato.T_JUSTAPLICA | truncate(40, True) }}
+                                    {% else %}
+                                    <em>No hay información</em>
+                                    {% endif %}
+                                </button>
+                            </div>
+
+                            <!-- Justificación Traslado a Pliegos (siempre visible) -->
+                            <div id="grupo-just-traslado-{{ dato.ID_DATREQ }}">
+                                <label id="label-just-traslado-{{ dato.ID_DATREQ }}" class="form-label small mb-1 w-100 text-center">
+                                    <strong>Traslado a Pliegos</strong>
+                                </label>
+                                <button
+                                    type="button"
+                                    id="btn-just-traslado-{{ dato.ID_DATREQ }}"
+                                    class="btn btn-outline-secondary btn-sm w-100 text-start color-text-area"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modalJustTraslado{{ dato.ID_DATREQ }}"
+                                    title="Editar justificación de traslado a pliegos"
+                                    {% if monitoreo %}disabled{% endif %}>
+                                    {% if dato.T_OBSPLIEGO and dato.T_OBSPLIEGO.strip() %}
+                                    {{ dato.T_OBSPLIEGO | truncate(40, True) }}
+                                    {% else %}
+                                    <em>No hay información</em>
+                                    {% endif %}
+                                </button>
+                            </div>
+
+                            <!-- Justificación Planificación -->
+                            {% if item.mostrar_estado_planif %}
+                            <div id="grupo-just-planif-{{ dato.ID_DATREQ }}">
+                                <label id="label-just-planif-{{ dato.ID_DATREQ }}" class="form-label small mb-1 w-100 text-center">
+                                    <strong>Justificación Planificación</strong>
+                                    <span id="asterisco-just-planif-{{ dato.ID_DATREQ }}" class="text-danger asterisco-obligatorio" style="display: none;" title="Campo obligatorio"> *</span>
+                                </label>
+                                <button
+                                    type="button"
+                                    id="btn-just-planif-{{ dato.ID_DATREQ }}"
+                                    class="btn btn-outline-secondary btn-sm w-100 text-start color-text-area"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modalJustPlanif{{ dato.ID_DATREQ }}"
+                                    title="Editar justificación de planificación"
+                                    {% if monitoreo %}disabled{% endif %}>
+                                    {% if dato.T_JUSTPLANIF and dato.T_JUSTPLANIF.strip() %}
+                                    {{ dato.T_JUSTPLANIF | truncate(40, True) }}
+                                    {% else %}
+                                    <em>No hay información</em>
+                                    {% endif %}
+                                </button>
+                            </div>
+                            {% endif %}
+
+                            <!-- Justificación Cumplimiento -->
+                            {% if item.mostrar_estado_cumpl %}
+                            <div id="grupo-just-cumpl-{{ dato.ID_DATREQ }}">
+                                <label id="label-just-cumpl-{{ dato.ID_DATREQ }}" class="form-label small mb-1 w-100 text-center">
+                                    <strong>Justificación Cumplimiento</strong>
+                                    <span id="asterisco-just-cumpl-{{ dato.ID_DATREQ }}" class="text-danger asterisco-obligatorio" style="display: none;" title="Campo obligatorio"> *</span>
+                                </label>
+                                <button
+                                    type="button"
+                                    id="btn-just-cumpl-{{ dato.ID_DATREQ }}"
+                                    class="btn btn-outline-secondary btn-sm w-100 text-start color-text-area"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modalJustCumpl{{ dato.ID_DATREQ }}"
+                                    title="Editar justificación de cumplimiento"
+                                    {% if monitoreo %}disabled{% endif %}>
+                                    {% if dato.T_JUSTCUMPL and dato.T_JUSTCUMPL.strip() %}
+                                    {{ dato.T_JUSTCUMPL | truncate(40, True) }}
+                                    {% else %}
+                                    <em>No hay información</em>
+                                    {% endif %}
+                                </button>
+                            </div>
+                            {% endif %}
+
+                            <!-- CAMBIO 2: Plan de Mejora (solo si estado cumplimiento requiere justificación) -->
+                            <!-- Ahora con visibilidad inicial correcta y gestión dinámica en JavaScript -->
+                            {% if item.mostrar_estado_cumpl %}
+                            <div id="grupo-plan-mejora-{{ dato.ID_DATREQ }}" {% if not item.mostrar_plan_mejora %}style="display: none;"{% endif %}>
+                                <label id="label-plan-mejora-{{ dato.ID_DATREQ }}" class="form-label small mb-1 w-100 text-center">
+                                    <strong>Plan de Mejora</strong>
+                                </label>
+                                <button
+                                    type="button"
+                                    id="btn-plan-mejora-{{ dato.ID_DATREQ }}"
+                                    class="btn btn-outline-warning btn-sm w-100 text-start color-text-area"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modalPlanMejora{{ dato.ID_DATREQ }}"
+                                    title="Editar plan de mejora"
+                                    {% if monitoreo %}disabled{% endif %}>
+                                    {% if dato.T_PLANMEJORA and dato.T_PLANMEJORA.strip() %}
+                                    {{ dato.T_PLANMEJORA | truncate(40, True) }}
+                                    {% else %}
+                                    <em>No hay información</em>
+                                    {% endif %}
+                                </button>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+
+                <!-- MODALES PARA CADA REQUISITO -->
+
+                <!-- Modal Descripción Completa -->
+                <div class="modal fade" id="modalDescripcion{{ dato.ID_DATREQ }}" tabindex="-1">
+                    <div class="modal-dialog modal-lg" id="dialog-descripcion-{{ dato.ID_DATREQ }}">
+                        <div class="modal-content" id="content-descripcion-{{ dato.ID_DATREQ }}">
+                            <div class="modal-header" id="header-descripcion-{{ dato.ID_DATREQ }}">
+                                <h5 class="modal-title" id="titulo-modal-descripcion-{{ dato.ID_DATREQ }}">{{ req.C_REQUISITO }} - {{ req.D_REQUISITO }}</h5>
+                                <button type="button" id="btn-cerrar-descripcion-{{ dato.ID_DATREQ }}" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body" id="body-descripcion-{{ dato.ID_DATREQ }}">
+                                <p id="descripcion-completa-{{ dato.ID_DATREQ }}"><strong>Descripción:</strong><br>{{ req.T_DESCRIPCION }}</p>
+                                <p id="base-normativa-completa-{{ dato.ID_DATREQ }}"><strong>Base Normativa:</strong><br>{{ req.T_BASENORMATIVA }}</p>
+                            </div>
+                            <div class="modal-footer" id="footer-descripcion-{{ dato.ID_DATREQ }}">
+                                <button type="button" id="btn-cerrar-modal-descripcion-{{ dato.ID_DATREQ }}" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Justificación Aplica -->
+                <div class="modal fade" id="modalJustAplica{{ dato.ID_DATREQ }}" tabindex="-1" data-bs-focus="false">
+                    <div class="modal-dialog modal-lg" id="dialog-just-aplica-{{ dato.ID_DATREQ }}">
+                        <div class="modal-content" id="content-just-aplica-{{ dato.ID_DATREQ }}">
+                            <div class="modal-header" id="header-just-aplica-{{ dato.ID_DATREQ }}">
+                                <h5 class="modal-title" id="titulo-modal-just-aplica-{{ dato.ID_DATREQ }}">Justificación de Aplicabilidad</h5>
+                                <button type="button" id="btn-cerrar-just-aplica-{{ dato.ID_DATREQ }}" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body" id="body-just-aplica-{{ dato.ID_DATREQ }}">
+                                <textarea
+                                    name="just_aplica_{{ dato.ID_DATREQ }}"
+                                    id="textarea-just-aplica-{{ dato.ID_DATREQ }}"
+                                    class="form-control"
+                                    rows="8"
+                                    placeholder="Explica por qué este requisito aplica o no aplica al sistema..."
+                                    {% if monitoreo %}disabled{% endif %}>{{ dato.T_JUSTAPLICA if dato.T_JUSTAPLICA else '' }}</textarea>
+                            </div>
+                            <div class="modal-footer" id="footer-just-aplica-{{ dato.ID_DATREQ }}">
+                                <button type="button" id="btn-cancelar-just-aplica-{{ dato.ID_DATREQ }}" class="btn btn-danger" data-bs-dismiss="modal">Cerrar</button>
+                                <button type="button" id="btn-guardar-just-aplica-{{ dato.ID_DATREQ }}" class="btn btn-primary" onclick="updateModalTextarea('just_aplica_{{ dato.ID_DATREQ }}', 'modalJustAplica{{ dato.ID_DATREQ }}', 'requisito')">
+                                    <i class="bi bi-save"></i> Guardar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Justificación Traslado a Pliegos -->
+                <div class="modal fade" id="modalJustTraslado{{ dato.ID_DATREQ }}" tabindex="-1" data-bs-focus="false">
+                    <div class="modal-dialog modal-lg" id="dialog-just-traslado-{{ dato.ID_DATREQ }}">
+                        <div class="modal-content" id="content-just-traslado-{{ dato.ID_DATREQ }}">
+                            <div class="modal-header" id="header-just-traslado-{{ dato.ID_DATREQ }}">
+                                <h5 class="modal-title" id="titulo-modal-just-traslado-{{ dato.ID_DATREQ }}">Traslado a Pliegos</h5>
+                                <button type="button" id="btn-cerrar-just-traslado-{{ dato.ID_DATREQ }}" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body" id="body-just-traslado-{{ dato.ID_DATREQ }}">
+                                <textarea
+                                    name="just_traslado_{{ dato.ID_DATREQ }}"
+                                    id="textarea-just-traslado-{{ dato.ID_DATREQ }}"
+                                    class="form-control"
+                                    rows="8"
+                                    placeholder="Describe cómo se traslada este requisito a los pliegos..."
+                                    {% if monitoreo %}disabled{% endif %}>{{ dato.T_OBSPLIEGO if dato.T_OBSPLIEGO else '' }}</textarea>
+                            </div>
+                            <div class="modal-footer" id="footer-just-traslado-{{ dato.ID_DATREQ }}">
+                                <button type="button" id="btn-cancelar-just-traslado-{{ dato.ID_DATREQ }}" class="btn btn-danger" data-bs-dismiss="modal">Cerrar</button>
+                                <button type="button" id="btn-guardar-just-traslado-{{ dato.ID_DATREQ }}" class="btn btn-primary" onclick="updateModalTextarea('just_traslado_{{ dato.ID_DATREQ }}', 'modalJustTraslado{{ dato.ID_DATREQ }}', 'requisito')">
+                                    <i class="bi bi-save"></i> Guardar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Justificación Planificación -->
+                <div class="modal fade" id="modalJustPlanif{{ dato.ID_DATREQ }}" tabindex="-1" data-bs-focus="false">
+                    <div class="modal-dialog modal-lg" id="dialog-just-planif-{{ dato.ID_DATREQ }}">
+                        <div class="modal-content" id="content-just-planif-{{ dato.ID_DATREQ }}">
+                            <div class="modal-header" id="header-just-planif-{{ dato.ID_DATREQ }}">
+                                <h5 class="modal-title" id="titulo-modal-just-planif-{{ dato.ID_DATREQ }}">Justificación de Planificación</h5>
+                                <button type="button" id="btn-cerrar-just-planif-{{ dato.ID_DATREQ }}" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body" id="body-just-planif-{{ dato.ID_DATREQ }}">
+                                <textarea
+                                    name="just_planif_{{ dato.ID_DATREQ }}"
+                                    id="textarea-just-planif-{{ dato.ID_DATREQ }}"
+                                    class="form-control"
+                                    rows="8"
+                                    placeholder="Describe cómo se planifica cumplir con este requisito..."
+                                    {% if monitoreo %}disabled{% endif %}>{{ dato.T_JUSTPLANIF if dato.T_JUSTPLANIF else '' }}</textarea>
+                            </div>
+                            <div class="modal-footer" id="footer-just-planif-{{ dato.ID_DATREQ }}">
+                                <button type="button" id="btn-cancelar-just-planif-{{ dato.ID_DATREQ }}" class="btn btn-danger" data-bs-dismiss="modal">Cerrar</button>
+                                <button type="button" id="btn-guardar-just-planif-{{ dato.ID_DATREQ }}" class="btn btn-primary" onclick="updateModalTextarea('just_planif_{{ dato.ID_DATREQ }}', 'modalJustPlanif{{ dato.ID_DATREQ }}', 'requisito')">
+                                    <i class="bi bi-save"></i> Guardar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Justificación Cumplimiento -->
+                <div class="modal fade" id="modalJustCumpl{{ dato.ID_DATREQ }}" tabindex="-1" data-bs-focus="false">
+                    <div class="modal-dialog modal-lg" id="dialog-just-cumpl-{{ dato.ID_DATREQ }}">
+                        <div class="modal-content" id="content-just-cumpl-{{ dato.ID_DATREQ }}">
+                            <div class="modal-header" id="header-just-cumpl-{{ dato.ID_DATREQ }}">
+                                <h5 class="modal-title" id="titulo-modal-just-cumpl-{{ dato.ID_DATREQ }}">Justificación de Cumplimiento</h5>
+                                <button type="button" id="btn-cerrar-just-cumpl-{{ dato.ID_DATREQ }}" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body" id="body-just-cumpl-{{ dato.ID_DATREQ }}">
+                                <textarea
+                                    name="just_cumpl_{{ dato.ID_DATREQ }}"
+                                    id="textarea-just-cumpl-{{ dato.ID_DATREQ }}"
+                                    class="form-control"
+                                    rows="8"
+                                    placeholder="Describe cómo se ha cumplido con este requisito, incluyendo evidencias..."
+                                    {% if monitoreo %}disabled{% endif %}>{{ dato.T_JUSTCUMPL if dato.T_JUSTCUMPL else '' }}</textarea>
+                            </div>
+                            <div class="modal-footer" id="footer-just-cumpl-{{ dato.ID_DATREQ }}">
+                                <button type="button" id="btn-cancelar-just-cumpl-{{ dato.ID_DATREQ }}" class="btn btn-danger" data-bs-dismiss="modal">Cerrar</button>
+                                <button type="button" id="btn-guardar-just-cumpl-{{ dato.ID_DATREQ }}" class="btn btn-primary" onclick="updateModalTextarea('just_cumpl_{{ dato.ID_DATREQ }}', 'modalJustCumpl{{ dato.ID_DATREQ }}', 'requisito')">
+                                    <i class="bi bi-save"></i> Guardar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Plan de Mejora -->
+                <div class="modal fade" id="modalPlanMejora{{ dato.ID_DATREQ }}" tabindex="-1" data-bs-focus="false">
+                    <div class="modal-dialog modal-lg" id="dialog-plan-mejora-{{ dato.ID_DATREQ }}">
+                        <div class="modal-content" id="content-plan-mejora-{{ dato.ID_DATREQ }}">
+                            <div class="modal-header bg-warning" id="header-plan-mejora-{{ dato.ID_DATREQ }}">
+                                <h5 class="modal-title text-dark" id="titulo-modal-plan-mejora-{{ dato.ID_DATREQ }}">
+                                    <i class="bi bi-exclamation-triangle"></i> Plan de Mejora
+                                </h5>
+                                <button type="button" id="btn-cerrar-plan-mejora-{{ dato.ID_DATREQ }}" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body" id="body-plan-mejora-{{ dato.ID_DATREQ }}">
+                                <div class="alert alert-warning" role="alert">
+                                    <i class="bi bi-info-circle"></i> El estado de cumplimiento actual requiere definir un plan de mejora.
+                                </div>
+                                <textarea
+                                    name="plan_mejora_{{ dato.ID_DATREQ }}"
+                                    id="textarea-plan-mejora-{{ dato.ID_DATREQ }}"
+                                    class="form-control"
+                                    rows="8"
+                                    placeholder="Describe las acciones de mejora planificadas, responsables y plazos..."
+                                    {% if monitoreo %}disabled{% endif %}>{{ dato.T_PLANMEJORA if dato.T_PLANMEJORA else '' }}</textarea>
+                            </div>
+                            <div class="modal-footer" id="footer-plan-mejora-{{ dato.ID_DATREQ }}">
+                                <button type="button" id="btn-cancelar-plan-mejora-{{ dato.ID_DATREQ }}" class="btn btn-danger" data-bs-dismiss="modal">Cerrar</button>
+                                <button type="button" id="btn-guardar-plan-mejora-{{ dato.ID_DATREQ }}" class="btn btn-primary" onclick="updateModalTextarea('plan_mejora_{{ dato.ID_DATREQ }}', 'modalPlanMejora{{ dato.ID_DATREQ }}', 'requisito')">
+                                    <i class="bi bi-save"></i> Guardar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+<!-- ===== BOTONES DE NAVEGACIÓN ===== -->
+<div id="contenedor-navegacion-requisitos" class="d-flex justify-content-between mt-4">
+    <a id="btn-navegacion-atras" href="{{ url_for('formulario_elementos') }}" class="btn btn-outline-secondary btn-lg rounded-pill">
+        ⬅ Atrás
+    </a>
+    <a id="btn-navegacion-siguiente" href="{{ url_for('formulario_riesgos') }}" class="btn btn-primary btn-lg rounded-pill">
+        Siguiente ➡
+    </a>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+/**
+ * Sistema de autoguardado para requisitos
+ * Integración con steps.js existente
+ */
+(function() {
+    'use strict';
+
+
+    // Función para actualizar el texto del botón desde un modal
+    window.updateModalTextarea = function(textareaName, modalId, tipoFormulario) {
+        const textarea = document.querySelector(`textarea[name="${textareaName}"]`);
+        if (!textarea) {
+            return;
+        }
+
+        const nuevoTexto = textarea.value;
+        const datoId = textarea.name.split('_').pop();
+        const campoNombre = textarea.name.split('_').slice(0, -1).join('_').toUpperCase();
+
+        // Mapear nombre del campo a columna de BD
+        let columnaBD = '';
+        if (campoNombre === 'JUST_APLICA') {
+            columnaBD = 'T_JUSTAPLICA';
+        } else if (campoNombre === 'JUST_TRASLADO') {
+            columnaBD = 'T_OBSPLIEGO';
+        } else if (campoNombre === 'JUST_PLANIF') {
+            columnaBD = 'T_JUSTPLANIF';
+        } else if (campoNombre === 'JUST_CUMPL') {
+            columnaBD = 'T_JUSTCUMPL';
+        } else if (campoNombre === 'PLAN_MEJORA') {
+            columnaBD = 'T_PLANMEJORA';
+        }
+
+        // Guardar en BD
+        fetch('/api/guardar_campo', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                tipo: 'requisito',
+                dato_id: datoId,
+                campo: columnaBD,
+                valor: nuevoTexto === '' ? null : nuevoTexto
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+
+                // Actualizar el texto del botón
+                // Convertir guiones bajos a guiones para coincidir con el ID del botón
+                const botonId = `btn-${textarea.name.replace(/_/g, '-')}`;
+                const boton = document.getElementById(botonId);
+                if (boton) {
+                    if (nuevoTexto.trim() === '') {
+                        boton.innerHTML = '<em>No hay información</em>';
+                    } else {
+                        // Truncar el texto si es muy largo
+                        const textoTruncado = nuevoTexto.length > 40
+                            ? nuevoTexto.substring(0, 37) + '...'
+                            : nuevoTexto;
+                        boton.textContent = textoTruncado;
+                    }
+                }
+
+                // Cerrar modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById(modalId));
+                if (modal) {
+                    modal.hide();
+                }
+
+                // ⭐ NUEVO: Validar requisito y actualizar marcado visual
+                validarYActualizarMarcado(datoId);
+            } else {
+                alert('Error al guardar: ' + data.mensaje);
+            }
+        })
+        .catch(error => {
+            alert('Error al guardar el campo');
+        });
+    };
+
+    // Autoguardado para selects
+    document.querySelectorAll('.campo-autoguardado').forEach(campo => {
+        campo.addEventListener('change', function() {
+            const tipo = this.dataset.campoTipo;
+            const datoId = this.dataset.datoId;
+            const campoNombre = this.dataset.campoNombre;
+            const valor = this.value;
+
+
+            fetch('/api/guardar_campo', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    tipo: 'requisito',
+                    dato_id: datoId,
+                    campo: campoNombre,
+                    valor: valor === '' ? null : valor
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+
+                    // Actualizar resumen si es el campo L_APLICA
+                    if (campoNombre === 'L_APLICA') {
+                        actualizarResumen();
+
+                        // Actualizar también los resúmenes de estados (afecta a los conteos)
+                        actualizarResumenEstadosPlanif();
+                        actualizarResumenEstadosCumpl();
+
+                        // Gestionar visibilidad de opción "No aplica"
+                        gestionarOpcionNoAplica(datoId, valor);
+
+                        // Automatismo para bloqueo/desbloqueo de campos
+                        if (valor === '0') {
+                            // No aplica: bloquear todos los campos excepto L_APLICA
+                            bloquearCamposRequisito(datoId);
+
+                            // Cambiar estado de planificación al estado de "No Aplica"
+                            cambiarEstadoNoAplica(datoId);
+                        } else {
+                            // Aplica o Por decidir: desbloquear campos
+                            desbloquearCamposRequisito(datoId);
+                        }
+
+                        // 🆕 Actualizar asteriscos de obligatoriedad
+                        actualizarAsteriscosObligatoriedad(datoId);
+                    }
+
+                    // Actualizar resumen de estados de planificación
+                    if (campoNombre === 'N_ESTPLANIF') {
+                        actualizarResumenEstadosPlanif();
+
+                        // 🆕 Actualizar asteriscos de obligatoriedad
+                        actualizarAsteriscosObligatoriedad(datoId);
+
+                        // 🆕 Actualizar Estado de Análisis global
+                        actualizarEstadoAnalisisGlobal();
+                    }
+
+                    // CAMBIO 2: Gestionar visibilidad del plan de mejora cuando cambia estado de cumplimiento
+                    if (campoNombre === 'N_ESTCUMPL') {
+                        actualizarResumenEstadosCumpl();
+                        gestionarVisibilidadPlanMejora(datoId, valor);
+
+                        // 🆕 Actualizar asteriscos de obligatoriedad
+                        actualizarAsteriscosObligatoriedad(datoId);
+
+                        // 🆕 Actualizar Estado de Análisis global
+                        actualizarEstadoAnalisisGlobal();
+                    }
+
+                    // ⭐ NUEVO: Validar requisito y actualizar marcado visual
+                    validarYActualizarMarcado(datoId);
+                } else {
+                    alert('Error al guardar: ' + data.mensaje);
+                    // Revertir el cambio
+                    this.value = this.dataset.valorAnterior || '';
+                }
+            })
+            .catch(error => {
+                alert('Error al guardar el campo');
+                // Revertir el cambio
+                this.value = this.dataset.valorAnterior || '';
+            });
+
+            // Guardar valor anterior para poder revertir
+            this.dataset.valorAnterior = valor;
+        });
+    });
+
+    // Función para actualizar el resumen
+    function actualizarResumen() {
+        let total = 0;
+        let aplicables = 0;
+        let noAplicables = 0;
+        let pendientes = 0;
+
+        document.querySelectorAll('select[name^="aplica_"]').forEach(select => {
+            total++;
+            const valor = select.value;
+            if (valor === '1') {
+                aplicables++;
+            } else if (valor === '0') {
+                noAplicables++;
+            } else {
+                pendientes++;
+            }
+        });
+
+        document.getElementById('resumen-total-requisitos').textContent = total;
+        document.getElementById('resumen-aplicables').textContent = aplicables;
+        document.getElementById('resumen-no-aplicables').textContent = noAplicables;
+        document.getElementById('resumen-pendientes').textContent = pendientes;
+
+        // 🆕 Actualizar el indicador de Estado de Análisis global
+        actualizarEstadoAnalisisGlobal();
+
+        // Actualizar también el contador de registros visible
+        actualizarContadorRegistros();
+    }
+
+    // 🆕 Función para actualizar el indicador de Estado de Análisis GLOBAL
+    // Usa la clase 'fila-requisito-invalida' que ya refleja la validación completa
+    // (incluyendo L_APLICA, estados, justificaciones obligatorias, etc.)
+    function actualizarEstadoAnalisisGlobal() {
+        const indicador = document.getElementById('resumen-completitud-requisitos');
+        if (!indicador) return;
+
+        let pendientes = 0;
+        let total = 0;
+
+        document.querySelectorAll('tr.fila-requisito').forEach(fila => {
+            total++;
+            // Contar como pendiente si tiene la clase de inválido
+            if (fila.classList.contains('fila-requisito-invalida')) {
+                pendientes++;
+            }
+        });
+
+        // Actualizar el indicador visual
+        indicador.dataset.pendientes = pendientes;
+        indicador.dataset.total = total;
+
+        if (total === 0) {
+            indicador.innerHTML = '<i class="bi bi-dash-circle"></i> N/A';
+            indicador.className = 'text-secondary mb-0 ms-2';
+        } else if (pendientes === 0) {
+            indicador.innerHTML = '<i class="bi bi-check-circle-fill"></i> 100%';
+            indicador.className = 'text-success mb-0 ms-2';
+        } else {
+            indicador.innerHTML = `<i class="bi bi-hourglass-split"></i> ${pendientes} de ${total}`;
+            indicador.className = 'text-warning mb-0 ms-2';
+        }
+
+    }
+
+    // Función para actualizar el contador de registros visible
+    function actualizarContadorRegistros() {
+        const filas = document.querySelectorAll('#tbody-requisitos tr.fila-requisito');
+        const contadorBadge = document.getElementById('contador-registros');
+
+        if (contadorBadge) {
+            // Contar solo las filas que están visibles (no tienen display: none)
+            let filasVisibles = 0;
+            filas.forEach(fila => {
+                if (fila.style.display !== 'none') {
+                    filasVisibles++;
+                }
+            });
+
+            contadorBadge.textContent = filasVisibles;
+            contadorBadge.classList.add('updating');
+            setTimeout(() => contadorBadge.classList.remove('updating'), 300);
+        }
+    }
+
+    // Función para bloquear campos cuando L_APLICA = No
+    function bloquearCamposRequisito(datoId) {
+        const fila = document.querySelector(`tr[data-dato-id="${datoId}"]`);
+        if (!fila) return;
+
+
+        // Bloquear todos los selects excepto L_APLICA
+        fila.querySelectorAll('select').forEach(select => {
+            if (select.dataset.campoNombre !== 'L_APLICA') {
+                select.disabled = true;
+            }
+        });
+
+        // Bloquear todos los botones de justificación EXCEPTO "Justificación Aplica"
+        fila.querySelectorAll('button[data-bs-toggle="modal"]').forEach(btn => {
+            // Mantener habilitado el botón de "Justificación Aplica" para que el usuario
+            // pueda explicar por qué el requisito no aplica
+            if (btn.id !== `btn-just-aplica-${datoId}`) {
+                btn.disabled = true;
+                btn.style.opacity = '0.6';
+                btn.style.cursor = 'not-allowed';
+            } else {
+            }
+        });
+
+        // Aplicar estilo visual de deshabilitado a la fila (pero más suave para no afectar el botón habilitado)
+        fila.style.opacity = '0.8';
+    }
+
+    // Función para gestionar habilitación de campos relacionados con Traslado a Pliegos
+    function gestionarCamposTraslado(datoId, valorTraslado) {
+        const selectInstrumento = document.getElementById(`instrumento-${datoId}`);
+        const botonJustTraslado = document.getElementById(`btn-just-traslado-${datoId}`);
+
+        if (!selectInstrumento || !botonJustTraslado) {
+            return; // Si no existen los elementos, no hacer nada
+        }
+
+
+        // PRIORIDAD 1: Verificar si L_APLICA = No
+        const selectAplica = document.querySelector(`select[name="aplica_${datoId}"]`);
+        if (selectAplica && selectAplica.value === '0') {
+            // Si L_APLICA = No, los campos deben estar DESHABILITADOS sin importar L_TRASLAPLI
+            selectInstrumento.disabled = true;
+            selectInstrumento.style.opacity = '0.6';
+            selectInstrumento.style.cursor = 'not-allowed';
+
+            botonJustTraslado.disabled = true;
+            botonJustTraslado.style.opacity = '0.6';
+            botonJustTraslado.style.cursor = 'not-allowed';
+
+            return; // Salir sin aplicar lógica de traslado
+        }
+
+        // PRIORIDAD 2: Verificar si está en modo monitoreo
+        const enMonitoreo = document.getElementById('alerta-monitoreo-activo') !== null;
+        if (enMonitoreo) {
+            selectInstrumento.disabled = true;
+            selectInstrumento.style.opacity = '0.6';
+            selectInstrumento.style.cursor = 'not-allowed';
+
+            botonJustTraslado.disabled = true;
+            botonJustTraslado.style.opacity = '0.6';
+            botonJustTraslado.style.cursor = 'not-allowed';
+
+            return;
+        }
+
+        // PRIORIDAD 3: Aplicar lógica de L_TRASLAPLI solo si L_APLICA != No y no está en monitoreo
+        if (valorTraslado === '0') {
+            // Si Traslado = No, DESHABILITAR instrumento y botón (sin vaciar contenido)
+            selectInstrumento.disabled = true;
+            selectInstrumento.style.opacity = '0.6';
+            selectInstrumento.style.cursor = 'not-allowed';
+
+            botonJustTraslado.disabled = true;
+            botonJustTraslado.style.opacity = '0.6';
+            botonJustTraslado.style.cursor = 'not-allowed';
+
+        } else {
+            // Si Traslado = Sí o Sin definir, HABILITAR
+            selectInstrumento.disabled = false;
+            selectInstrumento.style.opacity = '1';
+            selectInstrumento.style.cursor = 'pointer';
+
+            botonJustTraslado.disabled = false;
+            botonJustTraslado.style.opacity = '1';
+            botonJustTraslado.style.cursor = 'pointer';
+
+        }
+    }
+
+    // CAMBIO 1: Función mejorada para desbloquear campos respetando las reglas de fase
+    function desbloquearCamposRequisito(datoId) {
+        const fila = document.querySelector(`tr[data-dato-id="${datoId}"]`);
+        if (!fila) return;
+
+
+        // Obtener el select de estado de planificación para verificar si está habilitado
+        const selectEstadoPlanif = fila.querySelector(`select[name="estado_planif_${datoId}"]`);
+        const estadoPlanifHabilitado = selectEstadoPlanif && !selectEstadoPlanif.disabled;
+
+        // Desbloquear todos los selects respetando las reglas de fase
+        fila.querySelectorAll('select').forEach(select => {
+            const campoNombre = select.dataset.campoNombre;
+
+            // No desbloquear si está en modo monitoreo
+            const enMonitoreo = document.getElementById('alerta-monitoreo-activo') !== null;
+            if (enMonitoreo) {
+                return;
+            }
+
+            // El campo L_APLICA sigue la regla del estado de planificación
+            if (campoNombre === 'L_APLICA') {
+                // Solo habilitar si el estado de planificación está habilitado
+                // y no tiene L_APLICAOBLIG = 1
+                const esObligatorio = select.hasAttribute('data-obligatorio');
+                if (!esObligatorio && estadoPlanifHabilitado) {
+                    select.disabled = false;
+                }
+            } else {
+                // Otros campos se desbloquean normalmente (ya tienen su propia lógica de fase)
+                select.disabled = false;
+            }
+        });
+
+        // Desbloquear todos los botones de justificación y restaurar estilos
+        fila.querySelectorAll('button[data-bs-toggle="modal"]').forEach(btn => {
+            const enMonitoreo = document.getElementById('alerta-monitoreo-activo') !== null;
+            if (!enMonitoreo) {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+            }
+        });
+
+        // Quitar estilo visual de deshabilitado
+        fila.style.opacity = '1';
+
+        // Re-aplicar la lógica de traslado a pliegos para asegurar consistencia
+        const selectTraslado = fila.querySelector(`select[name="traslado_pliego_${datoId}"]`);
+        if (selectTraslado) {
+            gestionarCamposTraslado(datoId, selectTraslado.value);
+        }
+    }
+
+    // Función para cambiar estado de planificación a "No Aplica"
+    function cambiarEstadoNoAplica(datoId) {
+        // Buscar el select de estado de planificación
+        const selectEstadoPlanif = document.getElementById(`estado-planif-${datoId}`);
+        if (!selectEstadoPlanif) {
+            return;
+        }
+
+        // Buscar la opción que corresponde al estado "No Aplica" (L_NOAPLICA = 1)
+        // Necesitamos obtenerla del servidor
+        fetch(`/api/obtener_estado_no_aplica`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.estado_id) {
+                    selectEstadoPlanif.value = data.estado_id;
+
+                    // Trigger el evento change para que se guarde
+                    const event = new Event('change', { bubbles: true });
+                    selectEstadoPlanif.dispatchEvent(event);
+                } else {
+                }
+            })
+            .catch(error => {
+            });
+    }
+
+    // Función para gestionar visibilidad de opción "No aplica" en estado de planificación
+    function gestionarOpcionNoAplica(datoId, valorAplica) {
+        const selectEstadoPlanif = document.getElementById(`estado-planif-${datoId}`);
+        if (!selectEstadoPlanif) {
+            return; // No hay select de estado planificación
+        }
+
+        // Buscar la opción con data-no-aplica="true"
+        const opcionNoAplica = selectEstadoPlanif.querySelector('option[data-no-aplica="true"]');
+        if (!opcionNoAplica) {
+            return; // No hay opción "No aplica" en este select
+        }
+
+        // Si L_APLICA = "Sí" (valor="1"), ocultar la opción "No aplica"
+        if (valorAplica === '1') {
+            opcionNoAplica.style.display = 'none';
+            opcionNoAplica.disabled = true;
+
+            // Si estaba seleccionada, cambiar a la primera opción disponible
+            if (selectEstadoPlanif.value === opcionNoAplica.value) {
+                // Buscar primera opción que no sea "No aplica"
+                const primeraOpcion = Array.from(selectEstadoPlanif.options)
+                    .find(opt => opt.getAttribute('data-no-aplica') !== 'true');
+                if (primeraOpcion) {
+                    selectEstadoPlanif.value = primeraOpcion.value;
+                    // Trigger cambio para guardar
+                    const event = new Event('change', { bubbles: true });
+                    selectEstadoPlanif.dispatchEvent(event);
+                }
+            }
+        } else {
+            // Si L_APLICA != "Sí", mostrar la opción "No aplica"
+            opcionNoAplica.style.display = '';
+            opcionNoAplica.disabled = false;
+        }
+    }
+
+    // CAMBIO 2: Función para gestionar la visibilidad del Plan de Mejora según L_PLANMEJORA
+    // 🆕 Ahora usa data-planmejora independiente de data-justoblig
+    function gestionarVisibilidadPlanMejora(datoId, estadoCumplId) {
+        const grupoPlanMejora = document.getElementById(`grupo-plan-mejora-${datoId}`);
+        if (!grupoPlanMejora) {
+            return; // No hay grupo de plan de mejora (probablemente no se muestra estado cumpl)
+        }
+
+        // Obtener el select de estado de cumplimiento
+        const selectEstadoCumpl = document.getElementById(`estado-cumpl-${datoId}`);
+        if (!selectEstadoCumpl) {
+            return;
+        }
+
+        // Obtener la opción seleccionada
+        const opcionSeleccionada = selectEstadoCumpl.querySelector(`option[value="${estadoCumplId}"]`);
+        if (!opcionSeleccionada) {
+            return;
+        }
+
+        // Verificar el atributo data-planmejora (independiente de data-justoblig)
+        const planMejora = opcionSeleccionada.getAttribute('data-planmejora');
+
+
+        if (planMejora === '1') {
+            // Mostrar el grupo de plan de mejora
+            grupoPlanMejora.style.display = '';
+        } else {
+            // Ocultar el grupo de plan de mejora
+            grupoPlanMejora.style.display = 'none';
+        }
+    }
+
+    // Función para actualizar resumen de estados de planificación
+    function actualizarResumenEstadosPlanif() {
+        // Verificar si existe la línea de resumen de planificación
+        const lineaPlanif = document.getElementById('linea-estados-planif');
+        if (!lineaPlanif) {
+            return; // No hay línea de resumen, no hacer nada
+        }
+
+
+        // Obtener todos los selects de estado de planificación
+        const selectsPlanif = document.querySelectorAll('select[name^="estado_planif_"]');
+
+        // Contar por estado (requisitos con L_APLICA definido: 1 o 0)
+        const conteos = {};
+
+        selectsPlanif.forEach(select => {
+            // Obtener el select de aplica correspondiente
+            const datoId = select.dataset.datoId;
+            const selectAplica = document.querySelector(`select[name="aplica_${datoId}"]`);
+
+            // Contar si el requisito tiene L_APLICA definido (no vacío)
+            if (selectAplica && selectAplica.value !== '') {
+                const estadoId = select.value;
+                if (estadoId) {
+                    conteos[estadoId] = (conteos[estadoId] || 0) + 1;
+                }
+            }
+        });
+
+        // Actualizar los badges
+        Object.keys(conteos).forEach(estadoId => {
+            const badge = document.getElementById(`contador-planif-${estadoId}`);
+            if (badge) {
+                badge.textContent = conteos[estadoId];
+            }
+        });
+
+        // Poner a 0 los que no tienen requisitos
+        document.querySelectorAll('[id^="contador-planif-"]').forEach(badge => {
+            const estadoId = badge.id.replace('contador-planif-', '');
+            if (!conteos[estadoId]) {
+                badge.textContent = '0';
+            }
+        });
+    }
+
+    // Función para actualizar resumen de estados de cumplimiento
+    function actualizarResumenEstadosCumpl() {
+        // Verificar si existe la línea de resumen de cumplimiento
+        const lineaCumpl = document.getElementById('linea-estados-cumpl');
+        if (!lineaCumpl) {
+            return; // No hay línea de resumen, no hacer nada
+        }
+
+
+        // Obtener todos los selects de estado de cumplimiento
+        const selectsCumpl = document.querySelectorAll('select[name^="estado_cumpl_"]');
+
+        // Contar por estado
+        // Para estados con L_AVANCEFASE=1: solo contar si cumple todos los criterios
+        // Los que no cumplen criterios se suman a "No cumplido" (primer estado sin L_AVANCEFASE=1)
+        const conteos = {};
+        let idEstadoNoCumplido = null;
+
+        // Identificar el ID del estado "No cumplido" (primer estado sin L_AVANCEFASE=1)
+        const primerSelect = selectsCumpl[0];
+        if (primerSelect) {
+            for (let opt of primerSelect.options) {
+                if (opt.value && opt.dataset.avancefase !== '1') {
+                    idEstadoNoCumplido = opt.value;
+                    break;
+                }
+            }
+        }
+
+        selectsCumpl.forEach(select => {
+            const datoId = select.dataset.datoId;
+            const selectAplica = document.querySelector(`select[name="aplica_${datoId}"]`);
+            const fila = document.querySelector(`tr.fila-requisito[data-dato-id="${datoId}"]`);
+
+            // Solo contar si el requisito es aplicable (L_APLICA = 1)
+            if (selectAplica && selectAplica.value === '1') {
+                const estadoId = select.value;
+                if (estadoId) {
+                    // Obtener si el estado actual tiene L_AVANCEFASE=1
+                    const opcionSeleccionada = select.options[select.selectedIndex];
+                    const avanceFase = opcionSeleccionada ? opcionSeleccionada.dataset.avancefase : '0';
+                    const esInvalido = fila && fila.classList.contains('fila-requisito-invalida');
+                    
+                    if (avanceFase === '1' && esInvalido) {
+                        // Estado "positivo" pero NO cumple criterios → cuenta en "No cumplido"
+                        if (idEstadoNoCumplido) {
+                            conteos[idEstadoNoCumplido] = (conteos[idEstadoNoCumplido] || 0) + 1;
+                        }
+                    } else {
+                        // Estado normal o estado positivo que SÍ cumple → cuenta en su categoría
+                        conteos[estadoId] = (conteos[estadoId] || 0) + 1;
+                    }
+                }
+            }
+        });
+
+        // Actualizar los badges
+        Object.keys(conteos).forEach(estadoId => {
+            const badge = document.getElementById(`contador-cumpl-${estadoId}`);
+            if (badge) {
+                badge.textContent = conteos[estadoId];
+            }
+        });
+
+        // Poner a 0 los que no tienen requisitos
+        document.querySelectorAll('[id^="contador-cumpl-"]').forEach(badge => {
+            const estadoId = badge.id.replace('contador-cumpl-', '');
+            if (!conteos[estadoId]) {
+                badge.textContent = '0';
+            }
+        });
+    }
+
+    // Inicializar contador al cargar
+    actualizarContadorRegistros();
+
+    // Inicializar resúmenes de estados
+    actualizarResumenEstadosPlanif();
+    actualizarResumenEstadosCumpl();
+
+    // 🆕 Inicializar Estado de Análisis global
+    actualizarEstadoAnalisisGlobal();
+
+    // Inicializar estados de bloqueo/desbloqueo según L_APLICA
+    document.querySelectorAll('select[name^="aplica_"]').forEach(selectAplica => {
+        const datoId = selectAplica.dataset.datoId;
+        const valor = selectAplica.value;
+
+        // Gestionar visibilidad de opción "No aplica" según estado inicial
+        gestionarOpcionNoAplica(datoId, valor);
+
+        // Bloquear si es necesario
+        if (valor === '0') {
+            bloquearCamposRequisito(datoId);
+        }
+    });
+
+    // CAMBIO 2: Inicializar visibilidad del Plan de Mejora según estado actual
+    document.querySelectorAll('select[name^="estado_cumpl_"]').forEach(selectEstadoCumpl => {
+        const datoId = selectEstadoCumpl.dataset.datoId;
+        const estadoId = selectEstadoCumpl.value;
+
+        if (estadoId) {
+            gestionarVisibilidadPlanMejora(datoId, estadoId);
+        }
+    });
+
+    // Añadir event listener a todos los selects de traslado a pliegos
+    document.querySelectorAll('select[name^="traslado_pliego_"]').forEach(selectTraslado => {
+        selectTraslado.addEventListener('change', function() {
+            const datoId = this.dataset.datoId;
+            const valor = this.value;
+            gestionarCamposTraslado(datoId, valor);
+        });
+    });
+
+    // Inicializar estado de campos de traslado según valor actual
+    document.querySelectorAll('select[name^="traslado_pliego_"]').forEach(selectTraslado => {
+        const datoId = selectTraslado.dataset.datoId;
+        const valor = selectTraslado.value;
+        gestionarCamposTraslado(datoId, valor);
+    });
+
+    /**
+     * Filtra la tabla para mostrar solo los requisitos que NO cumplen criterios de verificación
+     */
+    window.filtrarRequisitosSinVerificar = function() {
+
+        // Obtener todas las filas de requisitos
+        const filasRequisito = document.querySelectorAll('tr.fila-requisito');
+        let requisitosVisibles = 0;
+
+        filasRequisito.forEach(fila => {
+            // Mostrar solo las que tienen la clase 'fila-requisito-invalida'
+            if (fila.classList.contains('fila-requisito-invalida')) {
+                fila.style.display = '';
+                requisitosVisibles++;
+            } else {
+                fila.style.display = 'none';
+            }
+        });
+
+
+        // Si no hay requisitos inválidos, mostrar mensaje y salir
+        if (requisitosVisibles === 0) {
+            alert('✅ No hay requisitos sin verificar. Todos los requisitos están completos.');
+            return;
+        }
+
+        // Gestionar visibilidad de botones
+        const btnFiltrar = document.getElementById('btn-filtrar-sin-verificar');
+        let btnTemporal = document.getElementById('btn-volver-temp-requisitos');
+
+        // Ocultar el botón original
+        if (btnFiltrar) btnFiltrar.style.display = 'none';
+
+        // Crear botón temporal solo si NO existe ya
+        if (!btnTemporal) {
+            btnTemporal = document.createElement('button');
+            btnTemporal.type = 'button';
+            btnTemporal.className = 'btn btn-sm btn-outline-primary btn-custom';
+            btnTemporal.id = 'btn-volver-temp-requisitos';
+            btnTemporal.innerHTML = '🔍 Volver a Todos los Requisitos';
+            btnTemporal.onclick = function() {
+                restaurarVistaRequisitos();
+            };
+
+            // Insertar el botón temporal
+            if (btnFiltrar && btnFiltrar.parentNode) {
+                btnFiltrar.parentNode.insertBefore(btnTemporal, btnFiltrar);
+            }
+
+        } else {
+            btnTemporal.style.display = 'inline-block';
+        }
+
+        // Actualizar contador de registros
+        actualizarContadorRegistros();
+
+    };
+
+    /**
+     * Restaura la vista normal de requisitos (quita el filtro)
+     */
+    window.restaurarVistaRequisitos = function() {
+
+        // Obtener todas las filas de requisitos
+        const filasRequisito = document.querySelectorAll('tr.fila-requisito');
+
+        filasRequisito.forEach(fila => {
+            fila.style.display = '';
+        });
+
+        // Restaurar visibilidad de botones
+        const btnFiltrar = document.getElementById('btn-filtrar-sin-verificar');
+        const btnTemporal = document.getElementById('btn-volver-temp-requisitos');
+
+        // Mostrar el botón original
+        if (btnFiltrar) btnFiltrar.style.display = 'inline-block';
+
+        // Eliminar botón temporal
+        if (btnTemporal) {
+            btnTemporal.remove();
+        }
+
+        // Actualizar contador de registros
+        actualizarContadorRegistros();
+
+        // 🔄 Actualizar estado del botón "Requisitos sin verificar"
+        actualizarEstadoBotonFiltrar();
+
+    };
+
+    // ============================================================================
+    // VALIDACIÓN EN TIEMPO REAL CON DEBOUNCING
+    // ============================================================================
+    // Sistema de debouncing: Espera 500ms de inactividad antes de validar
+    // Esto evita sobrecargar con muchas peticiones fetch cuando el usuario
+    // está haciendo cambios rápidos
+
+    const validacionTimers = {}; // Un timer por cada requisito
+
+    /**
+     * Actualiza el estado del botón "Requisitos sin verificar" dinámicamente
+     * Se llama después de cada validación para mantener el botón actualizado
+     */
+    function actualizarEstadoBotonFiltrar() {
+        const btnFiltrar = document.getElementById('btn-filtrar-sin-verificar');
+        if (!btnFiltrar) return;
+
+        // Contar requisitos inválidos (filas con clase 'fila-requisito-invalida')
+        const filasInvalidas = document.querySelectorAll('tr.fila-requisito-invalida');
+        const numInvalidos = filasInvalidas.length;
+
+
+        // Obtener o crear el badge
+        let badge = btnFiltrar.querySelector('.badge');
+
+        if (numInvalidos > 0) {
+            // HAY requisitos sin verificar → Habilitar botón
+            btnFiltrar.disabled = false;
+            btnFiltrar.title = `Filtrar ${numInvalidos} requisito(s) sin verificar`;
+
+            // Añadir o actualizar badge
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.className = 'badge bg-danger ms-1';
+                btnFiltrar.appendChild(badge);
+            }
+            badge.textContent = numInvalidos;
+        } else {
+            // NO HAY requisitos sin verificar → Deshabilitar botón
+            btnFiltrar.disabled = true;
+            btnFiltrar.title = 'No hay requisitos sin verificar';
+
+            // Eliminar badge si existe
+            if (badge) {
+                badge.remove();
+            }
+        }
+    }
+
+    /**
+     * Valida un requisito individual y actualiza su marcado visual (CON DEBOUNCING)
+     * Se llama después de guardar cualquier cambio en el requisito
+     */
+    window.validarYActualizarMarcado = function(datoId) {
+        // Limpiar el timer anterior si existe
+        if (validacionTimers[datoId]) {
+            clearTimeout(validacionTimers[datoId]);
+        }
+
+        // Crear nuevo timer: validar después de 500ms de inactividad
+        validacionTimers[datoId] = setTimeout(() => {
+            validarInmediato(datoId);
+        }, 500);
+    };
+
+    /**
+     * Función interna que realiza la validación inmediata
+     */
+    function validarInmediato(datoId) {
+
+        fetch('/api/validar_requisito', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                dato_id: datoId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const fila = document.querySelector(`tr[data-dato-id="${datoId}"]`);
+                if (!fila) {
+                    return;
+                }
+
+                const primeraColumna = fila.querySelector('td:first-child');
+
+                if (data.valido) {
+                    // Requisito VÁLIDO - Quitar marcado rojo
+
+                    // Quitar clase de fila inválida
+                    fila.classList.remove('fila-requisito-invalida');
+
+                    // Quitar icono de advertencia si existe
+                    const iconoAdvertencia = primeraColumna?.querySelector('.icono-req-invalido');
+                    if (iconoAdvertencia) {
+                        iconoAdvertencia.remove();
+                    }
+                } else {
+                    // Requisito INVÁLIDO - Añadir marcado rojo
+
+                    // Añadir clase de fila inválida
+                    if (!fila.classList.contains('fila-requisito-invalida')) {
+                        fila.classList.add('fila-requisito-invalida');
+                    }
+
+                    // Añadir icono de advertencia si no existe
+                    if (primeraColumna && !primeraColumna.querySelector('.icono-req-invalido')) {
+                        const icono = document.createElement('i');
+                        icono.className = 'bi bi-exclamation-triangle-fill text-danger me-2 icono-req-invalido';
+                        icono.title = `No cumple criterios de verificación: ${data.motivo}`;
+                        primeraColumna.insertBefore(icono, primeraColumna.firstChild);
+                    } else if (primeraColumna) {
+                        // Si ya existe el icono, actualizar su título con el nuevo motivo
+                        const iconoExistente = primeraColumna.querySelector('.icono-req-invalido');
+                        if (iconoExistente) {
+                            iconoExistente.title = `No cumple criterios de verificación: ${data.motivo}`;
+                        }
+                    }
+                }
+
+                // Actualizar contador si está filtrado
+                const btnTemporal = document.getElementById('btn-volver-temp-requisitos');
+                if (btnTemporal) {
+                    // Si el requisito ahora es válido y estamos filtrando, ocultarlo PRIMERO
+                    if (data.valido) {
+                        fila.style.display = 'none';
+                    }
+
+                    // Actualizar contador DESPUÉS de ocultar (para contar correctamente)
+                    actualizarContadorRegistros();
+                }
+
+                // 🔄 Actualizar estado del botón "Requisitos sin verificar" dinámicamente
+                actualizarEstadoBotonFiltrar();
+
+                // 🆕 Actualizar el indicador de Estado de Análisis global
+                actualizarEstadoAnalisisGlobal();
+
+                // 🆕 Actualizar resumen de estados de cumplimiento (depende de fila-requisito-invalida)
+                actualizarResumenEstadosCumpl();
+
+            } else {
+            }
+        })
+        .catch(error => {
+        });
+    }  // Fin de validarInmediato
+
+    // ============================================================================
+    // 🆕 FUNCIÓN: Navegar a controles filtrados por requisito
+    // ============================================================================
+    window.irAControlesFiltradosPorRequisito = function(idRequisito) {
+        if (idRequisito) {
+
+            if (isNaN(parseInt(idRequisito))) {
+                alert("Error: ID de requisito no válido");
+                return;
+            }
+
+            try {
+                sessionStorage.setItem('requisito_a_revisar', idRequisito.toString());
+                sessionStorage.setItem('origen_navegacion', 'requisitos'); // 🆕 Guardar origen
+
+                const verificado = sessionStorage.getItem('requisito_a_revisar');
+
+            } catch (error) {
+                alert("Error al preparar la navegación");
+                return;
+            }
+
+            const url = "{{ url_for('formulario_controles') }}";
+            window.location.href = url;
+        } else {
+            alert("Error: No se pudo identificar el requisito");
+        }
+    }
+
+    // ============================================================================
+    // INICIALIZACIÓN AL CARGAR LA PÁGINA
+    // ============================================================================
+    // Actualizar el estado del botón inmediatamente al cargar
+    actualizarEstadoBotonFiltrar();
+
+    // ============================================================================
+    // 🆕 GESTIÓN DE ASTERISCOS DE OBLIGATORIEDAD
+    // ============================================================================
+
+    /**
+     * Actualiza la visibilidad de los asteriscos de obligatoriedad para un requisito
+     * Reglas:
+     * - Justificación Aplica: obligatoria si L_APLICA = 0 (No) O si estado planif tiene L_NOAPLICA = 1
+     * - Justificación Planificación: obligatoria si estado planif tiene L_JUSTOBLIG = 1
+     * - Justificación Cumplimiento: obligatoria si estado cumpl tiene L_JUSTOBLIG = 1
+     */
+    function actualizarAsteriscosObligatoriedad(datoId) {
+        // Obtener valores actuales
+        const selectAplica = document.getElementById(`aplica-req-${datoId}`);
+        const selectEstadoPlanif = document.getElementById(`estado-planif-${datoId}`);
+        const selectEstadoCumpl = document.getElementById(`estado-cumpl-${datoId}`);
+
+        // Asteriscos
+        const asteriscoAplica = document.getElementById(`asterisco-just-aplica-${datoId}`);
+        const asteriscoPlanif = document.getElementById(`asterisco-just-planif-${datoId}`);
+        const asteriscoCumpl = document.getElementById(`asterisco-just-cumpl-${datoId}`);
+
+        // Valor de L_APLICA
+        const valorAplica = selectAplica ? selectAplica.value : null;
+
+        // ====== ASTERISCO JUSTIFICACIÓN APLICA ======
+        // 🆕 Nueva lógica: La obligatoriedad depende del L_JUSTOBLIG del estado "No Aplica"
+        //    - Si L_APLICA = 0 Y estado tiene L_NOAPLICA = 1 → consultar L_JUSTOBLIG
+        //    - Si L_NOAPLICA = 1 Y L_JUSTOBLIG = 1 → obligatoria
+        //    - Si L_NOAPLICA = 1 Y L_JUSTOBLIG = 0 → NO obligatoria
+        if (asteriscoAplica) {
+            let mostrarAsteriscoAplica = false;
+
+            // Verificar si L_APLICA = 0 (No aplica)
+            if (valorAplica === '0') {
+                // Consultar el estado de planificación para ver si requiere justificación
+                if (selectEstadoPlanif && selectEstadoPlanif.value) {
+                    const opcionPlanif = selectEstadoPlanif.options[selectEstadoPlanif.selectedIndex];
+                    if (opcionPlanif && opcionPlanif.dataset.noAplica === 'true') {
+                        // Es estado "No aplica", verificar L_JUSTOBLIG
+                        mostrarAsteriscoAplica = (opcionPlanif.dataset.justoblig === '1');
+                    } else {
+                        // Estado no es "No aplica", requerir justificación por defecto
+                        mostrarAsteriscoAplica = true;
+                    }
+                } else {
+                    // No hay estado seleccionado, requerir justificación por defecto
+                    mostrarAsteriscoAplica = true;
+                }
+            } else if (selectEstadoPlanif && selectEstadoPlanif.value) {
+                // L_APLICA != 0, pero verificar si el estado es "No aplica" con L_JUSTOBLIG = 1
+                const opcionPlanif = selectEstadoPlanif.options[selectEstadoPlanif.selectedIndex];
+                if (opcionPlanif &&
+                    opcionPlanif.dataset.noAplica === 'true' &&
+                    opcionPlanif.dataset.justoblig === '1') {
+                    mostrarAsteriscoAplica = true;
+                }
+            }
+
+            asteriscoAplica.style.display = mostrarAsteriscoAplica ? 'inline' : 'none';
+        }
+
+        // ====== ASTERISCO JUSTIFICACIÓN PLANIFICACIÓN ======
+        // Solo obligatoria si L_JUSTOBLIG = 1 Y L_NOAPLICA = 0
+        // (si es estado "No Aplica", L_JUSTOBLIG controla T_JUSTAPLICA, no T_JUSTPLANIF)
+        if (asteriscoPlanif && selectEstadoPlanif) {
+            let mostrarAsteriscoPlanif = false;
+
+            if (selectEstadoPlanif.value) {
+                const opcionPlanif = selectEstadoPlanif.options[selectEstadoPlanif.selectedIndex];
+                // Solo mostrar si L_JUSTOBLIG = 1 Y NO es estado "No Aplica"
+                if (opcionPlanif &&
+                    opcionPlanif.dataset.justoblig === '1' &&
+                    opcionPlanif.dataset.noAplica !== 'true') {
+                    mostrarAsteriscoPlanif = true;
+                }
+            }
+
+            asteriscoPlanif.style.display = mostrarAsteriscoPlanif ? 'inline' : 'none';
+        }
+
+        // ====== ASTERISCO JUSTIFICACIÓN CUMPLIMIENTO ======
+        if (asteriscoCumpl && selectEstadoCumpl) {
+            let mostrarAsteriscoCumpl = false;
+
+            // Solo si hay un estado seleccionado y tiene L_JUSTOBLIG = 1
+            if (selectEstadoCumpl.value) {
+                const opcionCumpl = selectEstadoCumpl.options[selectEstadoCumpl.selectedIndex];
+                if (opcionCumpl && opcionCumpl.dataset.justoblig === '1') {
+                    mostrarAsteriscoCumpl = true;
+                }
+            }
+
+            asteriscoCumpl.style.display = mostrarAsteriscoCumpl ? 'inline' : 'none';
+        }
+    }
+
+    /**
+     * Inicializa los asteriscos de obligatoriedad para todos los requisitos
+     */
+    function inicializarAsteriscosObligatoriedad() {
+        document.querySelectorAll('tr.fila-requisito').forEach(fila => {
+            const datoId = fila.dataset.datoId;
+            if (datoId) {
+                actualizarAsteriscosObligatoriedad(datoId);
+            }
+        });
+    }
+
+    // Inicializar asteriscos al cargar
+    inicializarAsteriscosObligatoriedad();
+
+})();
+
+</script>
+{% endblock %}

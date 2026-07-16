@@ -1,0 +1,343 @@
+
+<!--
+    Aplicación para la protección de datos en Sistemas IA
+    Copyright (C) 2025-2026 Consejo de Transparencia y Protección de Datos de Andalucía
+
+    Licenciado bajo EUPL v1.2: https://eupl.eu/1.2/es/
+-->
+
+
+{% extends "base.html" %}
+{% block title %}ADI - {{ nombre_aplicacion }}{% endblock %}
+{% block content %}
+
+<div id="contenedor-cabecera-adi" class="d-flex justify-content-between align-items-center mb-4">
+    <img id="logo-ctpd" src="{{ url_for('static', filename='img/logo_ctpdandalucia.png') }}" alt="Logo" style="height: 80px;">
+    <h1 class="text-center flex-grow-1" id="cabecera">ADI - Asistente de Decisión Inicial</h1>
+    <img id="logo-junta" src="{{ url_for('static', filename='img/logo_junta.png') }}" alt="Logo Junta" style="height: 80px;">
+</div>
+
+{% if exito %}
+<div id="alerta-exito-guardado" class="alert alert-success d-flex justify-content-between align-items-center" role="alert">
+    <span>✅ Respuestas guardadas correctamente</span>
+</div>
+{% endif %}
+
+<!-- Agregar un aviso visual si está en fase 4 -->
+{% if monitoreo %} <!-- Variable calculada en main.py y pasada a la plantilla -->
+<div id="alerta-monitoreo-activo" class="alert alert-info" role="alert">
+    <i class="bi bi-info-circle"></i> <strong>Fase de Monitoreo Activa:</strong> Los campos están en modo lectura.
+</div>
+{% endif %}
+
+<form id="form-adi" method="POST" action="{{ url_for('procesar_respuestas') }}" class="mb-5">
+    {% for pregunta in preguntas %}
+    <div id="card-pregunta-{{ pregunta.ID_PREGUNTA }}" class="card shadow-sm mb-4 border-0">
+        <div id="header-pregunta-{{ pregunta.ID_PREGUNTA }}" class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+            <span id="texto-pregunta-{{ pregunta.ID_PREGUNTA }}">{{ pregunta.C_PREGUNTA }}. {{ pregunta.D_PREGUNTA }}</span>
+            <!-- Icono de ayuda con Unicode y círculo blanco -->
+            <span id="btn-ayuda-{{ pregunta.ID_PREGUNTA }}" style="cursor: pointer; background: rgba(255,255,255,0.2); border: 2px solid white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 16px;" onclick="mostrarAyuda('{{ pregunta.ID_PREGUNTA }}')">
+                &#10068;
+            </span>
+        </div>
+
+        {% if pregunta.N_TIPCAMPO == 2 %}
+        <!-- Comentario para preguntas de respuesta múltiple -->
+        <div id="info-multiple-{{ pregunta.ID_PREGUNTA }}" class="card-body bg-white pt-2 pb-0">
+            <p class="text-danger fst-italic mb-2" style="font-size: 0.9em;">
+                Pregunta de respuesta múltiple. Marque todas las que apliquen, al menos una.
+            </p>
+        </div>
+        {% endif %}
+
+        <div id="body-pregunta-{{ pregunta.ID_PREGUNTA }}" class="card-body bg-white {% if pregunta.N_TIPCAMPO == 2 %}pt-0{% endif %}">
+            {% set pregunta_id = pregunta.ID_PREGUNTA | int %}
+            {% set seleccionadas = respuestas_guardadas.get(pregunta_id, []) %}
+
+            {% if pregunta.N_TIPCAMPO == 2 %}
+            {# Campo múltiple - checkbox #}
+            <div id="contenedor-checkboxes-{{ pregunta_id }}" data-pregunta="{{ pregunta_id }}">
+                {% for respuesta in pregunta.respuestas %}
+                <div id="grupo-check-{{ pregunta_id }}-{{ respuesta.C_OPCION }}" class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" name="pregunta_{{ pregunta_id }}" value="{{ respuesta.C_OPCION }},{{ respuesta.N_PTOSBASE }}" id="opcion_{{ pregunta_id }}_{{ respuesta.C_OPCION }}" data-id-respuesta="{{ respuesta.ID_RESPUESTA }}" {% if respuesta.C_OPCION in seleccionadas %}checked{% endif %} {% if monitoreo %}disabled{% endif %}>
+                    <label class="form-check-label" for="opcion_{{ pregunta_id }}_{{ respuesta.C_OPCION }}">
+                        {{ respuesta.C_OPCION }} - {{ respuesta.D_RESPUESTA }}
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% elif pregunta.N_TIPCAMPO == 1 %}
+            {# Campo select #}
+            <select id="select-pregunta-{{ pregunta_id }}" name="pregunta_{{ pregunta_id }}" class="form-select form-select-lg mb-3" {% if monitoreo %}disabled{% endif %}>
+                <option value="">Selecciona una opción</option>
+                {% for respuesta in pregunta.respuestas %}
+                <option value="{{ respuesta.C_OPCION }},{{ respuesta.N_PTOSBASE }}" data-id-respuesta="{{ respuesta.ID_RESPUESTA }}" {% if respuesta.C_OPCION in seleccionadas %}selected{% endif %}>
+                    {{ respuesta.C_OPCION }} - {{ respuesta.D_RESPUESTA }}
+                </option>
+                {% endfor %}
+            </select>
+            {% endif %}
+
+        </div>
+    </div>
+    {% endfor %}
+
+    <div id="contenedor-navegacion-adi" class="d-grid gap-3 d-md-flex justify-content-between mt-4">
+        <!-- Botón Atrás -->
+        <a id="btn-navegacion-atras" href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-lg rounded-pill">
+            ⬅ Atrás
+        </a>
+        <!-- Botón Guardar -->
+        <button type="submit" id="btn-guardar-respuestas" class="btn btn-success btn-lg rounded-pill" {% if monitoreo %}disabled{% endif %}>
+            Guardar Respuestas
+        </button>
+        <!-- Botón Siguiente, solo si hubo éxito -->
+        {% if preguntas_respondidas == total_preguntas %}
+        <a id="btn-navegacion-siguiente" href="{{ url_for('formulario_elementos') }}" class="btn btn-primary btn-lg rounded-pill d-inline">
+            Siguiente ➡
+        </a>
+        {% endif %}
+    </div>
+</form>
+
+<!-- Modal de ayuda - actualiza el display a none por defecto -->
+<div id="modalAyuda" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" id="dialog-ayuda" role="document">
+        <div class="modal-content" id="content-ayuda" style="border-radius: 8px; box-shadow: none;">
+            <div class="modal-header" id="header-ayuda" style="padding: 15px 20px; border-bottom: 1px solid #e9ecef;">
+                <h5 class="modal-title" id="titulo-modal-ayuda" style="margin: 0; color: #333;">Ayuda
+                </h5>
+                <!-- Cuadrado rojo en esquina superior derecha -->
+                <button type="button" id="btn-cerrar-ayuda" class="close" onclick="cerrarModal()" aria-label="Close" style="position: absolute; top: 15px; right: 15px; background: #dc3545; color: white; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; border-radius: 0; border: none;">
+                    <span aria-hidden="true" style="font-weight:bold">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="body-ayuda" style="padding: 20px; max-height: 80vh; overflow-y: auto; background: white; border-bottom: 1px solid #e9ecef;">
+                <div id="graficoAyuda"></div>
+            </div>
+            <div class="modal-footer" id="footer-ayuda" style="padding: 15px 20px; border-top: 1px solid #e9ecef;">
+                <button type="button" id="btn-aceptar-ayuda" class="btn btn-primary" onclick="cerrarModal()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container" id="tabla-configuracion">
+    {% if configuracion %}
+    <div id="configuracion-container" class="configuracion-container">
+        <table id="tabla-config-metodologia" class="configuracion-tabla">
+            <thead id="thead-configuracion">
+                <tr>
+                    <th colspan="2">📊 Configuración de la metodología</th>
+                </tr>
+            </thead>
+            <tbody id="tbody-configuracion">
+                <tr id="fila-tipo-adquisicion">
+                    <td class="campo">Tipo de Adquisición:</td>
+                    <td class="valor">{{ configuracion.tipo_adquisicion }} -
+                        {{ configuracion.tipo_adquisicion_texto }}</td>
+                </tr>
+                <tr id="fila-perfil-cumplimiento">
+                    <td class="campo">Perfil de Cumplimiento:</td>
+                    <td class="valor">{{ configuracion.perfil_supervision }}
+                    </td>
+                </tr>
+                <tr id="fila-grupos-control">
+                    <td class="campo">Grupos de Control aplicables:</td>
+                    <td class="valor">{{ configuracion.grupos_control }}
+                    </td>
+                </tr>
+                <tr id="fila-riesgos-aplicables">
+                    <td class="campo">Riesgos aplicables:</td>
+                    <td class="valor">{{ configuracion.riesgos_aarr }}</td>
+                </tr>
+                <tr id="fila-controles-aplicables">
+                    <td class="campo">Controles aplicables:</td>
+                    <td class="valor">{{ configuracion.controles_totales }}
+                    </td>
+                </tr>
+
+                <tr id="fila-necesidad-eipd">
+                    <td class="campo">Necesidad de EIPD:</td>
+                    <td class="valor">
+                        {% if configuracion.necesidad_eipd == 'NECESARIA' %}
+                            <span id="badge-eipd-necesaria" class="badge bg-danger" style="font-size: 1em;">
+                                <i class="bi bi-exclamation-triangle-fill"></i> NECESARIA
+                            </span>
+                        {% elif configuracion.necesidad_eipd == 'RECOMENDADA' %}
+                            <span id="badge-eipd-recomendada" class="badge bg-warning text-dark" style="font-size: 1em;">
+                                <i class="bi bi-info-circle-fill"></i> RECOMENDADA
+                            </span>
+                        {% elif configuracion.necesidad_eipd == 'NO NECESARIA' %}
+                            <span id="badge-eipd-no-necesaria" class="badge bg-success" style="font-size: 1em;">
+                                <i class="bi bi-check-circle-fill"></i> NO NECESARIA
+                            </span>
+                        {% else %}
+                            <span id="badge-eipd-otro" class="badge bg-secondary" style="font-size: 1em;">
+                                <i class="bi bi-question-circle-fill"></i> {{ configuracion.necesidad_eipd }}
+                            </span>
+                        {% endif %}
+                    </td>
+                </tr>
+
+<!--                <tr>
+                    <td colspan="2" class="validaciones">
+                        <strong style="color: #004b87;">Validaciones
+                            automáticas:</strong>
+                        <ul class="configuracion-validaciones">
+                            {% for val in configuracion.validaciones %}
+                            <li class="configuracion-validacion">
+                                <span class="icono">
+                                    {% if val.icon == '✅' %}
+                                    <i class="fas fa-check-circle text-success"></i>
+                                    {% else %}
+                                    <i class="fas fa-exclamation-triangle text-warning"></i>
+                                    {% endif %}
+                                </span>
+                                <span class="mensaje">{{ val.msg }}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                </tr>  -->
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+</div>
+
+<!-- Modal de PROHIBICIÓN -->
+<div class="modal fade" id="modalIncompatibilidadProhibida" tabindex="-1" aria-labelledby="modalIncompatibilidadProhibidaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" id="dialog-prohibicion">
+        <div class="modal-content border-danger" id="content-prohibicion">
+            <div class="modal-header bg-danger text-white" id="header-prohibicion">
+                <h5 class="modal-title text-white" id="modalIncompatibilidadProhibidaLabel">
+                    <i class="bi bi-x-circle-fill"></i> Respuesta Incompatible
+                </h5>
+                <button type="button" id="btn-cerrar-prohibicion" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="body-prohibicion">
+                <div id="alerta-prohibicion" class="alert alert-danger mb-3" role="alert">
+                    <strong>⚠️ No se puede seleccionar esta opción</strong>
+                </div>
+                <p id="mensajeProhibicion"></p>
+                <div id="mensajeAdicionalProhibicion" class="mt-3"></div>
+            </div>
+            <div class="modal-footer" id="footer-prohibicion">
+                <button type="button" id="btn-aceptar-prohibicion" class="btn btn-primary" data-bs-dismiss="modal">Aceptar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de AVISO -->
+<div class="modal fade" id="modalIncompatibilidadAviso" tabindex="-1" aria-labelledby="modalIncompatibilidadAvisoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" id="dialog-aviso">
+        <div class="modal-content border-warning" id="content-aviso">
+            <div class="modal-header bg-warning text-dark" id="header-aviso">
+                <h5 class="modal-title text-dark" id="modalIncompatibilidadAvisoLabel">
+                    <i class="bi bi-exclamation-triangle-fill"></i> Aviso de Incompatibilidad
+                </h5>
+                <button type="button" id="btn-cerrar-aviso" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="body-aviso">
+                <div id="alerta-aviso" class="alert alert-warning mb-3" role="alert">
+                    <strong>⚠️ Esta respuesta tiene avisos de posible incompatibilidad</strong>
+                </div>
+                <p id="texto-aviso-incompatibilidad" class="mb-3">Se han detectado las siguientes incompatibilidades con respuestas previamente seleccionadas:</p>
+
+                <!-- Tabla de incompatibilidades -->
+                <div id="contenedor-tabla-incompatibilidades" class="table-responsive">
+                    <table class="table table-sm table-bordered" id="tablaIncompatibilidades">
+                        <thead id="thead-incompatibilidades" class="table-light">
+                            <tr>
+                                <th style="width: 15%;">Pregunta</th>
+                                <th style="width: 15%;">Respuesta</th>
+                                <th style="width: 70%;">Observaciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyIncompatibilidades">
+                            <!-- Se llenará dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <p id="nota-aviso" class="text-muted fst-italic mt-3 mb-0">
+                    <small>Puede continuar seleccionando esta opción, pero tenga en cuenta las incompatibilidades señaladas.</small>
+                </p>
+            </div>
+            <div class="modal-footer" id="footer-aviso">
+                <button type="button" class="btn btn-warning" id="btnAceptarAviso">
+                    Entendido, continuar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Función para verificar condiciones de cambio de fase desde ADI
+    function verificarCondicionesFaseDesdeADI() {
+        fetch('/api/validar-fase')
+            .then(response => response.json())
+            .then(data => {
+                // Verificar si ADI está completo
+                if (data.validaciones && data.validaciones.adi && data.validaciones.adi.cumple) {
+
+                    // Si además se cumplen todas las condiciones, mostrar alerta
+                    if (data.puede_avanzar) {
+                        mostrarAlertaExitoADI();
+                    }
+                }
+            })
+            .catch(error => {
+            });
+    }
+
+    // Mostrar alerta cuando se completa el ADI
+    function mostrarAlertaExitoADI() {
+        // Verificar si ya se mostró
+        if (sessionStorage.getItem('alerta_adi_fase_{{ session["id_sistema"] }}')) {
+            return;
+        }
+
+        const alertaHTML = `
+            <div class="alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3"
+                 style="z-index: 9999; max-width: 600px;" role="alert">
+                <h5 class="alert-heading">
+                    <i class="bi bi-check-circle-fill"></i>
+                    ¡Cuestionario ADI completado!
+                </h5>
+                <p class="mb-0">
+                    Has completado todas las preguntas del ADI.
+                    Continúa con los siguientes pasos en <strong>Elementos de Descripción</strong>.
+                </p>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('afterbegin', alertaHTML);
+        sessionStorage.setItem('alerta_adi_fase_{{ session["id_sistema"] }}', 'true');
+
+        setTimeout(() => {
+            const alerta = document.querySelector('.alert-success');
+            if (alerta) {
+                alerta.remove();
+            }
+        }, 8000);
+    }
+
+    // Verificar al guardar el formulario
+    const formADI = document.getElementById('form-adi');
+    if (formADI) {
+        formADI.addEventListener('submit', function() {
+            setTimeout(verificarCondicionesFaseDesdeADI, 1000);
+        });
+    }
+});
+</script>
+
+{% endblock %}

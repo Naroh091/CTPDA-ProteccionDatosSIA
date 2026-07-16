@@ -1,0 +1,433 @@
+
+<!--
+    Aplicación para la protección de datos en Sistemas IA
+    Copyright (C) 2025-2026 Consejo de Transparencia y Protección de Datos de Andalucía
+
+    Licenciado bajo EUPL v1.2: https://eupl.eu/1.2/es/
+-->
+
+
+{% extends "base.html" %}
+{% block title %}Seguimiento de Fases - {{ nombre_aplicacion }}{% endblock %}
+{% set hide_global_flash = true %}
+{% block content %}
+{% set flashed_messages = get_flashed_messages(with_categories=true) %}
+
+<div id="contenedor-cabecera-fases" class="d-flex justify-content-between align-items-center mb-4">
+  <img id="logo-ctpd" src="{{ url_for('static', filename='img/logo_ctpdandalucia.png') }}" alt="Logo" style="height: 80px;">
+  <h1 class="text-center flex-grow-1" id="cabecera">Seguimiento de Fases</h1>
+  <img id="logo-junta" src="{{ url_for('static', filename='img/logo_junta.png') }}" alt="Logo Junta" style="height: 80px;">
+</div>
+
+<!-- MOSTRAR MENSAJES AQUÍ -->
+{% if flashed_messages %}
+{% for category, message in flashed_messages %}
+<div id="alerta-flash-{{ loop.index }}" class="alert alert-{{ category }} alert-dismissible fade show mb-4" role="alert">
+  {{ message }}
+  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- Fase Actual -->
+<div id="card-fase-actual" class="card shadow-sm mb-4">
+  <div id="header-fase-actual" class="card-header bg-dark text-white">
+    <h4 id="titulo-fase-actual" class="mb-0 text-white">
+      <i class="bi bi-play-fill"></i>
+      {% if fase_obj and fase_obj.L_MONITOREO %}
+      <a id="enlace-fase-monitoreo" href="{{ url_for('formulario_monitoreo') }}" class="text-white text-decoration-none">
+        Fase Actual: {{ fase_obj.D_FASE }}
+        <i class="bi bi-arrow-right ms-1"></i>
+      </a>
+      {% else %}
+      Fase Actual: {{ fase_obj.D_FASE if fase_obj else 'No definida' }}
+      {% endif %}
+    </h4>
+  </div>
+  <div id="body-fase-actual" class="card-body">
+    {% if fase_obj %}
+    <!-- Instrucciones de la Fase (todo el ancho) - COLAPSABLE -->
+    <h5 id="titulo-instrucciones-fase" class="text-primary mb-3 instrucciones-fase-header" data-bs-toggle="collapse" data-bs-target="#instruccionesFaseCollapse" aria-expanded="false" aria-controls="instruccionesFaseCollapse" style="cursor: pointer;">
+      <i class="bi bi-chevron-right toggle-icon-fase"></i>
+      <i class="bi bi-info-circle-fill"></i> Instrucciones de la Fase
+    </h5>
+    <div class="collapse" id="instruccionesFaseCollapse">
+      <div id="alerta-instrucciones-fase" class="alert alert-info mb-4" style="max-height: 250px; overflow-y: auto;">
+        <p id="texto-instrucciones-fase" class="mb-0" style="white-space: pre-wrap;">{{ (fase_obj.T_INSTRUCIONES or 'No hay instrucciones definidas para esta fase.') | safe }}</p>
+      </div>
+    </div>
+
+    <!-- ✅ SECCIÓN MODIFICADA: Instrucciones de Cambio de Fase y Botón -->
+    {% if not fase_obj.L_MONITOREO %}
+    {% if validacion.puede_avanzar %}
+    <!-- ✅ SI PUEDE AVANZAR: Mostrar instrucciones y botón -->
+    <!-- Instrucciones para el Cambio de Fase (solo si hay contenido real) -->
+    {% if fase_obj.T_INSTRCAMFASE and fase_obj.T_INSTRCAMFASE.strip() %}
+    <h5 id="titulo-instrucciones-cambio" class="text-warning mb-3">
+      <i class="bi bi-arrow-right-circle-fill"></i> Instrucciones para el Cambio de Fase
+    </h5>
+    <div id="alerta-instrucciones-cambio" class="alert alert-warning mb-4" style="max-height: 250px; overflow-y: auto;">
+      <p id="texto-instrucciones-cambio" class="mb-0" style="white-space: pre-wrap;">{{ fase_obj.T_INSTRCAMFASE | safe }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Botón Finalizar Fase (centrado, debajo de todo) -->
+    <div id="contenedor-btn-finalizar" class="d-flex justify-content-center mt-3 text-center">
+      <button type="button" id="btn-finalizar-fase" class="btn btn-success btn-lg w-50" data-bs-toggle="modal" data-bs-target="#confirmarFinalizarFase">
+        <i class="bi bi-check-circle-fill"></i><br>
+        Finalizar Fase
+      </button>
+    </div>
+    {% else %}
+    <!-- ❌ SI NO PUEDE AVANZAR: Mostrar mensaje de bloqueo SIMPLIFICADO -->
+    <div id="alerta-no-puede-avanzar" class="alert alert-warning mb-4" role="alert">
+      <h5 id="titulo-no-puede-avanzar" class="alert-heading">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        No se puede avanzar de fase
+      </h5>
+      <p id="mensaje-completar-secciones" class="mb-3">
+        Complete las siguientes secciones para poder avanzar a la siguiente fase:
+      </p>
+
+      <!-- Resumen visual simplificado de validaciones -->
+      <div id="contenedor-tarjetas-validacion" class="d-flex flex-wrap justify-content-center align-items-stretch" style="gap: 12px; row-gap: 20px;">
+        <!-- ✅ ADI (SIEMPRE PRIMERO Y OBLIGATORIO) -->
+        <div id="tarjeta-validacion-adi" class="tarjeta-validacion-uniforme">
+          <a href="{{ url_for('formulario_adi') }}" class="text-decoration-none">
+            <div id="card-validacion-adi" class="card h-100 {% if validacion.validaciones.adi.cumple %}border-success{% else %}border-danger{% endif %}" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+              <div id="body-validacion-adi" class="card-body text-center">
+                {% if validacion.validaciones.adi.cumple %}
+                <i class="bi bi-check-circle-fill text-success fs-2"></i>
+                <h6 id="titulo-validacion-adi" class="mt-2 mb-0 small">ADI</h6>
+                <small id="estado-validacion-adi" class="text-success" style="font-size: 0.75rem;">Completado</small>
+                {% else %}
+                <i class="bi bi-x-circle-fill text-danger fs-2"></i>
+                <h6 id="titulo-validacion-adi" class="mt-2 mb-1 small">ADI</h6>
+                <p id="pendientes-validacion-adi" class="mb-0 text-danger" style="font-size: 0.8rem;">
+                  <strong>{{ validacion.validaciones.adi.pendientes }}</strong>
+                  pregunta(s) pendiente(s)
+                </p>
+                {% endif %}
+              </div>
+            </div>
+          </a>
+        </div>
+
+        <!-- Elementos de Descripción -->
+        <div id="tarjeta-validacion-elementos" class="tarjeta-validacion-uniforme">
+          <a href="{{ url_for('formulario_elementos') }}" class="text-decoration-none">
+            <div id="card-validacion-elementos" class="card h-100 {% if validacion.validaciones.elementos.cumple %}border-success{% else %}border-danger{% endif %}" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+              <div id="body-validacion-elementos" class="card-body text-center">
+                {% if validacion.validaciones.elementos.cumple %}
+                <i class="bi bi-check-circle-fill text-success fs-2"></i>
+                <h6 id="titulo-validacion-elementos" class="mt-2 mb-0 small">Elementos de Descripción</h6>
+                <small id="estado-validacion-elementos" class="text-success" style="font-size: 0.75rem;">Completado</small>
+                {% else %}
+                <i class="bi bi-x-circle-fill text-danger fs-2"></i>
+                <h6 id="titulo-validacion-elementos" class="mt-2 mb-1 small">Elementos</h6>
+                <p id="pendientes-validacion-elementos" class="mb-0 text-danger" style="font-size: 0.8rem;">
+                  <strong>{{ validacion.validaciones.elementos.pendientes }}</strong>
+                  elemento(s) pendiente(s)
+                </p>
+                {% endif %}
+              </div>
+            </div>
+          </a>
+        </div>
+
+        <!-- Requisitos RGPD -->
+        {% if validacion.validaciones.requisitos.requiere_validacion %}
+        <div id="tarjeta-validacion-requisitos" class="tarjeta-validacion-uniforme">
+          <a href="{{ url_for('formulario_requisitos') }}" class="text-decoration-none">
+            <div id="card-validacion-requisitos" class="card h-100 {% if validacion.validaciones.requisitos.cumple %}border-success{% else %}border-danger{% endif %}" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+              <div id="body-validacion-requisitos" class="card-body text-center">
+                {% if validacion.validaciones.requisitos.cumple %}
+                <i class="bi bi-check-circle-fill text-success fs-2"></i>
+                <h6 id="titulo-validacion-requisitos" class="mt-2 mb-0 small">Requisitos</h6>
+                <small id="estado-validacion-requisitos" class="text-success" style="font-size: 0.75rem;">Completado</small>
+                {% else %}
+                <i class="bi bi-x-circle-fill text-danger fs-2"></i>
+                <h6 id="titulo-validacion-requisitos" class="mt-2 mb-1 small">Requisitos</h6>
+                <p id="pendientes-validacion-requisitos" class="mb-0 text-danger" style="font-size: 0.8rem;">
+                  <strong>{{ validacion.validaciones.requisitos.pendientes }}</strong>
+                  requisito(s) pendiente(s)
+                </p>
+                {% endif %}
+              </div>
+            </div>
+          </a>
+        </div>
+        {% endif %}
+
+        <!-- Riesgos -->
+        {% if validacion.validaciones.riesgos.requiere_validacion %}
+        <div id="tarjeta-validacion-riesgos" class="tarjeta-validacion-uniforme">
+          <a href="{{ url_for('formulario_riesgos') }}" class="text-decoration-none">
+            <div id="card-validacion-riesgos" class="card h-100 {% if validacion.validaciones.riesgos.cumple %}border-success{% elif validacion.validaciones.riesgos.pendientes > 0 %}border-warning{% elif validacion.validaciones.riesgos.riesgo_global_bloquea %}border-danger{% else %}border-secondary{% endif %}" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+              <div id="body-validacion-riesgos" class="card-body text-center">
+                {% if validacion.validaciones.riesgos.cumple %}
+                <!-- Todo OK: riesgos individuales y riesgo global -->
+                <i class="bi bi-check-circle-fill text-success fs-2"></i>
+                <h6 id="titulo-validacion-riesgos" class="mt-2 mb-0 small">Riesgos</h6>
+                <small id="estado-validacion-riesgos" class="text-success" style="font-size: 0.75rem;">Completado</small>
+                {% elif validacion.validaciones.riesgos.pendientes > 0 %}
+                <!-- Prioridad 1: Riesgos individuales pendientes -->
+                <i class="bi bi-x-circle-fill text-warning fs-2"></i>
+                <h6 id="titulo-validacion-riesgos" class="mt-2 mb-1 small">Riesgos</h6>
+                <p id="pendientes-validacion-riesgos" class="mb-0 text-warning" style="font-size: 0.8rem;">
+                  <strong>{{ validacion.validaciones.riesgos.pendientes }}</strong>
+                  riesgo(s) pendiente(s)
+                </p>
+                {% elif validacion.validaciones.riesgos.riesgo_global_bloquea %}
+                <!-- Prioridad 2: Bloqueo por Riesgo Global (solo si no hay pendientes individuales) -->
+                <i class="bi bi-x-circle-fill text-danger fs-2"></i>
+                <h6 id="titulo-validacion-riesgos" class="mt-2 mb-1 small">Riesgos</h6>
+                <p id="pendientes-validacion-riesgos" class="mb-0 text-danger" style="font-size: 0.8rem;">
+                  <strong>Riesgo global</strong><br>
+                  <small>{{ validacion.validaciones.riesgos.nivel_riesgo_global }}</small>
+                </p>
+                {% else %}
+                <!-- Sin evaluar -->
+                <i class="bi bi-dash-circle text-secondary fs-2"></i>
+                <h6 id="titulo-validacion-riesgos" class="mt-2 mb-0 small">Riesgos</h6>
+                <small id="estado-validacion-riesgos" class="text-muted" style="font-size: 0.75rem;">Sin evaluar</small>
+                {% endif %}
+              </div>
+            </div>
+          </a>
+        </div>
+        {% endif %}
+
+        <!-- Controles -->
+        {% if validacion.validaciones.controles.requiere_validacion %}
+        <div id="tarjeta-validacion-controles" class="tarjeta-validacion-uniforme">
+          <a href="{{ url_for('formulario_controles') }}" class="text-decoration-none">
+            <div id="card-validacion-controles" class="card h-100 {% if validacion.validaciones.controles.cumple %}border-success{% else %}border-danger{% endif %}" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+              <div id="body-validacion-controles" class="card-body text-center">
+                {% if validacion.validaciones.controles.cumple %}
+                <i class="bi bi-check-circle-fill text-success fs-2"></i>
+                <h6 id="titulo-validacion-controles" class="mt-2 mb-0 small">Controles</h6>
+                <small id="estado-validacion-controles" class="text-success" style="font-size: 0.75rem;">Completado</small>
+                {% else %}
+                <i class="bi bi-x-circle-fill text-danger fs-2"></i>
+                <h6 id="titulo-validacion-controles" class="mt-2 mb-1 small">Controles</h6>
+                <p id="pendientes-validacion-controles" class="mb-0 text-danger" style="font-size: 0.8rem;">
+                  <strong>{{ validacion.validaciones.controles.pendientes }}</strong>
+                  control(es) pendiente(s)
+                </p>
+                {% endif %}
+              </div>
+            </div>
+          </a>
+        </div>
+        {% endif %}
+
+        <!-- Documentos -->
+        {% if validacion.validaciones.documentos.requiere_validacion %}
+        <div id="tarjeta-validacion-documentos" class="tarjeta-validacion-uniforme">
+          <a href="{{ url_for('formulario_documentos') }}" class="text-decoration-none">
+            <div id="card-validacion-documentos" class="card h-100 {% if validacion.validaciones.documentos.cumple %}border-success{% else %}border-danger{% endif %}" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+              <div id="body-validacion-documentos" class="card-body text-center">
+                {% if validacion.validaciones.documentos.cumple %}
+                <i class="bi bi-check-circle-fill text-success fs-2"></i>
+                <h6 id="titulo-validacion-documentos" class="mt-2 mb-0 small">Informes</h6>
+                <small id="estado-validacion-documentos" class="text-success" style="font-size: 0.75rem;">Completado</small>
+                {% else %}
+                <i class="bi bi-x-circle-fill text-danger fs-2"></i>
+                <h6 id="titulo-validacion-documentos" class="mt-2 mb-1 small">Informes</h6>
+                <p id="pendientes-validacion-documentos" class="mb-0 text-danger" style="font-size: 0.8rem;">
+                  <strong>{{ validacion.validaciones.documentos.pendientes }}</strong>
+                  informes(s) pendiente(s)
+                </p>
+                {% endif %}
+              </div>
+            </div>
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+    {% endif %}
+
+
+    {% if fase_obj.L_MONITOREO %}
+    <div id="alerta-fase-monitoreo" class="alert alert-info mt-3">
+      <i class="bi bi-eye-fill"></i>
+      <strong>Fase de Monitoreo:</strong>
+      <a id="enlace-monitoreo-continuo" href="{{ url_for('formulario_monitoreo') }}" class="alert-link">
+        Esta fase no tiene un final definido. El proyecto permanecerá en monitoreo continuo.
+        <i class="bi bi-arrow-right ms-1"></i>
+      </a>
+    </div>
+
+    <!-- Botón Salir de Monitoreo (centrado, debajo de todo) -->
+    <div id="contenedor-btn-salir-monitoreo" class="d-flex justify-content-center mt-3 text-center">
+      <button type="button" id="btn-salir-monitoreo" class="btn btn-danger btn-lg w-50" data-bs-toggle="modal" data-bs-target="#confirmarSalirMonitoreo">
+        <i class="bi bi-x-circle-fill"></i><br>
+        Salir de monitoreo
+      </button>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div id="alerta-sin-fase" class="alert alert-warning">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <strong>Atención:</strong> No se ha definido una fase para este proyecto. Por favor, contacte con el administrador del sistema.
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Historial de Fases -->
+<div id="card-historial-fases" class="card shadow-sm">
+  <div id="header-historial-fases" class="card-header bg-secondary text-white">
+    <h5 id="titulo-historial-fases" class="mb-0 text-white">
+      <i class="bi bi-clock-history"></i> Todas las Fases del Proceso
+    </h5>
+  </div>
+  <div id="body-historial-fases" class="card-body">
+    <div id="contenedor-tabla-historial" class="table-responsive">
+      <table id="tabla-historial-fases" class="table table-hover align-middle">
+        <thead id="thead-historial-fases" class="table-light">
+          <tr>
+            <th id="th-fase" class="text-center">Fase</th>
+            <th id="th-estado" class="text-center" style="width: 150px;">Estado</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-historial-fases">
+          {% for fase in todas_fases %}
+          <tr id="fila-fase-{{ fase.ID_FASE }}" {% if fase_obj and fase.ID_FASE==fase_obj.ID_FASE %}class="table-primary" {% endif %}>
+            <td id="celda-nombre-fase-{{ fase.ID_FASE }}">
+              <strong id="nombre-fase-{{ fase.ID_FASE }}">{{ fase.D_FASE }}</strong>
+              {% if fase.L_MONITOREO and fase_obj and fase.ID_FASE == fase_obj.ID_FASE %}
+              <a id="enlace-monitoreo-{{ fase.ID_FASE }}" href="{{ url_for('formulario_monitoreo') }}" class="text-decoration-none">
+                <span id="badge-monitoreo-{{ fase.ID_FASE }}" class="badge bg-info ms-2" style="cursor: pointer;">
+                  <i class="bi bi-eye-fill"></i> Monitoreo
+                </span>
+              </a>
+              {% elif fase.L_MONITOREO %}
+              <span id="badge-monitoreo-{{ fase.ID_FASE }}" class="badge bg-info ms-2">
+                <i class="bi bi-eye-fill"></i> Monitoreo
+              </span>
+              {% endif %}
+            </td>
+            <td id="celda-estado-fase-{{ fase.ID_FASE }}" class="text-center">
+              {% if fase_obj and fase.ID_FASE == fase_obj.ID_FASE %}
+              <span id="badge-estado-{{ fase.ID_FASE }}" class="badge bg-primary fs-6">
+                <i class="bi bi-arrow-right-circle-fill"></i> Fase Actual
+              </span>
+              {% elif fase_obj and fase.N_ORDEN < fase_obj.N_ORDEN %} <span id="badge-estado-{{ fase.ID_FASE }}" class="badge bg-success fs-6">
+                <i class="bi bi-check-circle-fill"></i> Completada
+                </span>
+                {% else %}
+                <span id="badge-estado-{{ fase.ID_FASE }}" class="badge bg-warning text-dark fs-6">
+                  <i class="bi bi-hourglass-split"></i> Pendiente
+                </span>
+                {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Botones de Navegación -->
+<div id="contenedor-navegacion-fases" class="d-grid gap-3 d-md-flex justify-content-between mt-4">
+  <a id="btn-navegacion-atras" href="{{ url_for('formulario_monitoreo') }}" class="btn btn-outline-secondary btn-lg rounded-pill">
+    ⬅ Atrás
+  </a>
+  {% if fase_obj and fase_obj.L_MONITOREO %}
+  <a id="btn-navegacion-siguiente" href="{{ url_for('formulario_monitoreo') }}" class="btn btn-primary btn-lg rounded-pill d-inline">
+    Ir a Monitoreo ➡
+  </a>
+  {% else %}
+  <a id="btn-navegacion-siguiente" href="{{ url_for('formulario_adi') }}" class="btn btn-primary btn-lg rounded-pill d-inline">
+    Siguiente ➡
+  </a>
+  {% endif %}
+</div>
+
+<!-- Modal de Confirmación para Finalizar Fase -->
+<div class="modal fade" id="confirmarFinalizarFase" tabindex="-1" aria-labelledby="confirmarFinalizarFaseLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" id="dialog-confirmar-finalizar">
+    <div class="modal-content" id="content-confirmar-finalizar">
+      <div class="modal-header bg-warning" id="header-confirmar-finalizar">
+        <h5 class="modal-title text-dark" id="confirmarFinalizarFaseLabel">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          Confirmar Finalización de {{fase_obj.D_FASE if fase_obj else ''}}
+        </h5>
+        <button type="button" id="btn-cerrar-confirmar-finalizar" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="body-confirmar-finalizar">
+        <div id="icono-confirmar-finalizar" class="text-center mb-3">
+          <i class="bi bi-question-circle text-warning" style="font-size: 3rem;"></i>
+        </div>
+        <h6 id="pregunta-confirmar-finalizar" class="text-center mb-3">¿Está seguro de que desea finalizar esta fase y avanzar a la siguiente?</h6>
+        <div id="alerta-nota-finalizar" class="alert alert-info">
+          <small>
+            <i class="bi bi-info-circle"></i>
+            <strong>Nota:</strong> Esta acción no se puede deshacer. Asegúrese de haber completado todas las tareas requeridas en la fase actual.
+          </small>
+        </div>
+      </div>
+      <div class="modal-footer" id="footer-confirmar-finalizar">
+        <button type="button" id="btn-cancelar-finalizar" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle me-1"></i> Cancelar
+        </button>
+        <!-- FORM SOLO EN EL MODAL -->
+        <form method="POST" action="{{ url_for('finalizar_fase') }}" id="formFinalizarFase">
+          <button type="submit" id="btn-confirmar-finalizar" class="btn btn-success">
+            <i class="bi bi-check-circle me-1"></i> Sí, Finalizar Fase
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Nuevo Modal de Confirmación para Salir de Monitoreo -->
+<div class="modal fade" id="confirmarSalirMonitoreo" tabindex="-1" aria-labelledby="confirmarSalirMonitoreoLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" id="dialog-confirmar-salir-monitoreo">
+    <div class="modal-content" id="content-confirmar-salir-monitoreo">
+      <div class="modal-header bg-danger" id="header-confirmar-salir-monitoreo">
+        <h5 class="modal-title text-white" id="confirmarSalirMonitoreoLabel">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          Confirmar Salida de Monitoreo
+        </h5>
+        <button type="button" id="btn-cerrar-confirmar-salir" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="body-confirmar-salir-monitoreo">
+        <div id="icono-confirmar-salir" class="text-center mb-3">
+          <i class="bi bi-question-circle text-danger" style="font-size: 3rem;"></i>
+        </div>
+        <h6 id="pregunta-confirmar-salir" class="text-center mb-3">¿Está seguro de que desea salir de la fase de monitoreo?</h6>
+        <div id="alerta-atencion-salir" class="alert alert-warning">
+          <small>
+            <i class="bi bi-exclamation-triangle"></i>
+            <strong>Atención:</strong> Esta acción revertirá la fase del proyecto a la inmediatamente anterior (fase {{ fase_obj.N_ORDEN - 1 if fase_obj and fase_obj.N_ORDEN > 1 else '1' }}).
+          </small>
+        </div>
+      </div>
+      <div class="modal-footer" id="footer-confirmar-salir-monitoreo">
+        <button type="button" id="btn-cancelar-salir" class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="bi bi-x-circle me-1"></i> Cancelar
+        </button>
+        <!-- FORM SOLO EN EL MODAL -->
+        <form method="POST" action="{{ url_for('salir_monitoreo') }}" id="formSalirMonitoreo">
+          <button type="submit" id="btn-confirmar-salir" class="btn btn-danger">
+            <i class="bi bi-x-circle me-1"></i> Sí, Salir de Monitoreo
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+  });
+</script>
+{% endblock %}

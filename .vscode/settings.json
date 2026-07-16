@@ -1,0 +1,17 @@
+{
+    "html.validate.scripts": false,
+    "css.validate": false,
+    "html.format.wrapLineLength": 0,
+    "files.encoding": "utf8",
+    "files.eol": "\n",
+    "[html]": {
+        "editor.defaultFormatter": "vscode.html-language-features",
+        "editor.tabSize": 2
+    },
+    "[python]": {
+        "editor.tabSize": 4
+    },
+    "[javascript]": {
+        "editor.tabSize": 2
+    }
+}

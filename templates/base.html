@@ -1,0 +1,163 @@
+
+<!--
+    Aplicación para la protección de datos en Sistemas IA
+    Copyright (C) 2025-2026 Consejo de Transparencia y Protección de Datos de Andalucía
+
+    Licenciado bajo EUPL v1.2: https://eupl.eu/1.2/es/
+-->
+
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}{{ nombre_aplicacion }}{% endblock %}</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/bootstrap-icons.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+</head>
+
+<body>
+    <!-- Modal de Confirmación de Cierre -->
+    <div class="modal fade" id="modalConfirmarCierre" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-sm" id="dialog-confirmar-cierre">
+            <div class="modal-content border-warning" id="content-confirmar-cierre">
+                <div class="modal-header bg-warning text-dark" id="header-confirmar-cierre">
+                    <h5 class="modal-title text-dark" id="titulo-confirmar-cierre"><i class="bi bi-exclamation-triangle-fill me-2"></i> ¿Cerrar Aplicación?</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="btn-cerrar-modal-cierre"></button>
+                </div>
+                <div class="modal-body text-center" id="body-confirmar-cierre">
+                    <p class="mb-0" id="pregunta-confirmar-cierre">¿Está seguro de que desea cerrar la aplicación?</p>
+                    <p class="text-muted small mb-0" id="aviso-cambios-no-guardados">Perderá los cambios no guardados.</p>
+                </div>
+                <div class="modal-footer" id="footer-confirmar-cierre">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="btn-cancelar-cierre">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btnConfirmarCerrar">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botón de Manual de Uso -->
+    <a href="{{ url_for('manual_uso') }}" id="btnManual" title="Guías rápidas">
+        <i class="bi bi-book" id="icono-manual"></i>
+    </a>
+
+    <!-- Botón para cerrar -->
+    <button id="btnCerrar" title="Cerrar aplicación">&times;</button>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="container mt-3" id="contenedor-alertas-flash">
+        {% for category, message in messages %}
+        {% if not hide_global_flash %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert" id="alerta-flash-{{ loop.index }}">
+            <span id="mensaje-flash-{{ loop.index }}">{{ message }}</span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" id="btn-cerrar-alerta-{{ loop.index }}"></button>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div class="container py-4" id="contenedor-principal-app">
+        {% if request.path != '/seleccionar-proyecto' %}
+        <ul class="nav nav-tabs mb-4" id="navegacion-tabs">
+            {% for tab in tabs %}
+            <li class="nav-item" id="nav-item-{{ tab.active_tab }}">
+                <a class="nav-link {% if active_tab == tab.active_tab %}active{% endif %}" href="{{ url_for(tab.endpoint) }}" id="nav-link-{{ tab.active_tab }}">{{ tab.name }}</a>
+            </li>
+            {% endfor %}
+        </ul>
+        <!-- Mostrar nombre del proyecto, fase y perfil -->
+        <div class="d-flex justify-content-between mb-3" id="barra-info-proyecto">
+            <!-- Nombre del proyecto a la izquierda -->
+            <small class="text-muted" id="contenedor-nombre-proyecto">
+                <strong id="nombre-proyecto-actual">{{ nombre_proyecto_actual if nombre_proyecto_actual else 'Proyecto sin nombre' }}</strong>
+            </small>
+            <!-- Fase y perfil a la derecha -->
+            <div id="contenedor-fase-perfil">
+                {% if fase_actual %}
+                <small class="text-muted me-3" id="info-fase-actual">
+                    <strong>Fase actual:</strong> <span id="valor-fase-actual">{{ fase_actual.nombre }}</span>
+                </small>
+                {% else %}
+                <small class="text-muted me-3" id="info-fase-actual">
+                    <strong>Fase actual:</strong> <span id="valor-fase-actual">Aun no se ha asignado una fase a este proyecto</span>
+                </small>
+                {% endif %}
+                {% if configuracion_automatica and configuracion_automatica.perfil_supervision and configuracion_automatica.perfil_supervision != "No disponible" %}
+                <small class="text-muted" id="info-perfil">
+                    <strong>Perfil:</strong> <span id="valor-perfil">{{ configuracion_automatica.perfil_supervision }}</span>
+                </small>
+                {% else %}
+                <small class="text-muted" id="info-perfil">
+                    <strong>Perfil:</strong> <span id="valor-perfil"><em>No calculado</em></span>
+                </small>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </div>
+    <script src="{{ url_for('static', filename='js/jquery-3.7.1.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <!-- Configuración de heartbeat inyectada desde config.py -->
+    <script>
+        window.HEARTBEAT_CONFIG = {
+            HEARTBEAT_INTERVAL: {{ config.HEARTBEAT_INTERVAL }},
+            NAVIGATION_TIMEOUT: {{ config.NAVIGATION_TIMEOUT }}
+        };
+    </script>
+    <script src="{{ url_for('static', filename='js/steps.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ayuda-contextual.js') }}"></script>
+
+    <!-- ============================================================================
+         SISTEMA DE VISIBILIDAD DINÁMICA
+         Respuestas ADI cargadas desde servidor (sin fetch, sin flicker)
+         ============================================================================ -->
+    {% if nombre_proyecto_actual %}
+    <script>
+        // Respuestas ADI inyectadas desde el servidor - sin delay de red
+        window.respuestasADI = {{ respuestas_adi | tojson | safe }};
+    </script>
+    {% else %}
+    <script>
+        window.respuestasADI = {};
+    </script>
+    {% endif %}
+    <script src="{{ url_for('static', filename='js/visibilidad-dinamica.js') }}"></script>
+    <!-- ============================================================================ -->
+
+    <!-- Script específico para el botón de cierre -->
+    <script>
+        // Aseguramos que el código se ejecute después de que el DOM esté listo y jQuery/Bootstrap estén cargados
+        $(document).ready(function () {
+            // Manejar el clic en el botón de cierre
+            $("#btnCerrar").on("click", function () {
+                // Mostrar el modal de confirmación
+                const modalElement = document.getElementById('modalConfirmarCierre');
+                const modalInstance = new bootstrap.Modal(modalElement);
+                modalInstance.show();
+            });
+
+            // Manejar el clic en el botón "Cerrar" del modal
+            $("#btnConfirmarCerrar").on("click", function () {
+                // Ocultar el modal antes de redirigir (opcional, mejora UX)
+                const modalElement = document.getElementById('modalConfirmarCierre');
+                const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
+                // Redirigir a la URL de cierre
+                window.location.href = "/shutdown";
+            });
+        });
+    </script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+
+</html>

@@ -1,0 +1,2264 @@
+
+<!--
+    Aplicación para la protección de datos en Sistemas IA
+    Copyright (C) 2025-2026 Consejo de Transparencia y Protección de Datos de Andalucía
+
+    Licenciado bajo EUPL v1.2: https://eupl.eu/1.2/es/
+-->
+
+
+{% extends "base.html" %}
+{% block title %}Riesgos - {{ nombre_aplicacion }}{% endblock %}
+
+{% block content %}
+<div id="contenedor-cabecera-riesgos" class="d-flex justify-content-between align-items-center mb-4">
+    <img id="logo-ctpd" src="{{ url_for('static', filename='img/logo_ctpdandalucia.png') }}" alt="Logo" style="height: 80px;">
+    <h1 id="cabecera">Riesgos</h1>
+    <img id="logo-junta" src="{{ url_for('static', filename='img/logo_junta.png') }}" alt="Logo Junta" style="height: 80px;">
+</div>
+
+{% if exito %}
+<div id="alerta-exito-guardado" class="alert alert-success d-flex justify-content-between align-items-center" role="alert">
+    <span id="mensaje-exito-guardado">✅ Justificaciones guardadas correctamente</span>
+</div>
+{% endif %}
+
+<!-- Agregar un aviso visual si está en fase 4 -->
+{% if monitoreo %}
+<div id="alerta-monitoreo-activo" class="alert alert-info" role="alert">
+    <i class="bi bi-info-circle"></i> <strong>Fase de Monitoreo Activa:</strong> Los campos están en modo lectura.
+</div>
+{% endif %}
+
+<!-- ===== NUEVO CUADRO RESUMEN COMPACTO (ANTES DE LA TABLA) ===== -->
+<div id="card-resumen-riesgos" class="card mb-3 shadow-sm">
+    <div id="header-resumen-riesgos" class="card-header bg-dark text-white py-2 cuadro-resumen-header" data-bs-toggle="collapse" data-bs-target="#collapseResumenRiesgos" aria-expanded="true" aria-controls="collapseResumenRiesgos" style="cursor: pointer;">
+        <h6 id="titulo-resumen-riesgos" class="mb-0 text-white d-flex align-items-center justify-content-between">
+            <span>
+                <i class="bi bi-chevron-down me-2 icono-collapse-resumen"></i>
+                <i class="bi bi-graph-up-arrow"></i> Resumen de Riesgos
+            </span>
+        </h6>
+    </div>
+    <div class="collapse show" id="collapseResumenRiesgos">
+        <div id="body-resumen-riesgos" class="card-body p-3">
+            <!-- Fila superior: 4 o 5 indicadores en línea -->
+            <!-- El 5º indicador (Riesgo Global) solo aparece si nivel_riesgo='R' y (no solo_global_100 o todos_completos) -->
+            <div id="fila-indicadores-resumen" class="row g-2 mb-3 {% if mostrar_riesgo_global %}fila-cinco-indicadores{% endif %}">
+                <div class="col-indicador {% if mostrar_riesgo_global %}col-indicador-5{% else %}col-3{% endif %}">
+                    <div id="indicador-total-activos" class="d-flex align-items-center justify-content-between border rounded p-2 bg-light h-100">
+                        <small class="text-muted"><strong>Total Activos</strong></small>
+                        <h5 class="text-primary mb-0 ms-2" id="resumen-total-activos">{{ estadisticas.total_activos }}</h5>
+                    </div>
+                </div>
+                <div class="col-indicador {% if mostrar_riesgo_global %}col-indicador-5{% else %}col-3{% endif %}">
+                    <div id="indicador-aplicables" class="d-flex align-items-center justify-content-between border rounded p-2 bg-light h-100">
+                        <small class="text-muted"><strong>Aplicables</strong></small>
+                        <h5 class="text-success mb-0 ms-2" id="resumen-total-aplicables">{{ estadisticas.total_aplicables }}</h5>
+                    </div>
+                </div>
+                <div class="col-indicador {% if mostrar_riesgo_global %}col-indicador-5{% else %}col-3{% endif %}">
+                    <div id="indicador-no-aplicables" class="d-flex align-items-center justify-content-between border rounded p-2 bg-light h-100">
+                        <small class="text-muted"><strong>No Aplicables</strong></small>
+                        <h5 class="text-secondary mb-0 ms-2" id="resumen-no-aplicables">{{ estadisticas.total_activos - estadisticas.total_aplicables }}</h5>
+                    </div>
+                </div>
+                <div class="col-indicador {% if mostrar_riesgo_global %}col-indicador-5{% else %}col-3{% endif %}">
+                    <div id="indicador-estado-analisis" class="d-flex align-items-center justify-content-between border rounded p-2 bg-light h-100">
+                        <small class="text-muted"><strong>Estado de análisis</strong></small>
+                        <h5 class="{% if todos_completos %}text-success{% else %}text-warning{% endif %} mb-0 ms-2"
+                            id="resumen-completitud"
+                            data-pendientes="{{ pendientes_info.pendientes }}"
+                            data-total="{{ pendientes_info.total }}">
+                            {% if todos_completos %}
+                            <i class="bi bi-check-circle-fill"></i> 100%
+                            {% else %}
+                            <i class="bi bi-hourglass-split"></i> {{ pendientes_info.pendientes }} de {{ pendientes_info.total }}
+                            {% endif %}
+                    </div>
+                </div>
+                <!-- Indicador de Riesgo Global: siempre existe si nivel='R', visibilidad controlada por JS -->
+                {% if nivel_riesgo == 'R' %}
+                <div id="contenedor-indicador-riesgo-global" class="col-indicador col-indicador-5 {% if not mostrar_riesgo_global %}d-none{% endif %}">
+                    <div id="indicador-riesgo-global" class="d-flex align-items-center justify-content-between border rounded p-2 bg-light h-100" style="cursor: pointer;" onclick="RiesgoGlobal.togglePanel()" title="Clic para ver diagnóstico">
+                        <small class="text-muted"><strong data-ayuda-control="indicador-riesgo-global-label">Riesgo Global</strong></small>
+                        <span id="badge-riesgo-global" class="badge bg-secondary ms-2">
+                            <i class="bi bi-hourglass-split me-1"></i>...
+                        </span>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Tabla comparativa de riesgos -->
+            <div id="contenedor-tabla-resumen" class="table-responsive">
+                <table id="tabla-resumen-riesgos" class="table table-sm table-bordered mb-0">
+                    <thead id="thead-resumen-riesgos" class="table-light">
+                        <tr>
+                            <th id="th-resumen-nivel" class="text-center align-middle" style="width: 25%;">
+                                <i class="bi bi-bar-chart-line-fill"></i> Nivel
+                            </th>
+                            <th id="th-resumen-inherente" class="text-center align-middle columna-inherente" style="{% if nivel_riesgo != 'R' %}width: 75%;{% else %}width: 37.5%;{% endif %}">
+                                <i class="bi bi-exclamation-triangle"></i> Riesgos inherentes
+                            </th>
+                            <th id="th-resumen-residual" class="text-center align-middle columna-residual {% if nivel_riesgo != 'R' %}ocultar-residual{% endif %}" style="width: 37.5%;">
+                                <i class="bi bi-shield-check"></i> Riesgos residuales
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-resumen-riesgos">
+                        <!-- CRÍTICO -->
+                        <tr id="fila-resumen-critico">
+                            <td class="text-center align-middle">
+                                <span class="badge bg-danger w-100">CRÍTICO</span>
+                            </td>
+                            <td class="text-center align-middle">
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-danger me-2" id="resumen-inh-critico">{{ estadisticas.inherente.CRÍTICO }}</span>
+                                    <div class="progress flex-grow-1" style="height: 20px;">
+                                        <div id="barra-inh-critico" class="progress-bar bg-danger" role="progressbar" style="width: {% if estadisticas.total_aplicables > 0 %}{{ (estadisticas.inherente.CRÍTICO / estadisticas.total_aplicables * 100) | round(1) }}%{% else %}0%{% endif %}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center align-middle columna-residual {% if nivel_riesgo != 'R' %}ocultar-residual{% endif %}">
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-danger me-2" id="resumen-res-critico">{{ estadisticas.residual.CRÍTICO }}</span>
+                                    <div class="progress flex-grow-1" style="height: 20px;">
+                                        <div id="barra-res-critico" class="progress-bar bg-danger" role="progressbar" style="width: {% if estadisticas.total_aplicables > 0 %}{{ (estadisticas.residual.CRÍTICO / estadisticas.total_aplicables * 100) | round(1) }}%{% else %}0%{% endif %}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        <!-- ALTO -->
+                        <tr id="fila-resumen-alto">
+                            <td class="text-center align-middle">
+                                <span class="badge bg-warning text-dark w-100">ALTO</span>
+                            </td>
+                            <td class="text-center align-middle">
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-warning text-dark me-2" id="resumen-inh-alto">{{ estadisticas.inherente.ALTO }}</span>
+                                    <div class="progress flex-grow-1" style="height: 20px;">
+                                        <div id="barra-inh-alto" class="progress-bar bg-warning" role="progressbar" style="width: {% if estadisticas.total_aplicables > 0 %}{{ (estadisticas.inherente.ALTO / estadisticas.total_aplicables * 100) | round(1) }}%{% else %}0%{% endif %}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center align-middle columna-residual {% if nivel_riesgo != 'R' %}ocultar-residual{% endif %}">
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-warning text-dark me-2" id="resumen-res-alto">{{ estadisticas.residual.ALTO }}</span>
+                                    <div class="progress flex-grow-1" style="height: 20px;">
+                                        <div id="barra-res-alto" class="progress-bar bg-warning" role="progressbar" style="width: {% if estadisticas.total_aplicables > 0 %}{{ (estadisticas.residual.ALTO / estadisticas.total_aplicables * 100) | round(1) }}%{% else %}0%{% endif %}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        <!-- MEDIO -->
+                        <tr id="fila-resumen-medio">
+                            <td class="text-center align-middle">
+                                <span class="badge bg-info text-dark w-100">MEDIO</span>
+                            </td>
+                            <td class="text-center align-middle">
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-info text-dark me-2" id="resumen-inh-medio">{{ estadisticas.inherente.MEDIO }}</span>
+                                    <div class="progress flex-grow-1" style="height: 20px;">
+                                        <div id="barra-inh-medio" class="progress-bar bg-info" role="progressbar" style="width: {% if estadisticas.total_aplicables > 0 %}{{ (estadisticas.inherente.MEDIO / estadisticas.total_aplicables * 100) | round(1) }}%{% else %}0%{% endif %}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center align-middle columna-residual {% if nivel_riesgo != 'R' %}ocultar-residual{% endif %}">
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-info text-dark me-2" id="resumen-res-medio">{{ estadisticas.residual.MEDIO }}</span>
+                                    <div class="progress flex-grow-1" style="height: 20px;">
+                                        <div id="barra-res-medio" class="progress-bar bg-info" role="progressbar" style="width: {% if estadisticas.total_aplicables > 0 %}{{ (estadisticas.residual.MEDIO / estadisticas.total_aplicables * 100) | round(1) }}%{% else %}0%{% endif %}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        <!-- BAJO -->
+                        <tr id="fila-resumen-bajo">
+                            <td class="text-center align-middle">
+                                <span class="badge bg-success w-100">BAJO</span>
+                            </td>
+                            <td class="text-center align-middle">
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-success me-2" id="resumen-inh-bajo">{{ estadisticas.inherente.BAJO }}</span>
+                                    <div class="progress flex-grow-1" style="height: 20px;">
+                                        <div id="barra-inh-bajo" class="progress-bar bg-success" role="progressbar" style="width: {% if estadisticas.total_aplicables > 0 %}{{ (estadisticas.inherente.BAJO / estadisticas.total_aplicables * 100) | round(1) }}%{% else %}0%{% endif %}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center align-middle columna-residual {% if nivel_riesgo != 'R' %}ocultar-residual{% endif %}">
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-success me-2" id="resumen-res-bajo">{{ estadisticas.residual.BAJO }}</span>
+                                    <div class="progress flex-grow-1" style="height: 20px;">
+                                        <div id="barra-res-bajo" class="progress-bar bg-success" role="progressbar" style="width: {% if estadisticas.total_aplicables > 0 %}{{ (estadisticas.residual.BAJO / estadisticas.total_aplicables * 100) | round(1) }}%{% else %}0%{% endif %}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        <!-- SIN VALORAR -->
+                        <tr id="fila-resumen-sin-valorar">
+                            <td class="text-center align-middle">
+                                <span class="badge bg-secondary w-100">SIN VALORAR</span>
+                            </td>
+                            <td class="text-center align-middle">
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-secondary me-2" id="resumen-inh-sin-valorar">{{ estadisticas.inherente['SIN VALORAR'] }}</span>
+                                    <div class="progress flex-grow-1" style="height: 20px;">
+                                        <div id="barra-inh-sin-valorar" class="progress-bar bg-secondary" role="progressbar" style="width: {% if estadisticas.total_aplicables > 0 %}{{ (estadisticas.inherente['SIN VALORAR'] / estadisticas.total_aplicables * 100) | round(1) }}%{% else %}0%{% endif %}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center align-middle columna-residual {% if nivel_riesgo != 'R' %}ocultar-residual{% endif %}">
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-secondary me-2" id="resumen-res-sin-valorar">{{ estadisticas.residual['SIN VALORAR'] }}</span>
+                                    <div class="progress flex-grow-1" style="height: 20px;">
+                                        <div id="barra-res-sin-valorar" class="progress-bar bg-secondary" role="progressbar" style="width: {% if estadisticas.total_aplicables > 0 %}{{ (estadisticas.residual['SIN VALORAR'] / estadisticas.total_aplicables * 100) | round(1) }}%{% else %}0%{% endif %}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ===== FIN NUEVO CUADRO RESUMEN ===== -->
+
+<div id="barra-acciones-riesgos" class="d-flex justify-content-between align-items-center">
+    <div id="contenedor-botones-filtro" class="d-flex justify-content-start mb-2 gap-3">
+        {% if not modo_todos %}
+        <a href="{{ url_for('formulario_riesgos', ver_todos=1, id_sistema=id_sistema) }}"
+        class="btn btn-sm btn-outline-primary btn-custom"
+        id="btn-ver-todos"
+        >
+            📊 Ver Todos los Riesgos
+        </a>
+        {% else %}
+        <a href="{{ url_for('formulario_riesgos', ver_todos=0, id_sistema=id_sistema) }}"
+        class="btn btn-sm btn-outline-primary btn-custom"
+        id="btn-volver-activos"
+        }>
+            🔍 Volver a Riesgos Activos
+        </a>
+        {% endif %}
+
+        <!-- 🆕 NUEVO BOTÓN: Riesgos sin valorar / Riesgos no mitigados -->
+        <a href="#"
+        class="btn btn-sm btn-outline-warning btn-custom"
+        id="btn-filtrar-sin-valorar"
+        data-ayuda-tooltip="{% if nivel_riesgo == 'R' %}btn-filtrar-no-mitigados{% else %}btn-filtrar-sin-valorar{% endif %}"
+        onclick="filtrarRiesgosSinValorar(event)"
+        {% if monitoreo %}style="display: none;"{% endif %}>
+            {% if nivel_riesgo == 'R' %}
+            ⚠️ Riesgos no mitigados
+            {% else %}
+            ⚠️ Riesgos sin valorar
+            {% endif %}
+        </a>
+
+        <!-- 🆕 NUEVO BOTÓN: Solo riesgos aplicables -->
+        <a href="#"
+        class="btn btn-sm btn-outline-success btn-custom"
+        id="btn-filtrar-aplicables"
+        onclick="filtrarRiesgosAplicables(event)"
+        {% if monitoreo or modo_todos %}style="display: none;"{% endif %}>
+            ✓ Solo riesgos aplicables
+        </a>
+
+        {% if hay_riesgo_personal %}
+        <button class="btn btn-primary" id="btn-crear-riesgo" {% if monitoreo %}style="display: none;"{% endif %}>
+            <i class="bi bi-plus-circle"></i> Crear riesgo específico de proyecto
+        </button>
+        {% endif %}
+    </div>
+    <div id="contenedor-info-registros" class="d-flex align-items-center gap-3">
+        <div id="wrapper-contador-registros" class="contador-registros-wrapper">
+            <span class="badge contador-registros-badge" id="contador-registros">0</span>
+        </div>
+        <div id="indicador-guardado-auto" style="color: #28a745; font-size: 16px;">
+            💾 <strong>Guardado automático activado</strong>
+        </div>
+    </div>
+</div>
+
+<!-- ===== CONTENEDOR PRINCIPAL: TABLA DE RIESGOS + PANEL DIAGNÓSTICO ===== -->
+<div id="contenedor-riesgos-y-panel" class="riesgos-layout {% if mostrar_riesgo_global %}con-panel-diagnostico{% endif %}">
+
+    <!-- COLUMNA IZQUIERDA: Tabla de Riesgos -->
+    <div id="columna-riesgos" class="columna-riesgos">
+
+<!-- Formulario para guardar riesgos -->
+<form id="form-riesgos" method="POST" action="{{ url_for('guardar_riesgos') }}">
+    <input type="hidden" name="id_sistema" id="input-id-sistema" value="{{ id_sistema }}">
+
+    <div id="contenedor-tabla-riesgos" class="table-responsive">
+        <table id="tabla-riesgos" class="table table-bordered table-hover align-middle">
+            <thead id="thead-riesgos" class="table-dark">
+                <tr>
+                    <th class="text-center" id="th_riesgo" style="max-width: 150px; min-width: 150px;">Riesgo</th>
+                    <th class="text-center" id="th_categoria">Categoría</th>
+                    <th class="text-center" id="th_cluster">Clúster</th>
+                    <th class="text-center" id="th_aplica">¿Aplica?</th>
+                    <th class="text-center" id="th_probabilidad">Probabilidad</th>
+                    <th class="text-center" id="th_impacto">Impacto</th>
+                    <th class="text-center" id="th_inherente">Riesgo inherente</th>
+                    <th class="text-center columna-residual {% if nivel_riesgo != 'R' %}ocultar-residual{% endif %}" id="th_residual_nivel">Riesgo residual</th>
+                    <th class="text-center" id="th_justificaciones" style="min-width: 300px;">Justificación</th>
+                </tr>
+            </thead>
+            <tbody id="tbody-riesgos">
+                {% for riesgo in riesgos %}
+                <tr id="fila-riesgo-{{ riesgo.id_dat_riesgo }}"
+                    data-id-riesgo="{{ riesgo.id_dat_riesgo }}"
+                    data-l-activa="{{ riesgo.l_activa }}"
+                    data-l-aplica="{{ riesgo.aplica }}"
+                    data-l-personal="{{ 1 if riesgo.es_riesgo_personalizado else 0 }}"
+                    data-cluster="{{ riesgo.clusters if riesgo.clusters else '' }}"
+                    data-riesgo-residual-min="{{ riesgo.n_rieresmin }}"
+                    data-v-probabilidad="{{ riesgo.id_probabilidad if riesgo.id_probabilidad else '' }}"
+                    data-v-impacto="{{ riesgo.id_impacto if riesgo.id_impacto else '' }}"
+                    data-v-rieresid="{{ riesgo.riesgo_residual_valor if riesgo.riesgo_residual_valor else '' }}"
+                    data-riesgo-residual-numerico="{{ riesgo.riesgo_residual if riesgo.riesgo_residual else '' }}"
+                    data-riesgo-residual-texto="{{ riesgo.nivel_residual if riesgo.nivel_residual else '' }}"
+                    data-minimo-requerido-texto="{{ riesgo.minimo_requerido_texto if riesgo.minimo_requerido_texto else '' }}"
+                    class="fila-riesgo {% if riesgo.l_activa == 0 %}fila-riesgo-inactivo{% endif %}">
+                    <!-- Riesgo -->
+                    <td id="celda-riesgo-{{ riesgo.id_dat_riesgo }}" style="max-width: 300px; white-space: normal; word-break: break-word;">
+                        <strong id="descripcion-riesgo-{{ riesgo.id_dat_riesgo }}">{{ riesgo.descripcion_riesgo }}</strong>
+                        <small class="text-muted">
+                            <i id="btn-info-riesgo-{{ riesgo.id_dat_riesgo }}" class="bi bi-info-circle text-primary" data-bs-toggle="modal" data-bs-target="#modalDescripcion{{ riesgo.id_dat_riesgo }}" style="cursor: pointer; margin-right: 5px;" title="Ver descripción completa"></i>
+                            <p id="base-normativa-{{ riesgo.id_dat_riesgo }}">{{ riesgo.base_normativa }}</p>
+                        </small>
+
+                        <!-- Modal para descripción -->
+                        <div class="modal fade" id="modalDescripcion{{ riesgo.id_dat_riesgo }}" tabindex="-1">
+                            <div class="modal-dialog" id="dialog-descripcion-{{ riesgo.id_dat_riesgo }}">
+                                <div class="modal-content" id="content-descripcion-{{ riesgo.id_dat_riesgo }}">
+                                    <div class="modal-header" id="header-descripcion-{{ riesgo.id_dat_riesgo }}">
+                                        <h5 class="modal-title" id="titulo-modal-descripcion-{{ riesgo.id_dat_riesgo }}">Descripción del riesgo</h5>
+                                        <button type="button" id="btn-cerrar-descripcion-{{ riesgo.id_dat_riesgo }}" class="btn-close" data-bs-dismiss="modal" style="color: red; filter: invert(25%) sepia(100%) saturate(10000%) hue-rotate(0deg);">
+                                        </button>
+                                    </div>
+                                    <div class="modal-body" id="body-descripcion-{{ riesgo.id_dat_riesgo }}">
+                                        <p id="texto-descripcion-detallada-{{ riesgo.id_dat_riesgo }}">{{ riesgo.descripcion_detallada | safe }}</p>
+                                        {% if riesgo.controles_mitigacion %}
+                                        <p id="titulo-controles-mitigacion-{{ riesgo.id_dat_riesgo }}"><strong>Este riesgo se mitiga con los controles:</strong></p>
+                                        <ul id="lista-controles-mitigacion-{{ riesgo.id_dat_riesgo }}">
+                                            {% for ctrl in riesgo.controles_mitigacion %}
+                                            <li>{{ ctrl }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botón "Mitigar Riesgo" (solo si L_ACTIVA=1 y NO es riesgo personalizado) -->
+                        <!-- El botón se renderiza siempre pero se oculta con d-none si aplica=0, para permitir toggle dinámico -->
+                        {% if riesgo.l_activa == 1 and not riesgo.es_riesgo_personalizado %}
+                        <div id="contenedor-btn-mitigar-{{ riesgo.id_dat_riesgo }}" class="mt-2 contenedor-btn-mitigar {% if nivel_riesgo != 'R' %}d-none{% endif %}" data-id-dat-riesgo="{{ riesgo.id_dat_riesgo }}">
+                            <button type="button" id="btn-mitigar-riesgo-{{ riesgo.id_dat_riesgo }}" class="btn btn-sm btn-outline-primary w-100 mitigar-riesgo-btn {% if riesgo.aplica != 1 %}d-none{% endif %}" data-id-dat-riesgo="{{ riesgo.id_dat_riesgo }}" data-id-riesgo="{{ riesgo.id_riesgo_original }}" onclick="irAControlesFiltrados(this.getAttribute('data-id-riesgo'))" {% if monitoreo %}disabled{% endif %}>
+                                Mitigar Riesgo
+                            </button>
+                        </div>
+                        {% endif %}
+
+                        <!-- Botón "Mitigar Riesgo" para riesgos personalizados (L_PERSONAL = 1) -->
+                        <!-- El botón se renderiza siempre pero se oculta con d-none si aplica=0, para permitir toggle dinámico -->
+                        {% if riesgo.l_activa == 1 and riesgo.es_riesgo_personalizado %}
+                        <div id="contenedor-btn-mitigar-personal-{{ riesgo.id_dat_riesgo }}" class="mt-2 contenedor-btn-mitigar-personal {% if nivel_riesgo != 'R' %}d-none{% endif %}" data-id-dat-riesgo="{{ riesgo.id_dat_riesgo }}">
+                            <button type="button" id="btn-mitigar-riesgo-personal-{{ riesgo.id_dat_riesgo }}" class="btn btn-sm btn-outline-success w-100 mitigar-riesgo-personal-btn {% if riesgo.aplica != 1 %}d-none{% endif %}" data-id-dat-riesgo="{{ riesgo.id_dat_riesgo }}" data-bs-toggle="modal" data-bs-target="#modalMitigarRiesgo{{ riesgo.id_dat_riesgo }}" {% if monitoreo %}disabled{% endif %}>
+                                Mitigar Riesgo
+                            </button>
+                        </div>
+                        {% endif %}
+
+                        <!-- Botón "Activar" (solo si L_ACTIVA=0) -->
+                        {% if riesgo.l_activa == 0 %}
+                        <div id="contenedor-btn-activar-{{ riesgo.id_dat_riesgo }}" class="mt-2">
+                            <button type="button" id="btn-activar-riesgo-{{ riesgo.id_dat_riesgo }}" class="btn btn-sm btn-warning w-100 btn-activar-riesgo" data-id-dat-riesgo="{{ riesgo.id_dat_riesgo }}" data-id-riesgo-original="{{ riesgo.id_riesgo_original }}" onclick="activarRiesgo({{ riesgo.id_riesgo_original }})" {% if monitoreo %}disabled{% endif %}>
+                                ✓ Activar
+                            </button>
+                        </div>
+                        {% endif %}
+
+                        <!-- Edición y eliminación de riesgo personalizado (solo si es riesgo personalizado) -->
+                        {% if riesgo.es_riesgo_personalizado %}
+                        <!-- Botones de Editar y Eliminar en la misma fila -->
+                        <div id="contenedor-acciones-personalizado-{{ riesgo.id_dat_riesgo }}" class="mt-1 d-flex gap-1">
+                            <button type="button" id="btn-editar-riesgo-{{ riesgo.id_dat_riesgo }}" class="btn btn-sm btn-primary flex-grow-1" data-bs-toggle="modal" data-bs-target="#modalEditarDescripcion{{ riesgo.id_dat_riesgo }}" {% if monitoreo %}disabled{% endif %}>
+                                <i class="bi bi-pencil-square"></i> Editar
+                            </button>
+                            <button type="button" id="btn-eliminar-riesgo-{{ riesgo.id_dat_riesgo }}" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#modalEliminarRiesgo{{ riesgo.id_dat_riesgo }}" {% if monitoreo %}disabled{% endif %} title="Eliminar riesgo específico del proyecto">
+                                <i class="bi bi-trash-fill"></i>
+                            </button>
+                        </div>
+
+                        <!-- Modal de edición de descripción personalizada -->
+                        <div class="modal fade" id="modalEditarDescripcion{{ riesgo.id_dat_riesgo }}" tabindex="-1" aria-labelledby="modalEditarDescripcionLabel{{ riesgo.id_dat_riesgo }}" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered" id="dialog-editar-descripcion-{{ riesgo.id_dat_riesgo }}">
+                                <div class="modal-content border-0 shadow" id="content-editar-descripcion-{{ riesgo.id_dat_riesgo }}">
+                                    <div class="modal-header bg-primary text-white" id="header-editar-descripcion-{{ riesgo.id_dat_riesgo }}">
+                                        <h5 class="modal-title text-white" id="modalEditarDescripcionLabel{{ riesgo.id_dat_riesgo }}">
+                                            <i class="bi bi-pencil-square"></i> Editar riesgo específico del proyecto
+                                        </h5>
+                                        <button type="button" id="btn-cerrar-editar-descripcion-{{ riesgo.id_dat_riesgo }}" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                    </div>
+                                    <div class="modal-body" id="body-editar-descripcion-{{ riesgo.id_dat_riesgo }}">
+                                        <!-- Descripción -->
+                                        <div class="mb-3">
+                                            <label for="nuevaDescripcion{{ riesgo.id_dat_riesgo }}" id="label-nueva-descripcion-{{ riesgo.id_dat_riesgo }}" class="form-label">
+                                                <strong>Descripción del riesgo</strong>
+                                            </label>
+                                            <textarea id="nuevaDescripcion{{ riesgo.id_dat_riesgo }}"
+                                                    class="form-control"
+                                                    rows="4"
+                                                    placeholder="Escriba la descripción del riesgo..."
+                                                    {% if monitoreo %}disabled{% endif %}>{{ riesgo.descripcion_editable }}</textarea>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer" id="footer-editar-descripcion-{{ riesgo.id_dat_riesgo }}">
+                                        <button type="button" id="btn-cancelar-editar-{{ riesgo.id_dat_riesgo }}" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="button" id="btn-guardar-descripcion-{{ riesgo.id_dat_riesgo }}" class="btn btn-primary"
+                                                onclick="guardarDescripcionPersonalizada({{ riesgo.id_dat_riesgo }})"
+                                                {% if monitoreo %}disabled{% endif %}>
+                                            <i class="bi bi-save"></i> Guardar cambios
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Nueva Modal para Mitigar Riesgo personalizado (selección de riesgo residual) -->
+                        <div class="modal fade" id="modalMitigarRiesgo{{ riesgo.id_dat_riesgo }}" tabindex="-1" aria-labelledby="modalMitigarRiesgoLabel{{ riesgo.id_dat_riesgo }}" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered" id="dialog-mitigar-riesgo-{{ riesgo.id_dat_riesgo }}">
+                                <div class="modal-content border-0 shadow" id="content-mitigar-riesgo-{{ riesgo.id_dat_riesgo }}">
+                                    <div class="modal-header bg-success text-white" id="header-mitigar-riesgo-{{ riesgo.id_dat_riesgo }}">
+                                        <h5 class="modal-title text-white" id="modalMitigarRiesgoLabel{{ riesgo.id_dat_riesgo }}">
+                                            <i class="bi bi-shield-check"></i> Mitigar riesgo específico del proyecto
+                                        </h5>
+                                        <button type="button" id="btn-cerrar-mitigar-{{ riesgo.id_dat_riesgo }}" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                    </div>
+                                    <div class="modal-body" id="body-mitigar-riesgo-{{ riesgo.id_dat_riesgo }}">
+                                        <div id="alerta-info-mitigar-{{ riesgo.id_dat_riesgo }}" class="alert alert-info">
+                                            <i class="bi bi-info-circle"></i> <strong>{{ riesgo.descripcion_riesgo }}</strong>
+                                            <p class="mb-0 mt-2">Como este riesgo es específico del proyecto, debe establecer manualmente el nivel de riesgo residual.</p>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <label for="riesgoResidualMitigar{{ riesgo.id_dat_riesgo }}" id="label-riesgo-residual-{{ riesgo.id_dat_riesgo }}" class="form-label">
+                                                <strong>Nivel de Riesgo Residual</strong>
+                                                <i class="bi bi-info-circle text-primary"
+                                                title="Seleccione el nivel de riesgo una vez aplicadas las medidas de mitigación"></i>
+                                            </label>
+                                            <select id="riesgoResidualMitigar{{ riesgo.id_dat_riesgo }}"
+                                                    class="form-select"
+                                                    {% if monitoreo %}disabled{% endif %}>
+                                                <option value="">— Seleccione nivel —</option>
+                                                {% for valor in valores_riesgo %}
+                                                <option value="{{ valor.id }}"
+                                                        {% if riesgo.id_riesgo_residual == valor.id %}selected{% endif %}>
+                                                    {{ valor.texto }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                            <div id="ayuda-riesgo-residual-{{ riesgo.id_dat_riesgo }}" class="form-text">
+                                                <small>Este valor se mostrará en la columna "Riesgo Residual"</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer" id="footer-mitigar-riesgo-{{ riesgo.id_dat_riesgo }}">
+                                        <button type="button" id="btn-cancelar-mitigar-{{ riesgo.id_dat_riesgo }}" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="button" id="btn-guardar-mitigar-{{ riesgo.id_dat_riesgo }}" class="btn btn-success"
+                                                onclick="guardarRiesgoResidual({{ riesgo.id_dat_riesgo }})"
+                                                {% if monitoreo %}disabled{% endif %}>
+                                            <i class="bi bi-save"></i> Guardar nivel de riesgo
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Modal de confirmación para eliminar riesgo personalizado -->
+                        <div class="modal fade" id="modalEliminarRiesgo{{ riesgo.id_dat_riesgo }}" tabindex="-1" aria-labelledby="modalEliminarRiesgoLabel{{ riesgo.id_dat_riesgo }}" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered" id="dialog-eliminar-riesgo-{{ riesgo.id_dat_riesgo }}">
+                                <div class="modal-content border-0 shadow" id="content-eliminar-riesgo-{{ riesgo.id_dat_riesgo }}">
+                                    <div class="modal-header bg-danger text-white" id="header-eliminar-riesgo-{{ riesgo.id_dat_riesgo }}">
+                                        <h5 class="modal-title text-white" id="modalEliminarRiesgoLabel{{ riesgo.id_dat_riesgo }}">
+                                            <i class="bi bi-exclamation-triangle-fill"></i> Confirmar eliminación
+                                        </h5>
+                                        <button type="button" id="btn-cerrar-eliminar-{{ riesgo.id_dat_riesgo }}" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                    </div>
+                                    <div class="modal-body" id="body-eliminar-riesgo-{{ riesgo.id_dat_riesgo }}">
+                                        <p id="pregunta-eliminar-{{ riesgo.id_dat_riesgo }}" class="mb-0">¿Está seguro de que desea eliminar este riesgo específico del proyecto?</p>
+                                        <p id="info-riesgo-eliminar-{{ riesgo.id_dat_riesgo }}" class="text-muted small mb-0 mt-2"><strong>Riesgo:</strong> {{ riesgo.descripcion_riesgo }}</p>
+                                        <div id="aviso-eliminar-{{ riesgo.id_dat_riesgo }}" class="alert alert-warning mt-3 mb-0">
+                                            <i class="bi bi-info-circle"></i> Esta acción no se puede deshacer.
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer" id="footer-eliminar-riesgo-{{ riesgo.id_dat_riesgo }}">
+                                        <button type="button" id="btn-cancelar-eliminar-{{ riesgo.id_dat_riesgo }}" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="button" id="btn-confirmar-eliminar-{{ riesgo.id_dat_riesgo }}" class="btn btn-danger" onclick="eliminarRiesgoPersonalizado({{ riesgo.id_dat_riesgo }})">
+                                            <i class="bi bi-trash-fill"></i> Eliminar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </td>
+
+                    <!-- Categoría -->
+                    <td id="celda-categoria-{{ riesgo.id_dat_riesgo }}" class="text-center">{{ riesgo.categoria }}</td>
+
+                    <!-- Clúster -->
+                    <td id="celda-cluster-{{ riesgo.id_dat_riesgo }}" class="text-center text-muted small" title="{{ riesgo.clusters if riesgo.clusters else 'Sin clúster asignado' }}">
+                        {{ riesgo.clusters if riesgo.clusters else '—' }}
+                    </td>
+
+                    <!-- ¿Aplica? -->
+                    <td id="celda-aplica-{{ riesgo.id_dat_riesgo }}" class="text-center">
+                        <select name="aplica_{{ riesgo.id_dat_riesgo }}" id="select-aplica-{{ riesgo.id_dat_riesgo }}" class="form-select form-select-sm aplica-select-riesgo" data-id-riesgo="{{ riesgo.id_dat_riesgo }}" {% if monitoreo or riesgo.l_activa==0 %}disabled{% endif %}>
+                            <option value="1" {% if riesgo.aplica==1 %}selected{% endif %}>Sí</option>
+                            <option value="0" {% if riesgo.aplica==0 %}selected{% endif %}>No</option>
+                        </select>
+                    </td>
+
+                    <!-- Probabilidad -->
+                    <td id="celda-probabilidad-{{ riesgo.id_dat_riesgo }}" class="text-center">
+                        <select name="probabilidad_{{ riesgo.id_dat_riesgo }}" id="select-probabilidad-{{ riesgo.id_dat_riesgo }}" class="form-select form-select-sm select-probabilidad" data-id-riesgo="{{ riesgo.id_dat_riesgo }}" {% if monitoreo %}disabled{% endif %}>
+                            <option value="">—</option>
+                            {% for prob in probabilidades %}
+                            <option value="{{ prob.id }}" data-valor="{{ prob.valor }}" {% if riesgo.id_probabilidad==prob.id %}selected{% endif %}>
+                                {{ prob.texto }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </td>
+
+                    <!-- Impacto -->
+                    <td id="celda-impacto-{{ riesgo.id_dat_riesgo }}" class="text-center">
+                        <select name="impacto_{{ riesgo.id_dat_riesgo }}" id="select-impacto-{{ riesgo.id_dat_riesgo }}" class="form-select form-select-sm select-impacto" data-id-riesgo="{{ riesgo.id_dat_riesgo }}" {% if monitoreo %}disabled{% endif %}>
+                            <option value="">—</option>
+                            {% for imp in impactos %}
+                            <option value="{{ imp.id }}" data-valor="{{ imp.valor }}" {% if riesgo.id_impacto==imp.id %}selected{% endif %}>
+                                {{ imp.texto }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </td>
+
+                    <!-- Nivel inherente -->
+                    <td id="celda-nivel-inherente-{{ riesgo.id_dat_riesgo }}" class="text-center celda-nivel" data-id-riesgo="{{ riesgo.id_dat_riesgo }}">
+                        <span id="valor-nivel-inherente-{{ riesgo.id_dat_riesgo }}" class="
+                            {% if riesgo.nivel_riesgo == 'CRÍTICO' %}text-danger fw-bold
+                            {% elif riesgo.nivel_riesgo == 'ALTO' %}text-warning fw-bold
+                            {% elif riesgo.nivel_riesgo == 'MEDIO' %}text-info
+                            {% elif riesgo.nivel_riesgo == 'BAJO' %}text-success
+                            {% endif %}
+                        ">{{ riesgo.nivel_riesgo }}</span>
+                    </td>
+
+                    <!-- Riesgo residual -->
+                    <!-- Riesgo residual -->
+                    <td id="celda-nivel-residual-{{ riesgo.id_dat_riesgo }}" class="text-center celda-nivel-residual columna-residual {% if nivel_riesgo != 'R' %}ocultar-residual{% endif %}" data-id-riesgo="{{ riesgo.id_dat_riesgo }}">
+                        {% if riesgo.nivel_residual and riesgo.nivel_residual != 'Sin valorar' %}
+                        <span id="valor-nivel-residual-{{ riesgo.id_dat_riesgo }}" class="badge-riesgo-residual
+                            {% if riesgo.nivel_residual == 'CRÍTICO' %}text-danger fw-bold
+                            {% elif riesgo.nivel_residual == 'ALTO' %}text-warning fw-bold
+                            {% elif riesgo.nivel_residual == 'MEDIO' %}text-info
+                            {% elif riesgo.nivel_residual == 'BAJO' %}text-success
+                            {% endif %}
+                        " data-valor="{{ riesgo.riesgo_residual_valor|default(0) }}">{{ riesgo.nivel_residual }}</span>
+                        {% else %}
+                        <span id="valor-nivel-residual-{{ riesgo.id_dat_riesgo }}" class="text-muted small badge-riesgo-residual" data-valor="0">Sin valorar</span>
+                        {% endif %}
+                    </td>
+
+
+                    <!-- Justificaciones (MODAL) -->
+                    <td id="celda-justificaciones-{{ riesgo.id_dat_riesgo }}" class="text-start" style="min-width: 300px; padding: 0.5rem;">
+                        <div id="contenedor-justificaciones-{{ riesgo.id_dat_riesgo }}" class="d-flex flex-column gap-2" >
+                            <!-- Justif. Aplica -->
+                            <div id="grupo-just-aplica-{{ riesgo.id_dat_riesgo }}">
+                                <label id="label-just-aplica-{{ riesgo.id_dat_riesgo }}" class="form-label small mb-1 w-100 text-center" data-ayuda-control="th_just_aplica">
+                                    <strong>Justif. Aplica</strong>
+                                </label>
+                                <button type="button" id="btn-just-aplica-{{ riesgo.id_dat_riesgo }}" class="btn btn-outline-secondary btn-sm w-100 text-start color-text-area" data-bs-toggle="modal" data-bs-target="#modalJustifAplica{{ riesgo.id_dat_riesgo }}" title="Editar justificación" {% if monitoreo %}disabled{% endif %}>
+                                    {% if riesgo.justificacion_aplica and riesgo.justificacion_aplica.strip() %}
+                                    {{ riesgo.justificacion_aplica | truncate(40, True) }}
+                                    {% else %}
+                                    <em>No hay justificación</em>
+                                    {% endif %}
+                                </button>
+                            </div>
+
+                            <!-- Justif. Impacto -->
+                            <div id="grupo-just-impacto-{{ riesgo.id_dat_riesgo }}" {% if ver_just_impacto == 0 %}style="display: none;"{% endif %}>
+                                <label id="label-just-impacto-{{ riesgo.id_dat_riesgo }}" class="form-label small mb-1 w-100 text-center"  data-ayuda-control="th_just_impacto">
+                                    <strong>Justif. Impacto</strong>
+                                </label>
+                                <button type="button" id="btn-just-impacto-{{ riesgo.id_dat_riesgo }}" class="btn btn-outline-secondary btn-sm w-100 text-start color-text-area" data-bs-toggle="modal" data-bs-target="#modalJustifImpacto{{ riesgo.id_dat_riesgo }}" title="Editar justificación" {% if monitoreo %}disabled{% endif %}>
+                                    {% if riesgo.justificacion_impacto and riesgo.justificacion_impacto.strip() %}
+                                    {{ riesgo.justificacion_impacto | truncate(40, True) }}
+                                    {% else %}
+                                    <em>No hay justificación</em>
+                                    {% endif %}
+                                </button>
+                            </div>
+
+                            <!-- Justif. Probabilidad -->
+                            <div id="grupo-just-probabilidad-{{ riesgo.id_dat_riesgo }}" {% if ver_just_prob == 0 %}style="display: none;"{% endif %}>
+                                <label id="label-just-probabilidad-{{ riesgo.id_dat_riesgo }}" class="form-label small mb-1 w-100 text-center"  data-ayuda-control="th_just_probabilidad">
+                                    <strong>Justif. Probabilidad</strong>
+                                </label>
+                                <button type="button" id="btn-just-probabilidad-{{ riesgo.id_dat_riesgo }}" class="btn btn-outline-secondary btn-sm w-100 text-start color-text-area" data-bs-toggle="modal" data-bs-target="#modalJustifProb{{ riesgo.id_dat_riesgo }}" title="Editar justificación" {% if monitoreo %}disabled{% endif %}>
+                                    {% if riesgo.justificacion_probabilidad and riesgo.justificacion_probabilidad.strip() %}
+                                    {{ riesgo.justificacion_probabilidad | truncate(40, True) }}
+                                    {% else %}
+                                    <em>No hay justificación</em>
+                                    {% endif %}
+                                </button>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+
+                <!-- Modales de justificación (dentro del bucle) -->
+                <!-- Modal Justif. Aplica -->
+                <div class="modal fade" id="modalJustifAplica{{ riesgo.id_dat_riesgo }}" tabindex="-1" data-bs-focus="false">
+                    <div class="modal-dialog modal-lg" id="dialog-just-aplica-{{ riesgo.id_dat_riesgo }}">
+                        <div class="modal-content" id="content-just-aplica-{{ riesgo.id_dat_riesgo }}">
+                            <div class="modal-header" id="header-just-aplica-{{ riesgo.id_dat_riesgo }}">
+                                <h5 class="modal-title" id="titulo-modal-just-aplica-{{ riesgo.id_dat_riesgo }}">Justificación: Aplica</h5>
+                                <button type="button" id="btn-cerrar-just-aplica-{{ riesgo.id_dat_riesgo }}" class="btn-close" data-bs-dismiss="modal" style="color: red; filter: invert(25%) sepia(100%) saturate(10000%) hue-rotate(0deg);">
+                                </button>
+                            </div>
+                            <div class="modal-body" id="body-just-aplica-{{ riesgo.id_dat_riesgo }}">
+                                <textarea name="jus_aplica_{{ riesgo.id_dat_riesgo }}" id="textarea-just-aplica-{{ riesgo.id_dat_riesgo }}" class="form-control" rows="8" placeholder="Escribe aquí tu justificación..." {% if monitoreo %}disabled{% endif %}>{{ riesgo.justificacion_aplica }}</textarea>
+                            </div>
+                            <div class="modal-footer" id="footer-just-aplica-{{ riesgo.id_dat_riesgo }}">
+                                <button type="button" id="btn-cancelar-just-aplica-{{ riesgo.id_dat_riesgo }}" class="btn btn-danger" data-bs-dismiss="modal">Cerrar</button>
+                                <button type="button" id="btn-guardar-just-aplica-{{ riesgo.id_dat_riesgo }}" class="btn btn-primary" onclick="updateModalTextarea('jus_aplica_{{ riesgo.id_dat_riesgo }}', 'modalJustifAplica{{ riesgo.id_dat_riesgo }}', 'riesgo')">
+                                    Guardar y Cerrar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Justif. Impacto -->
+                <div class="modal fade" id="modalJustifImpacto{{ riesgo.id_dat_riesgo }}" tabindex="-1" data-bs-focus="false">
+                    <div class="modal-dialog modal-lg" id="dialog-just-impacto-{{ riesgo.id_dat_riesgo }}">
+                        <div class="modal-content" id="content-just-impacto-{{ riesgo.id_dat_riesgo }}">
+                            <div class="modal-header" id="header-just-impacto-{{ riesgo.id_dat_riesgo }}">
+                                <h5 class="modal-title" id="titulo-modal-just-impacto-{{ riesgo.id_dat_riesgo }}">Justificación: Impacto</h5>
+                                <button type="button" id="btn-cerrar-just-impacto-{{ riesgo.id_dat_riesgo }}" class="btn-close" data-bs-dismiss="modal" style="color: red; filter: invert(25%) sepia(100%) saturate(10000%) hue-rotate(0deg);">
+                                </button>
+                            </div>
+                            <div class="modal-body" id="body-just-impacto-{{ riesgo.id_dat_riesgo }}">
+                                <textarea name="jus_impacto_{{ riesgo.id_dat_riesgo }}" id="textarea-just-impacto-{{ riesgo.id_dat_riesgo }}" class="form-control" rows="8" placeholder="Escribe aquí tu justificación..." {% if monitoreo %}disabled{% endif %}>{{ riesgo.justificacion_impacto }}</textarea>
+                            </div>
+                            <div class="modal-footer" id="footer-just-impacto-{{ riesgo.id_dat_riesgo }}">
+                                <button type="button" id="btn-cancelar-just-impacto-{{ riesgo.id_dat_riesgo }}" class="btn btn-danger" data-bs-dismiss="modal">Cerrar</button>
+                                <button type="button" id="btn-guardar-just-impacto-{{ riesgo.id_dat_riesgo }}" class="btn btn-primary" onclick="updateModalTextarea('jus_impacto_{{ riesgo.id_dat_riesgo }}', 'modalJustifImpacto{{ riesgo.id_dat_riesgo }}', 'riesgo')">
+                                    Guardar y Cerrar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Justif. Probabilidad -->
+                <div class="modal fade" id="modalJustifProb{{ riesgo.id_dat_riesgo }}" tabindex="-1" data-bs-focus="false">
+                    <div class="modal-dialog modal-lg" id="dialog-just-probabilidad-{{ riesgo.id_dat_riesgo }}">
+                        <div class="modal-content" id="content-just-probabilidad-{{ riesgo.id_dat_riesgo }}">
+                            <div class="modal-header" id="header-just-probabilidad-{{ riesgo.id_dat_riesgo }}">
+                                <h5 class="modal-title" id="titulo-modal-just-probabilidad-{{ riesgo.id_dat_riesgo }}">Justificación: Probabilidad</h5>
+                                <button type="button" id="btn-cerrar-just-probabilidad-{{ riesgo.id_dat_riesgo }}" class="btn-close" data-bs-dismiss="modal" style="color: red; filter: invert(25%) sepia(100%) saturate(10000%) hue-rotate(0deg);">
+                                </button>
+                            </div>
+                            <div class="modal-body" id="body-just-probabilidad-{{ riesgo.id_dat_riesgo }}">
+                                <textarea name="jus_prob_{{ riesgo.id_dat_riesgo }}" id="textarea-just-probabilidad-{{ riesgo.id_dat_riesgo }}" class="form-control" rows="8" placeholder="Escribe aquí tu justificación..." {% if monitoreo %}disabled{% endif %}>{{ riesgo.justificacion_probabilidad }}</textarea>
+                            </div>
+                            <div class="modal-footer" id="footer-just-probabilidad-{{ riesgo.id_dat_riesgo }}">
+                                <button type="button" id="btn-cancelar-just-probabilidad-{{ riesgo.id_dat_riesgo }}" class="btn btn-danger" data-bs-dismiss="modal">Cerrar</button>
+                                <button type="button" id="btn-guardar-just-probabilidad-{{ riesgo.id_dat_riesgo }}" class="btn btn-primary" onclick="updateModalTextarea('jus_prob_{{ riesgo.id_dat_riesgo }}', 'modalJustifProb{{ riesgo.id_dat_riesgo }}', 'riesgo')">
+                                    Guardar y Cerrar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {% else %}
+                <tr id="fila-sin-riesgos">
+                    <td colspan="8" class="text-center text-muted">No hay riesgos activos para este sistema.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div id="contenedor-navegacion-riesgos" class="d-grid gap-3 d-md-flex justify-content-between mt-4">
+        {% if hay_requisitos_visibles %}
+        {# Si hay requisitos visibles, el paso anterior es requisitos #}
+        <a id="btn-navegacion-atras" href="{{ url_for('formulario_requisitos') }}" class="btn btn-outline-secondary btn-lg rounded-pill">
+            ⬅ Atrás
+        </a>
+        {% else %}
+        {# Si no hay requisitos visibles, el paso anterior es elementos #}
+        <a id="btn-navegacion-atras" href="{{ url_for('formulario_elementos') }}" class="btn btn-outline-secondary btn-lg rounded-pill">
+            ⬅ Atrás
+        </a>
+        {% endif %}
+        <a id="btn-navegacion-siguiente" href="{{ url_for('formulario_controles') }}" class="btn btn-primary btn-lg rounded-pill d-inline">
+            Siguiente ➡
+        </a>
+        <!--   {% if todos_completos %}
+        <a href="{{ url_for('formulario_controles') }}" class="btn btn-primary btn-lg rounded-pill d-inline">
+            Siguiente ➡
+        </a>
+        {% endif %} -->
+    </div>
+
+    <!-- Modal de confirmación para activar riesgo -->
+    <div class="modal fade" id="modalConfirmarActivarRiesgo" tabindex="-1" aria-labelledby="modalConfirmarActivarRiesgoLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" id="dialog-confirmar-activar">
+            <div class="modal-content border-0 shadow" id="content-confirmar-activar">
+                <div class="modal-header bg-warning text-dark" id="header-confirmar-activar">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <h5 class="modal-title text-dark" id="modalConfirmarActivarRiesgoLabel">Confirmar activación</h5>
+                    <button type="button" id="btn-cerrar-confirmar-activar" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body text-center py-3" id="body-confirmar-activar">
+                    <p id="pregunta-confirmar-activar" class="mb-0">¿Está seguro de que desea activar este riesgo?</p>
+                    <p id="info-confirmar-activar" class="text-muted small">Se marcará como <strong>aplicable</strong> y deberá evaluarse.</p>
+                </div>
+                <div class="modal-footer justify-content-center" id="footer-confirmar-activar">
+                    <button type="button" id="btn-cancelar-activar" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary text-white" id="btnConfirmarActivacion">Sí, activar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+    </div><!-- FIN columna-riesgos -->
+
+    <!-- COLUMNA DERECHA: Panel de Diagnóstico de Riesgo Global -->
+    <!-- Siempre existe si nivel='R', visibilidad controlada dinámicamente -->
+    {% if nivel_riesgo == 'R' %}
+    <div id="columna-diagnostico" class="columna-diagnostico {% if not mostrar_riesgo_global %}d-none{% endif %}">
+        <div id="panel-diagnostico-container" class="panel-diagnostico-integrado">
+            <div class="panel-diagnostico-header d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0" data-ayuda-control="titulo-diagnostico-riesgo">
+                    <i class="bi bi-clipboard-pulse me-2"></i>Diagnóstico de Riesgo
+                </h5>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="RiesgoGlobal.togglePanel()" title="Ocultar panel">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+            </div>
+            <div id="panel-diagnostico-riesgo">
+                <!-- Se rellena dinámicamente por JavaScript -->
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+</div><!-- FIN contenedor-riesgos-y-panel -->
+
+<!-- Modal Crear Riesgo Personalizado -->
+<!-- Modal de Confirmación para Crear Riesgo Específico -->
+<div class="modal fade" id="modalConfirmacionRiesgoEspecifico" tabindex="-1" aria-labelledby="modalConfirmacionRiesgoEspecificoLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered" id="dialog-confirmacion-riesgo-especifico">
+        <div class="modal-content border-0 shadow" id="content-confirmacion-riesgo-especifico">
+            <div class="modal-header bg-warning text-dark" id="header-confirmacion-riesgo-especifico">
+                <h5 class="modal-title" id="modalConfirmacionRiesgoEspecificoLabel">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Confirmación
+                </h5>
+                <button type="button" id="btn-cerrar-confirmacion-especifico" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body" id="body-confirmacion-riesgo-especifico">
+                <div id="contenidoMensajeConfirmacion" class="mensaje-confirmacion-riesgo">
+                    <!-- El contenido HTML formateado se insertará aquí desde la base de datos -->
+                </div>
+            </div>
+            <div class="modal-footer justify-content-center" id="footer-confirmacion-riesgo-especifico">
+                <button type="button" id="btn-cancelar-confirmacion-especifico" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-1"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" id="btnConfirmarCreacionRiesgo">
+                    <i class="bi bi-check-circle me-1"></i>Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalRiesgoPersonal" tabindex="-1" aria-labelledby="modalRiesgoPersonalLabel" aria-hidden="true">
+    <div class="modal-dialog" id="dialog-riesgo-personal">
+        <div class="modal-content" id="content-riesgo-personal">
+            <div class="modal-header bg-primary text-white" id="header-riesgo-personal">
+                <h5 class="modal-title text-white" id="modalRiesgoPersonalLabel">
+                    <i class="bi bi-plus-circle"></i> Nuevo riesgo específico del proyecto
+                </h5>
+                <button type="button" id="btn-cerrar-riesgo-personal" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body" id="body-riesgo-personal">
+                <label for="descripcionRiesgo" id="label-descripcion-nuevo-riesgo" class="form-label">Descripción del riesgo:</label>
+                <textarea id="descripcionRiesgo" class="form-control" rows="3" placeholder="Introduzca una descripción"></textarea>
+            </div>
+            <div class="modal-footer" id="footer-riesgo-personal">
+                <button type="button" id="btn-cancelar-riesgo-personal" class="btn btn-danger" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnAceptarRiesgo">Aceptar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmación de Riesgo Personalizado -->
+<div class="modal fade" id="modalConfirmarRiesgoPersonal" tabindex="-1" aria-labelledby="modalConfirmarRiesgoPersonalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" id="dialog-confirmar-riesgo-personal">
+        <div class="modal-content border-0 shadow" id="content-confirmar-riesgo-personal">
+            <div class="modal-header bg-success text-white" id="header-confirmar-riesgo-personal">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <h5 class="modal-title text-white" id="modalConfirmarRiesgoPersonalLabel">Riesgo Creado</h5>
+                <button type="button" id="btn-cerrar-confirmar-personal" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center py-4" id="body-confirmar-riesgo-personal">
+                <i class="bi bi-check-circle text-success" style="font-size: 3rem;"></i>
+                <p class="mt-3 mb-0" id="mensajeConfirmacionRiesgo">✅ Riesgo específico del proyecto creado correctamente.</p>
+            </div>
+            <div class="modal-footer justify-content-center" id="footer-confirmar-riesgo-personal">
+                <button type="button" id="btn-aceptar-confirmar-personal" class="btn btn-success" data-bs-dismiss="modal">Aceptar</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal de Confirmación de Edición de Descripción Personalizada -->
+<div class="modal fade" id="modalConfirmarEdicionDescripcion" tabindex="-1" aria-labelledby="modalConfirmarEdicionDescripcionLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" id="dialog-confirmar-edicion-descripcion">
+        <div class="modal-content border-0 shadow" id="content-confirmar-edicion-descripcion">
+            <div class="modal-header bg-success text-white" id="header-confirmar-edicion-descripcion">
+                <i class="bi bi-check-circle-fill me-2"></i>
+                <h5 class="modal-title text-white" id="modalConfirmarEdicionDescripcionLabel">Descripción Actualizada</h5>
+                <button type="button" id="btn-cerrar-confirmar-edicion" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center py-4" id="body-confirmar-edicion-descripcion">
+                <i class="bi bi-check-circle text-success" style="font-size: 3rem;"></i>
+                <p class="mt-3 mb-0" id="mensajeConfirmacionEdicionDescripcion">Descripción actualizada correctamente.</p>
+            </div>
+            <div class="modal-footer justify-content-center" id="footer-confirmar-edicion-descripcion">
+                <button type="button" id="btn-aceptar-confirmar-edicion" class="btn btn-success" data-bs-dismiss="modal">Aceptar</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    // --- PASAR LA VARIABLE MONITOREO DESDE JINJA A JAVASCRIPT ---
+    const monitoreoActivo = {{ monitoreo | lower }};
+
+    // 🆕 NUEVO: Variable de nivel de fase para JavaScript
+    const nivelRiesgoFase = "{{ nivel_riesgo }}";
+
+    // 🆕 NUEVO: Variable para controlar visibilidad del botón de riesgo global
+    const soloGlobal100 = {{ solo_global_100 | lower }};
+
+    // 🆕 MAPEO DE NIVELES DE RIESGO: texto → valor numérico (escala invertida)
+    // CRÍTICO=1, ALTO=2, MEDIO=3, BAJO=4
+    const mapaRiesgos = {
+        {% for valor in valores_riesgo %}
+        "{{ valor.texto }}": {{ valor.codigo }},
+        {% endfor %}
+    };
+
+    // ============================================================================
+    // 🆕 FUNCIÓN PARA ACTUALIZAR EL CONTADOR DE REGISTROS
+    // ============================================================================
+    function actualizarContadorRegistros() {
+        const filasVisibles = document.querySelectorAll('tr.fila-riesgo:not([style*="display: none"])');
+        const contador = filasVisibles.length;
+
+        const elementoContador = document.getElementById('contador-registros');
+        if (elementoContador) {
+            elementoContador.textContent = contador;
+        }
+    }
+
+    // Llamar al contador al cargar la página
+    document.addEventListener('DOMContentLoaded', function() {
+        actualizarContadorRegistros();
+
+        // Crear un observer para detectar cambios en la visibilidad de las filas
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    actualizarContadorRegistros();
+                }
+            });
+        });
+
+        // Observar todas las filas de riesgo
+        const filasRiesgo = document.querySelectorAll('tr.fila-riesgo');
+        filasRiesgo.forEach(function(fila) {
+            observer.observe(fila, {
+                attributes: true,
+                attributeFilter: ['style']
+            });
+        });
+    });
+
+    function irAControlesFiltrados(idRiesgo) {
+        if (idRiesgo) {
+
+            if (isNaN(parseInt(idRiesgo))) {
+                alert("Error: ID de riesgo no válido");
+                return;
+            }
+
+            try {
+                sessionStorage.setItem('riesgo_a_mitigar', idRiesgo.toString());
+
+                const verificado = sessionStorage.getItem('riesgo_a_mitigar');
+
+            } catch (error) {
+                alert("Error al preparar la navegación");
+                return;
+            }
+
+            const url = "{{ url_for('formulario_controles') }}";
+            window.location.href = url;
+        } else {
+            alert("Error: No se pudo identificar el riesgo");
+        }
+    }
+
+    // ✨ NUEVA FUNCIÓN: Actualizar barras de progreso en tiempo real
+    // ✨ FUNCIÓN ACTUALIZADA: Actualizar barras de progreso y estado de análisis en tiempo real
+    function actualizarBarrasProgreso() {
+
+        // Obtener el nivel de fase desde Jinja
+        const nivelFase = nivelRiesgoFase;
+
+        // Obtener el total de riesgos aplicables desde el DOM
+        const totalAplicables = parseInt($('#resumen-total-aplicables').text()) || 1;
+
+        if (totalAplicables === 0) {
+            // Si no hay riesgos aplicables, poner todas las barras a 0%
+            $('.progress-bar').css('width', '0%');
+            $('#resumen-completitud').html('<i class="bi bi-check-circle-fill"></i> 100%')
+                .removeClass('text-warning').addClass('text-success');
+            return;
+        }
+
+        // Mapeo de niveles a IDs (incluye sin-valorar)
+        const niveles = ['critico', 'alto', 'medio', 'bajo', 'sin-valorar'];
+        const tipos = ['inh', 'res']; // inherente y residual
+
+        // Actualizar barras de progreso
+        niveles.forEach(nivel => {
+            tipos.forEach(tipo => {
+                // Obtener el valor del badge correspondiente
+                const badgeId = `resumen-${tipo}-${nivel}`;
+                const valor = parseInt($(`#${badgeId}`).text()) || 0;
+
+                // Calcular el porcentaje
+                const porcentaje = (valor / totalAplicables * 100).toFixed(1);
+
+                // Buscar la barra de progreso correspondiente
+                const $badge = $(`#${badgeId}`);
+                const $progressBar = $badge.closest('td').find('.progress-bar');
+
+                // Actualizar el ancho de la barra con animación
+                $progressBar.css('width', porcentaje + '%');
+
+            });
+        });
+
+        // 🆕 Recalcular el estado de análisis según el nivel de fase
+        recalcularEstadoAnalisis(nivelFase, totalAplicables);
+    }
+
+    /**
+     * 🆕 NUEVA FUNCIÓN: Recalcular el estado de análisis
+     */
+    function recalcularEstadoAnalisis(nivelFase, totalAplicables) {
+
+        let pendientes = 0;
+        let totalValidar = 0;
+
+        // Determinar el tipo de validación según la fase
+        const esNivelR = (nivelFase === 'R');
+        const validarResidual = (nivelFase && nivelFase !== 'I');
+
+        // Recorrer todas las filas de riesgos activos y aplicables
+        $('tbody tr[data-l-activa="1"][data-l-aplica="1"]').each(function() {
+            const $fila = $(this);
+            const idDatRiesgo = $fila.data('id-riesgo');
+
+
+            // Obtener valores actuales de impacto y probabilidad
+            const impacto = $fila.find('select[name^="impacto_"]').val();
+            const probabilidad = $fila.find('select[name^="probabilidad_"]').val();
+
+
+            if (esNivelR) {
+                // ========================================
+                // NIVEL R: Validar inherente Y residual con criterio especial
+                // ========================================
+
+                // 1. Si no tiene riesgo inherente, es pendiente
+                if (!impacto || !probabilidad) {
+                    totalValidar++;
+                    pendientes++;
+                    return; // continue en jQuery
+                }
+
+                // 2. Obtener el mínimo requerido
+                const minimoRequeridoTexto = $fila.attr('data-minimo-requerido-texto');
+
+                // Si no hay mínimo definido, este riesgo NO requiere validación
+                if (!minimoRequeridoTexto || minimoRequeridoTexto === '' ||
+                    minimoRequeridoTexto === 'None' || minimoRequeridoTexto === 'null') {
+                    return; // continue - no se suma a totalValidar ni a pendientes
+                }
+
+                // 3. Este riesgo SÍ requiere validación (tiene mínimo definido)
+                totalValidar++;
+
+                // 4. Obtener el riesgo residual
+                const riesgoResidualTexto = $fila.attr('data-riesgo-residual-texto');
+
+                // 5. Si no hay riesgo residual, es pendiente
+                if (!riesgoResidualTexto || riesgoResidualTexto === '' ||
+                    riesgoResidualTexto === 'None' || riesgoResidualTexto === '—') {
+                    pendientes++;
+                    return;
+                }
+
+                // 6. Comparar residual con mínimo usando el mapa
+                const residualNum = mapaRiesgos[riesgoResidualTexto];
+                const minimoNum = mapaRiesgos[minimoRequeridoTexto];
+
+
+                if (residualNum !== undefined && minimoNum !== undefined) {
+                    // ESCALA INVERTIDA: CRÍTICO=1, ALTO=2, MEDIO=3, BAJO=4
+                    // El riesgo es PENDIENTE si residual < mínimo (mayor criticidad)
+                    if (residualNum < minimoNum) {
+                        pendientes++;
+                    } else {
+                    }
+                } else {
+                    pendientes++;
+                }
+
+            } else if (validarResidual) {
+                // ========================================
+                // NIVEL M (Mitigación): Validar inherente Y residual básico
+                // ========================================
+                totalValidar++;
+
+                // Verificar primero que tenga impacto y probabilidad
+                if (!impacto || !probabilidad) {
+                    pendientes++;
+                    return; // continue en jQuery
+                }
+
+                // Obtener el badge de riesgo residual
+                const $badgeResidual = $fila.find('.badge-riesgo-residual');
+
+                let riesgoResidualValor = 0;
+                let riesgoResidualTexto = '';
+
+                if ($badgeResidual.length > 0) {
+                    // Intentar obtener desde data-valor
+                    riesgoResidualValor = parseInt($badgeResidual.data('valor')) || 0;
+                    riesgoResidualTexto = $badgeResidual.text().trim();
+
+                } else {
+                }
+
+
+                // Obtener riesgo residual mínimo permitido (N_RIERESMIN)
+                const riesgoResidualMin = parseInt($fila.data('riesgo-residual-min')) || 0;
+
+                // Validar: debe tener valor Y el ID debe ser <= al máximo permitido
+                // IMPORTANTE: riesgoResidualValor contiene el ID del ValoresDato (V_RIERESID)
+                // riesgoResidualMin contiene el ID máximo permitido (N_RIERESMIN)
+                // Comparación: V_RIERESID debe ser <= N_RIERESMIN
+
+                if (!riesgoResidualValor || riesgoResidualValor === 0) {
+                    pendientes++;
+                } else if (riesgoResidualMin > 0 && riesgoResidualValor > riesgoResidualMin) {
+                    pendientes++;
+                } else {
+                }
+            } else {
+                // ========================================
+                // NIVEL I (Inherente): Solo validar impacto y probabilidad
+                // ========================================
+                totalValidar++;
+                if (!impacto || !probabilidad) {
+                    pendientes++;
+                } else {
+                }
+            }
+        });
+
+
+        // Actualizar el indicador visual
+        const $indicador = $('#resumen-completitud');
+
+        // Guardar valores en data attributes
+        $indicador.data('pendientes', pendientes);
+        $indicador.data('total', totalValidar);
+
+        // Determinar si todos están completos
+        const todosCompletos = (pendientes === 0 && totalValidar > 0) || (totalValidar === 0);
+
+        if (pendientes === 0 && totalValidar > 0) {
+            // Todos completos
+            $indicador.html('<i class="bi bi-check-circle-fill"></i> 100%')
+                .removeClass('text-warning').addClass('text-success');
+        } else if (totalValidar === 0) {
+            // No hay nada que validar
+            $indicador.html('<i class="bi bi-check-circle-fill"></i> 100%')
+                .removeClass('text-warning').addClass('text-success');
+        } else {
+            // Hay pendientes
+            $indicador.html(`<i class="bi bi-hourglass-split"></i> ${pendientes} de ${totalValidar}`)
+                .removeClass('text-success').addClass('text-warning');
+        }
+
+        // 🆕 ACTUALIZAR VISIBILIDAD DEL INDICADOR DE RIESGO GLOBAL
+        actualizarVisibilidadRiesgoGlobal(todosCompletos);
+    }
+
+    /**
+     * Actualiza la visibilidad del indicador de riesgo global y ajusta el layout de los otros indicadores.
+     * @param {boolean} todosCompletos - Si todos los riesgos están completos/mitigados
+     */
+    function actualizarVisibilidadRiesgoGlobal(todosCompletos) {
+        // Solo aplica si estamos en nivel R
+        if (nivelRiesgoFase !== 'R') {
+            return;
+        }
+
+        const $contenedorGlobal = $('#contenedor-indicador-riesgo-global');
+        const $filaIndicadores = $('#fila-indicadores-resumen');
+        const $columnasIndicadores = $filaIndicadores.find('.col-indicador');
+        const $columnaDiagnostico = $('#columna-diagnostico');
+        const $contenedorPrincipal = $('#contenedor-riesgos-y-panel');
+
+        // Determinar si debe mostrarse: nivel R Y (no soloGlobal100 O todosCompletos)
+        const debeMostrarse = !soloGlobal100 || todosCompletos;
+
+
+        if (debeMostrarse) {
+            // Mostrar el indicador de riesgo global
+            $contenedorGlobal.removeClass('d-none');
+            $filaIndicadores.addClass('fila-cinco-indicadores');
+            $columnasIndicadores.removeClass('col-3').addClass('col-indicador-5');
+            $columnaDiagnostico.removeClass('d-none');
+            $contenedorPrincipal.addClass('con-panel-diagnostico');
+
+            // Recargar datos del riesgo global si existe la función
+            if (typeof RiesgoGlobal !== 'undefined' && RiesgoGlobal.cargarDatos) {
+                RiesgoGlobal.cargarDatos();
+            }
+        } else {
+            // Ocultar el indicador de riesgo global
+            $contenedorGlobal.addClass('d-none');
+            $filaIndicadores.removeClass('fila-cinco-indicadores');
+            $columnasIndicadores.removeClass('col-indicador-5').addClass('col-3');
+            $columnaDiagnostico.addClass('d-none');
+            $contenedorPrincipal.removeClass('con-panel-diagnostico');
+        }
+    }
+
+    if (typeof actualizarResumenRiesgos !== 'undefined') {
+        const originalActualizarResumen = actualizarResumenRiesgos;
+        window.actualizarResumenRiesgos = function () {
+            originalActualizarResumen();
+            // Esperar un momento para que se actualicen los badges
+            setTimeout(actualizarBarrasProgreso, 100);
+        };
+    }
+
+
+    // --- SCRIPT PARA REFORZAR EL ESTADO 'DISABLED' SI ESTÁ EN MONITOREO ---
+    document.addEventListener('DOMContentLoaded', function () {
+
+        actualizarBarrasProgreso();
+
+        if (monitoreoActivo) {
+
+            document.querySelectorAll('select[name^="aplica_"], select[name^="impacto_"], select[name^="probabilidad_"]').forEach(function (select) {
+                select.disabled = true;
+            });
+
+            document.querySelectorAll('button[data-bs-toggle="modal"][data-bs-target^="#modalJustif"]').forEach(function (button) {
+                button.disabled = true;
+                button.classList.add('disabled');
+                button.style.opacity = '0.6';
+                button.style.cursor = 'not-allowed';
+                button.title = 'Fase de monitoreo - Edición bloqueada';
+            });
+
+            document.querySelectorAll('textarea[name^="jus_"]').forEach(function (textarea) {
+                textarea.disabled = true;
+                textarea.readOnly = true;
+            });
+
+            document.querySelectorAll('button.mitigar-riesgo-btn, button.mitigar-riesgo-personal-btn').forEach(function (button) {
+                button.disabled = true;
+                button.classList.add('disabled');
+                button.style.opacity = '0.6';
+                button.style.cursor = 'not-allowed';
+                button.style.pointerEvents = 'none';
+                button.title = 'Fase de monitoreo - Acción bloqueada';
+            });
+
+            document.querySelectorAll('select[name^="aplica_"]').forEach(function (select) {
+                if (!select.hasAttribute('disabled')) {
+                    select.disabled = true;
+                }
+            });
+
+        } else {
+        }
+    });
+
+    // ============================================================================
+    // 🆕 NUEVA VARIABLE GLOBAL: Control del filtro de riesgos sin valorar
+    // ============================================================================
+    let filtroSinValorarActivo = false;
+    let filtroAplicablesActivo = false; // Control para el filtro de riesgos aplicables
+
+    // ============================================================================
+    // 🆕 NUEVA FUNCIÓN: Filtrar riesgos sin valorar
+    // ============================================================================
+    function filtrarRiesgosSinValorar(event) {
+        event.preventDefault();
+
+        filtroSinValorarActivo = true;
+
+        // Obtener el nivel de validación de riesgo de la fase
+        const nivelRiesgo = "{{ nivel_riesgo }}";
+
+        // 🔧 Verificar si estamos en modo "Ver todos"
+        const modoTodos = {{ 'true' if modo_todos else 'false' }};
+
+        // Obtener todas las filas de riesgo
+        const filasRiesgo = document.querySelectorAll('tr.fila-riesgo');
+        let contadorVisibles = 0;
+
+        filasRiesgo.forEach(fila => {
+            const lActiva = parseInt(fila.getAttribute('data-l-activa'));
+            const lAplica = parseInt(fila.getAttribute('data-l-aplica'));
+
+            // SIEMPRE ocultar los que NO son aplicables (L_APLICA != 1)
+            if (lAplica !== 1) {
+                fila.style.display = 'none';
+                return;
+            }
+
+            // Para los NO activos: depende del modo
+            if (lActiva !== 1) {
+                // Si estamos en modo "Ver todos", mostrar los inactivos
+                if (modoTodos) {
+                    fila.style.display = '';
+                } else {
+                    // Si NO estamos en modo "Ver todos", ocultar los inactivos
+                    fila.style.display = 'none';
+                }
+                return;
+            }
+
+            let mostrarFila = false;
+
+            // LÓGICA SEGÚN EL NIVEL DE VALIDACIÓN
+            if (!nivelRiesgo || nivelRiesgo !== 'R') {
+                // NIVEL I o NULL: Buscar riesgos sin Probabilidad e Impacto
+                const vProbabilidad = fila.getAttribute('data-v-probabilidad');
+                const vImpacto = fila.getAttribute('data-v-impacto');
+
+
+                // Validar si tiene valor REAL (no vacío, no None, no null, no undefined)
+                const tieneProbabilidad = vProbabilidad &&
+                                         vProbabilidad !== '' &&
+                                         vProbabilidad !== 'None' &&
+                                         vProbabilidad !== 'null' &&
+                                         vProbabilidad !== 'undefined';
+
+                const tieneImpacto = vImpacto &&
+                                    vImpacto !== '' &&
+                                    vImpacto !== 'None' &&
+                                    vImpacto !== 'null' &&
+                                    vImpacto !== 'undefined';
+
+
+                // Mostrar si NO tiene probabilidad Y/O NO tiene impacto (es decir, si falta alguno de los dos)
+                if (!tieneProbabilidad || !tieneImpacto) {
+                    mostrarFila = true;
+                } else {
+                }
+            } else if (nivelRiesgo === 'R') {
+                // ========================================
+                // NIVEL R: Verificar riesgo inherente Y residual con mínimo
+                // ========================================
+                const vProbabilidad = fila.getAttribute('data-v-probabilidad');
+                const vImpacto = fila.getAttribute('data-v-impacto');
+
+
+                // Verificar que tiene riesgo inherente
+                const tieneProbabilidad = vProbabilidad &&
+                                         vProbabilidad !== '' &&
+                                         vProbabilidad !== 'None' &&
+                                         vProbabilidad !== 'null' &&
+                                         vProbabilidad !== 'undefined';
+
+                const tieneImpacto = vImpacto &&
+                                    vImpacto !== '' &&
+                                    vImpacto !== 'None' &&
+                                    vImpacto !== 'null' &&
+                                    vImpacto !== 'undefined';
+
+                // 1. Si no tiene inherente, mostrar
+                if (!tieneProbabilidad || !tieneImpacto) {
+                    mostrarFila = true;
+                } else {
+                    // 2. Tiene inherente, verificar el residual
+                    const riesgoResidualTexto = fila.getAttribute('data-riesgo-residual-texto');
+                    const minimoRequeridoTexto = fila.getAttribute('data-minimo-requerido-texto');
+
+
+                    // Si no hay riesgo residual calculado, mostrar
+                    if (!riesgoResidualTexto || riesgoResidualTexto === '' ||
+                        riesgoResidualTexto === 'None' || riesgoResidualTexto === '—') {
+                        mostrarFila = true;
+                    } else if (minimoRequeridoTexto && minimoRequeridoTexto !== '' &&
+                               minimoRequeridoTexto !== 'None' && minimoRequeridoTexto !== 'null') {
+                        // 3. Hay mínimo definido, comparar usando el mapa
+                        const residualNum = mapaRiesgos[riesgoResidualTexto];
+                        const minimoNum = mapaRiesgos[minimoRequeridoTexto];
+
+
+                        if (residualNum !== undefined && minimoNum !== undefined) {
+                            // ESCALA INVERTIDA: CRÍTICO=1, ALTO=2, MEDIO=3, BAJO=4
+                            // El riesgo es INVÁLIDO si residual < mínimo (mayor criticidad)
+                            if (residualNum < minimoNum) {
+                                mostrarFila = true;
+                            } else {
+                            }
+                        } else {
+                            mostrarFila = true;
+                        }
+                    } else {
+                        // Sin mínimo definido, el riesgo no requiere validación
+                    }
+                }
+            }
+
+            // Aplicar la visibilidad
+            if (mostrarFila) {
+                fila.style.display = '';
+                contadorVisibles++;
+            } else {
+                fila.style.display = 'none';
+            }
+        });
+
+
+        // Gestionar visibilidad de botones
+        const btnFiltrar = document.getElementById('btn-filtrar-sin-valorar');
+        const btnFiltrarAplicables = document.getElementById('btn-filtrar-aplicables');
+        const btnVerTodos = document.getElementById('btn-ver-todos');
+        const btnVolverActivos = document.getElementById('btn-volver-activos');
+
+        // Ocultar botones originales
+        if (btnFiltrar) btnFiltrar.style.display = 'none';
+        if (btnFiltrarAplicables) btnFiltrarAplicables.style.display = 'none';
+        if (btnVerTodos) btnVerTodos.style.display = 'none';
+        if (btnVolverActivos) btnVolverActivos.style.display = 'none';
+
+        // 🔄 CORREGIDO: Eliminar TODOS los botones temporales existentes antes de crear uno nuevo
+        const botonesTemporales = [
+            'btn-volver-temp-riesgos',
+            'btn-volver-temp-aplicables',
+            'btn-volver-temp-factor'
+        ];
+        
+        botonesTemporales.forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) {
+                btn.remove();
+            }
+        });
+
+        // Crear botón temporal
+        let btnTemporal = document.createElement('a');
+        btnTemporal.href = '#';
+        btnTemporal.className = 'btn btn-sm btn-outline-primary btn-custom';
+        btnTemporal.id = 'btn-volver-temp-riesgos';
+        btnTemporal.innerHTML = '🔍 Volver a Riesgos Activos';
+        btnTemporal.onclick = function(e) {
+            e.preventDefault();
+            restaurarVistaRiesgos();
+        };
+
+        // Insertar el botón temporal
+        if (btnFiltrar && btnFiltrar.parentNode) {
+            btnFiltrar.parentNode.insertBefore(btnTemporal, btnFiltrar);
+        }
+
+        window.AyudaContextual.procesar(btnTemporal, 'btn-volver-riesgos-aplicables');
+
+
+        // 🆕 Actualizar contador de registros
+        actualizarContadorRegistros();
+    }
+
+    // ============================================================================
+    // 🆕 NUEVA FUNCIÓN: Filtrar solo riesgos aplicables (L_APLICA = 1)
+    // ============================================================================
+    function filtrarRiesgosAplicables(event) {
+        event.preventDefault();
+
+        filtroAplicablesActivo = true;
+
+        // 🔧 Verificar si estamos en modo "Ver todos"
+        const modoTodos = {{ 'true' if modo_todos else 'false' }};
+
+        // Obtener todas las filas de riesgo
+        const filasRiesgo = document.querySelectorAll('tr.fila-riesgo');
+        let contadorVisibles = 0;
+
+        filasRiesgo.forEach(fila => {
+            const lActiva = parseInt(fila.getAttribute('data-l-activa'));
+            const lAplica = parseInt(fila.getAttribute('data-l-aplica'));
+
+            // Mostrar solo los que son aplicables (L_APLICA = 1)
+            if (lAplica === 1) {
+                // Si es aplicable, verificar si debe mostrarse según L_ACTIVA y modo
+                if (lActiva === 1 || modoTodos) {
+                    fila.style.display = '';
+                    contadorVisibles++;
+                } else {
+                    fila.style.display = 'none';
+                }
+            } else {
+                // No es aplicable, ocultar
+                fila.style.display = 'none';
+            }
+        });
+
+
+        // Gestionar visibilidad de botones
+        const btnFiltrarAplicables = document.getElementById('btn-filtrar-aplicables');
+        const btnFiltrar = document.getElementById('btn-filtrar-sin-valorar');
+        const btnVerTodos = document.getElementById('btn-ver-todos');
+        const btnVolverActivos = document.getElementById('btn-volver-activos');
+
+        // Ocultar botones originales
+        if (btnFiltrarAplicables) btnFiltrarAplicables.style.display = 'none';
+        if (btnFiltrar) btnFiltrar.style.display = 'none';
+        if (btnVerTodos) btnVerTodos.style.display = 'none';
+        if (btnVolverActivos) btnVolverActivos.style.display = 'none';
+
+        // 🔄 CORREGIDO: Eliminar TODOS los botones temporales existentes antes de crear uno nuevo
+        const botonesTemporales = [
+            'btn-volver-temp-aplicables',
+            'btn-volver-temp-riesgos',
+            'btn-volver-temp-factor'
+        ];
+        
+        botonesTemporales.forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) {
+                btn.remove();
+            }
+        });
+
+        // Crear botón temporal
+        let btnTemporal = document.createElement('a');
+        btnTemporal.href = '#';
+        btnTemporal.className = 'btn btn-sm btn-outline-primary btn-custom';
+        btnTemporal.id = 'btn-volver-temp-aplicables';
+        btnTemporal.innerHTML = '🔍 Volver a Riesgos Activos';
+        btnTemporal.onclick = function(e) {
+            e.preventDefault();
+            restaurarVistaRiesgos();
+        };
+
+        // Insertar el botón temporal
+        if (btnFiltrarAplicables && btnFiltrarAplicables.parentNode) {
+            btnFiltrarAplicables.parentNode.insertBefore(btnTemporal, btnFiltrarAplicables);
+        }
+
+        window.AyudaContextual.procesar(btnTemporal, 'btn-volver-riesgos-activos');
+
+
+        // 🆕 Actualizar contador de registros
+        actualizarContadorRegistros();
+    }
+
+    // ============================================================================
+    // 🆕 NUEVA FUNCIÓN: Reaplicar filtro si está activo (llamada desde steps.js)
+    // ============================================================================
+    function reaplicarFiltroSiActivo() {
+        if (filtroSinValorarActivo) {
+
+            // Obtener el nivel de validación de riesgo de la fase
+            const nivelRiesgo = "{{ nivel_riesgo }}";
+
+            // 🔧 Verificar si estamos en modo "Ver todos"
+            const modoTodos = {{ 'true' if modo_todos else 'false' }};
+
+            // Obtener todas las filas de riesgo
+            const filasRiesgo = document.querySelectorAll('tr.fila-riesgo');
+            let contadorVisibles = 0;
+
+            filasRiesgo.forEach(fila => {
+                const lActiva = parseInt(fila.getAttribute('data-l-activa'));
+                const lAplica = parseInt(fila.getAttribute('data-l-aplica'));
+
+                // SIEMPRE ocultar los que NO son aplicables (L_APLICA != 1)
+                if (lAplica !== 1) {
+                    fila.style.display = 'none';
+                    return;
+                }
+
+                // Para los NO activos: depende del modo
+                if (lActiva !== 1) {
+                    // Si estamos en modo "Ver todos", mostrar los inactivos
+                    if (modoTodos) {
+                        fila.style.display = '';
+                    } else {
+                        // Si NO estamos en modo "Ver todos", ocultar los inactivos
+                        fila.style.display = 'none';
+                    }
+                    return;
+                }
+
+                let mostrarFila = false;
+
+                // LÓGICA SEGÚN EL NIVEL DE VALIDACIÓN
+                if (!nivelRiesgo || nivelRiesgo !== 'R') {
+                    // NIVEL I o NULL: Buscar riesgos sin Probabilidad e Impacto
+                    const vProbabilidad = fila.getAttribute('data-v-probabilidad');
+                    const vImpacto = fila.getAttribute('data-v-impacto');
+
+                    // Validar si tiene valor REAL
+                    const tieneProbabilidad = vProbabilidad &&
+                                             vProbabilidad !== '' &&
+                                             vProbabilidad !== 'None' &&
+                                             vProbabilidad !== 'null' &&
+                                             vProbabilidad !== 'undefined';
+
+                    const tieneImpacto = vImpacto &&
+                                        vImpacto !== '' &&
+                                        vImpacto !== 'None' &&
+                                        vImpacto !== 'null' &&
+                                        vImpacto !== 'undefined';
+
+                    // Mostrar si falta alguno
+                    if (!tieneProbabilidad || !tieneImpacto) {
+                        mostrarFila = true;
+                    }
+                } else if (nivelRiesgo === 'R') {
+                    // NIVEL R: Verificar riesgo inherente Y residual
+                    const vProbabilidad = fila.getAttribute('data-v-probabilidad');
+                    const vImpacto = fila.getAttribute('data-v-impacto');
+
+                    const tieneProbabilidad = vProbabilidad &&
+                                             vProbabilidad !== '' &&
+                                             vProbabilidad !== 'None' &&
+                                             vProbabilidad !== 'null' &&
+                                             vProbabilidad !== 'undefined';
+
+                    const tieneImpacto = vImpacto &&
+                                        vImpacto !== '' &&
+                                        vImpacto !== 'None' &&
+                                        vImpacto !== 'null' &&
+                                        vImpacto !== 'undefined';
+
+                    // 1. Si no tiene inherente, mostrar
+                    if (!tieneProbabilidad || !tieneImpacto) {
+                        mostrarFila = true;
+                    } else {
+                        // 2. Tiene inherente, verificar el residual
+                        const riesgoResidualTexto = fila.getAttribute('data-riesgo-residual-texto');
+                        const minimoRequeridoTexto = fila.getAttribute('data-minimo-requerido-texto');
+
+                        // Si no hay riesgo residual calculado, mostrar
+                        if (!riesgoResidualTexto || riesgoResidualTexto === '' ||
+                            riesgoResidualTexto === 'None' || riesgoResidualTexto === '—') {
+                            mostrarFila = true;
+                        } else if (minimoRequeridoTexto && minimoRequeridoTexto !== '' &&
+                                   minimoRequeridoTexto !== 'None' && minimoRequeridoTexto !== 'null') {
+                            // 3. Hay mínimo definido, comparar usando el mapa
+                            const residualNum = mapaRiesgos[riesgoResidualTexto];
+                            const minimoNum = mapaRiesgos[minimoRequeridoTexto];
+
+                            if (residualNum !== undefined && minimoNum !== undefined) {
+                                // El riesgo es INVÁLIDO si residual < mínimo (mayor criticidad)
+                                if (residualNum < minimoNum) {
+                                    mostrarFila = true;
+                                }
+                            } else {
+                                mostrarFila = true;
+                            }
+                        }
+                    }
+                }
+
+                // Aplicar la visibilidad
+                if (mostrarFila) {
+                    fila.style.display = '';
+                    contadorVisibles++;
+                } else {
+                    fila.style.display = 'none';
+                }
+            });
+
+
+            // 🆕 Actualizar contador de registros
+            actualizarContadorRegistros();
+        }
+    }
+
+    // ============================================================================
+    // 🆕 NUEVA FUNCIÓN: Restaurar vista normal de riesgos
+    // ============================================================================
+    function restaurarVistaRiesgos() {
+
+        filtroSinValorarActivo = false;
+        filtroAplicablesActivo = false;
+
+        // Mostrar todas las filas activas
+        const modoTodos = {{ 'true' if modo_todos else 'false' }};
+        const filasRiesgo = document.querySelectorAll('tr.fila-riesgo');
+
+        filasRiesgo.forEach(fila => {
+            const esInactivo = fila.classList.contains('fila-riesgo-inactivo');
+
+            // Mostrar solo las activas (o todas si estamos en modo "ver todos")
+            if (!esInactivo || modoTodos) {
+                fila.style.display = '';
+            } else {
+                fila.style.display = 'none';
+            }
+        });
+
+        // Restaurar visibilidad de botones
+        const btnFiltrar = document.getElementById('btn-filtrar-sin-valorar');
+        const btnFiltrarAplicables = document.getElementById('btn-filtrar-aplicables');
+        const btnVerTodos = document.getElementById('btn-ver-todos');
+        const btnVolverActivos = document.getElementById('btn-volver-activos');
+
+        // Mostrar los botones originales
+        if (btnFiltrar) btnFiltrar.style.display = 'inline-block';
+        if (btnFiltrarAplicables) btnFiltrarAplicables.style.display = 'inline-block';
+        if (btnVerTodos) btnVerTodos.style.display = 'inline-block';
+        if (btnVolverActivos) btnVolverActivos.style.display = 'inline-block';
+
+        // 🔄 CORREGIDO: Eliminar TODOS los botones temporales
+        const botonesTemporales = [
+            'btn-volver-temp-riesgos',
+            'btn-volver-temp-aplicables',
+            'btn-volver-temp-factor'
+        ];
+        
+        botonesTemporales.forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) {
+                btn.remove();
+            }
+        });
+
+
+        // 🆕 Actualizar contador de registros
+        actualizarContadorRegistros();
+    }
+
+    function guardarRiesgoPersonalizado(idDatRiesgo) {
+        const textarea = document.getElementById(`nuevaDescripcion${idDatRiesgo}`);
+        const nuevaDescripcion = textarea.value.trim();
+
+        if (!nuevaDescripcion) {
+            alert("⚠️ La descripción no puede estar vacía.");
+            return;
+        }
+
+        // Solo guardar la descripción (sin riesgo residual)
+        fetch(`/riesgos/editar_descripcion/${idDatRiesgo}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ descripcion: nuevaDescripcion })
+        })
+        .then(resp => {
+            if (!resp.ok) throw new Error("Error al guardar la descripción");
+            return resp.json();
+        })
+        .then(data => {
+            if (!data.exito) {
+                throw new Error(data.mensaje || "Error al guardar descripción");
+            }
+            // Recargar la página
+            (function(){ var u=new URL(window.location.href); u.searchParams.set("_t",Date.now()); window.location.href=u.toString(); })();
+        })
+        .catch(err => {
+            alert("❌ Error al actualizar el riesgo: " + err.message);
+        });
+    }
+
+    // Mantener función antigua por compatibilidad (por si se usa en otro lugar)
+    function guardarDescripcionPersonalizada(idDatRiesgo) {
+        return guardarRiesgoPersonalizado(idDatRiesgo);
+    }
+
+    // Nueva función para guardar solo el riesgo residual desde la modal de mitigación
+    function guardarRiesgoResidual(idDatRiesgo) {
+        const selectRiesgoResidual = document.getElementById(`riesgoResidualMitigar${idDatRiesgo}`);
+        const idValorRiesgo = selectRiesgoResidual.value;
+
+        if (!idValorRiesgo) {
+            alert("⚠️ Debe seleccionar un nivel de riesgo residual.");
+            return;
+        }
+
+        fetch(`/riesgos/editar_riesgo_residual/${idDatRiesgo}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id_valor_riesgo: idValorRiesgo })
+        })
+        .then(resp => {
+            if (!resp.ok) throw new Error("Error al guardar riesgo residual");
+            return resp.json();
+        })
+        .then(data => {
+            if (!data.exito) {
+                throw new Error(data.mensaje || "Error al guardar riesgo residual");
+            }
+            // Recargar la página
+            (function(){ var u=new URL(window.location.href); u.searchParams.set("_t",Date.now()); window.location.href=u.toString(); })();
+        })
+        .catch(err => {
+            alert("❌ Error al actualizar el riesgo residual: " + err.message);
+        });
+    }
+
+    function eliminarRiesgoPersonalizado(idDatRiesgo) {
+        // Cerrar el modal de confirmación
+        const modalEliminar = bootstrap.Modal.getInstance(document.getElementById(`modalEliminarRiesgo${idDatRiesgo}`));
+        if (modalEliminar) {
+            modalEliminar.hide();
+        }
+
+        fetch(`/riesgos/eliminar/${idDatRiesgo}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" }
+        })
+            .then(resp => {
+                if (!resp.ok) throw new Error("Error al eliminar el riesgo");
+                return resp.json();
+            })
+            .then(data => {
+                if (data.exito) {
+                    // Mostrar mensaje de éxito y recargar
+                    alert("✅ " + (data.mensaje || "Riesgo específico del proyecto eliminado correctamente."));
+                    (function(){ var u=new URL(window.location.href); u.searchParams.set("_t",Date.now()); window.location.href=u.toString(); })();
+                } else {
+                    // Manejar error del backend
+                    alert("❌ No se pudo eliminar el riesgo: " + (data.mensaje || "Error desconocido."));
+                }
+            })
+            .catch(err => {
+                alert("❌ Error inesperado al eliminar el riesgo: " + err.message);
+            });
+    }
+</script>
+
+<!-- ===== SCRIPT DE RIESGO GLOBAL ===== -->
+<script>
+/**
+ * Módulo para gestión del Riesgo Global
+ */
+const RiesgoGlobal = {
+
+    sistemaId: null,
+    ultimoCalculo: null,
+    panelVisible: false,
+
+    init: function(sistemaId) {
+        this.sistemaId = sistemaId;
+        this.cargarRiesgoGlobal();
+        this.configurarEventos();
+    },
+
+    cargarRiesgoGlobal: function() {
+        if (!this.sistemaId) return;
+
+        fetch(`/api/sistema/${this.sistemaId}/riesgo-global`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    this.ultimoCalculo = data.data;
+                    this.actualizarBadge(data.data);
+                    this.actualizarPanelDiagnostico(data.data);
+                } else {
+                    this.mostrarBadgeError();
+                }
+            })
+            .catch(error => {
+                this.mostrarBadgeError();
+            });
+    },
+
+    mostrarBadgeError: function() {
+        const badge = document.getElementById('badge-riesgo-global');
+        if (badge) {
+            badge.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i>Error`;
+            badge.className = 'badge bg-secondary ms-2';
+        }
+    },
+
+    actualizarBadge: function(datos) {
+        const badge = document.getElementById('badge-riesgo-global');
+        if (!badge) return; // Si no existe el badge, la fase no es 'R' y no hay nada que hacer
+
+        // Caso: Sin evaluar (nivel null)
+        if (!datos.nivel) {
+            badge.innerHTML = `<i class="bi bi-question-circle me-1"></i>Sin evaluar`;
+            badge.className = 'badge bg-secondary ms-2';
+            return;
+        }
+
+        const iconos = {
+            'BAJO': 'bi-shield-check',
+            'MEDIO': 'bi-shield-exclamation',
+            'ALTO': 'bi-shield-x',
+            'CRITICO': 'bi-exclamation-triangle-fill'
+        };
+
+        const colores = {
+            'BAJO': '#00B050',
+            'MEDIO': '#FFC000',
+            'ALTO': '#ED7D31',
+            'CRITICO': '#C00000'
+        };
+
+        let clasePulso = (datos.factores && datos.factores.length > 0) ? 'badge-pulse' : '';
+        let colorFondo = datos.color || colores[datos.nivel] || '#6c757d';
+
+        badge.innerHTML = `<i class="bi ${iconos[datos.nivel] || 'bi-shield'} me-1"></i>${datos.nivel}${datos.factores && datos.factores.length > 0 ? ` <span class="badge bg-dark" style="font-size: 0.7em;">${datos.factores.length}</span>` : ''}`;
+        badge.className = `badge ms-2 ${clasePulso}`;
+        badge.style.backgroundColor = colorFondo;
+    },
+
+    actualizarPanelDiagnostico: function(datos) {
+        const panel = document.getElementById('panel-diagnostico-riesgo');
+        if (!panel) return;
+
+        let html = '';
+
+        // Cabecera del panel
+        html += `
+            <div class="diagnostico-header" style="background-color: ${datos.color || '#6c757d'}20;
+                 border-left: 4px solid ${datos.color || '#6c757d'}; padding: 15px; margin-bottom: 15px;">
+                <h5 class="mb-1">
+                    <i class="bi bi-graph-up-arrow me-2"></i>Nivel de Riesgo Global
+                </h5>
+                <h3 class="mb-0" style="color: ${datos.color}">${datos.nivel || 'Sin evaluar'}</h3>
+                <small class="text-muted">${datos.mensaje || ''}</small>
+            </div>`;
+
+        // Métricas
+        if (datos.metricas) {
+            html += `
+                <div class="metricas-riesgo mb-3">
+                    <h6><i class="bi bi-bar-chart me-2"></i>Métricas</h6>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <div class="metrica-card text-center p-2 border rounded">
+                                <div class="h4 mb-0">${datos.metricas.total_aplicables}</div>
+                                <small class="text-muted">Riesgos evaluados</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="metrica-card text-center p-2 border rounded">
+                                <div class="h4 mb-0">${datos.metricas.pct_medio}%</div>
+                                <small class="text-muted">en MEDIO</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-2 mt-1">
+                        <div class="col-3">
+                            <div class="text-center p-1 rounded" style="background: #C0000020">
+                                <strong>${datos.metricas.criticos}</strong>
+                                <br><small>Crít.</small>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="text-center p-1 rounded" style="background: #ED7D3120">
+                                <strong>${datos.metricas.altos}</strong>
+                                <br><small>Altos</small>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="text-center p-1 rounded" style="background: #FFC00020">
+                                <strong>${datos.metricas.medios}</strong>
+                                <br><small>Medios</small>
+                            </div>
+                        </div>
+                        <div class="col-3">
+                            <div class="text-center p-1 rounded" style="background: #00B05020">
+                                <strong>${datos.metricas.bajos}</strong>
+                                <br><small>Bajos</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        // Factores agravantes
+        if (datos.factores && datos.factores.length > 0) {
+            html += `
+                <div class="factores-agravantes mb-3">
+                    <h6><i class="bi bi-exclamation-diamond me-2"></i>Factores Agravantes Activos</h6>
+                    <small class="text-muted d-block mb-2"><i class="bi bi-hand-index-thumb me-1"></i>Haz clic en un factor para filtrar los riesgos afectados</small>
+                    <div class="list-group list-group-flush">`;
+
+            datos.factores.forEach((factor, index) => {
+                let icono = 'bi-exclamation-circle';
+
+                switch(factor.tipo) {
+                    case 'CONCENTRACION':
+                        icono = 'bi-pie-chart';
+                        break;
+                    case 'CLUSTER':
+                        icono = 'bi-diagram-3';
+                        break;
+                    case 'ESPECIFICOS':
+                        icono = 'bi-person-badge';
+                        break;
+                    case 'RIESGO_CRITICO':
+                    case 'RIESGO_ALTO':
+                        icono = 'bi-shield-x';
+                        break;
+                }
+
+                // Crear atributo data con la información del factor para el filtrado
+                const factorData = encodeURIComponent(JSON.stringify(factor));
+
+                html += `
+                    <div class="list-group-item factor-filtrable"
+                         style="border-left: 3px solid ${factor.color || '#dc3545'}; cursor: pointer;"
+                         data-factor-tipo="${factor.tipo}"
+                         data-factor-data="${factorData}"
+                         onclick="RiesgoGlobal.filtrarPorFactor(this)"
+                         title="Clic para filtrar riesgos afectados">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi ${icono} me-2"></i>
+                                <strong>${factor.tipo}</strong>
+                            </div>
+                            <i class="bi bi-funnel text-muted"></i>
+                        </div>
+                        <small class="text-muted">${factor.detalle}</small>
+                    </div>`;
+            });
+
+            html += `</div></div>`;
+        } else if (datos.nivel) {
+            html += `
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle me-2"></i>
+                    No hay factores agravantes activos
+                </div>`;
+        }
+
+        // Indicador de avance de fase
+        html += `
+            <div class="avance-fase mt-3 p-3 border rounded">
+                <h6><i class="bi bi-arrow-right-circle me-2"></i>Avance a siguiente fase</h6>
+                ${datos.puede_avanzar ?
+                    `<span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>Permitido</span>` :
+                    `<span class="badge bg-danger"><i class="bi bi-x-lg me-1"></i>Bloqueado</span>`
+                }
+            </div>`;
+
+        panel.innerHTML = html;
+    },
+
+    togglePanel: function() {
+        const contenedor = document.getElementById('contenedor-riesgos-y-panel');
+        const columnaDiagnostico = document.getElementById('columna-diagnostico');
+        const btnToggle = document.querySelector('#panel-diagnostico-container .panel-diagnostico-header button i');
+
+        if (!contenedor || !columnaDiagnostico) return;
+
+        this.panelVisible = !this.panelVisible;
+
+        if (this.panelVisible) {
+            contenedor.classList.add('panel-visible');
+            columnaDiagnostico.classList.add('visible');
+            if (btnToggle) btnToggle.className = 'bi bi-chevron-right';
+        } else {
+            contenedor.classList.remove('panel-visible');
+            columnaDiagnostico.classList.remove('visible');
+            if (btnToggle) btnToggle.className = 'bi bi-chevron-left';
+        }
+    },
+
+    // Mostrar el panel automáticamente
+    mostrarPanel: function() {
+        if (!this.panelVisible) {
+            this.togglePanel();
+        }
+    },
+
+    // Ocultar el panel
+    ocultarPanel: function() {
+        if (this.panelVisible) {
+            this.togglePanel();
+        }
+    },
+
+    refrescar: function() {
+        this.cargarRiesgoGlobal();
+    },
+
+    configurarEventos: function() {
+        // Mostrar panel automáticamente al cargar si hay nivel de riesgo
+        // (se puede comentar si se prefiere que esté oculto por defecto)
+        // this.mostrarPanel();
+    },
+
+    // ========================================================================
+    // FILTRADO POR FACTORES AGRAVANTES
+    // ========================================================================
+
+    filtroFactorActivo: false,
+
+    filtrarPorFactor: function(elemento) {
+        const tipoFactor = elemento.getAttribute('data-factor-tipo');
+        const factorDataStr = elemento.getAttribute('data-factor-data');
+
+        let factorData = {};
+        try {
+            factorData = JSON.parse(decodeURIComponent(factorDataStr));
+        } catch (e) {
+        }
+
+
+        this.filtroFactorActivo = true;
+
+        // Obtener todas las filas de riesgo
+        const filasRiesgo = document.querySelectorAll('tr.fila-riesgo');
+        let contadorVisibles = 0;
+
+        filasRiesgo.forEach(fila => {
+            const lActiva = parseInt(fila.getAttribute('data-l-activa'));
+            const lAplica = parseInt(fila.getAttribute('data-l-aplica'));
+
+            // Siempre ocultar los que NO son aplicables o NO están activos
+            if (lAplica !== 1 || lActiva !== 1) {
+                fila.style.display = 'none';
+                return;
+            }
+
+            let mostrarFila = false;
+            const nivelResidual = (fila.getAttribute('data-riesgo-residual-texto') || '').toUpperCase();
+
+            switch (tipoFactor) {
+                case 'CONCENTRACION':
+                    // Mostrar todos los riesgos con nivel residual MEDIO
+                    mostrarFila = nivelResidual.includes('MEDIO');
+                    break;
+
+                case 'CLUSTER':
+                    // Mostrar riesgos del cluster específico que estén en MEDIO
+                    const clusterCodigo = factorData.cluster_codigo || '';
+                    const clustersFila = (fila.getAttribute('data-cluster') || '').toUpperCase();
+                    const perteneceCluster = clustersFila.includes(clusterCodigo.toUpperCase());
+                    mostrarFila = perteneceCluster && nivelResidual.includes('MEDIO');
+                    break;
+
+                case 'ESPECIFICOS':
+                    // Mostrar riesgos específicos del proyecto (L_PERSONAL=1) en MEDIO
+                    const esPersonal = parseInt(fila.getAttribute('data-l-personal')) === 1;
+                    mostrarFila = esPersonal && nivelResidual.includes('MEDIO');
+                    break;
+
+                case 'RIESGO_CRITICO':
+                    // Mostrar riesgos con nivel residual CRÍTICO
+                    mostrarFila = nivelResidual.includes('CRÍTICO') || nivelResidual.includes('CRITICO');
+                    break;
+
+                case 'RIESGO_ALTO':
+                    // Mostrar riesgos con nivel residual ALTO
+                    mostrarFila = nivelResidual.includes('ALTO');
+                    break;
+
+                default:
+                    mostrarFila = true;
+            }
+
+            if (mostrarFila) {
+                fila.style.display = '';
+                contadorVisibles++;
+            } else {
+                fila.style.display = 'none';
+            }
+        });
+
+
+        // Gestionar visibilidad de botones (igual que en filtrarRiesgosSinValorar)
+        this.ocultarBotonesYCrearTemporal(tipoFactor, factorData);
+
+        // Marcar el factor seleccionado visualmente
+        document.querySelectorAll('.factor-filtrable').forEach(f => f.classList.remove('factor-activo'));
+        elemento.classList.add('factor-activo');
+
+        // Actualizar contador de registros
+        if (typeof actualizarContadorRegistros === 'function') {
+            actualizarContadorRegistros();
+        }
+    },
+
+    ocultarBotonesYCrearTemporal: function(tipoFactor, factorData) {
+        // Ocultar botones de filtro existentes
+        const btnFiltrar = document.getElementById('btn-filtrar-sin-valorar');
+        const btnFiltrarAplicables = document.getElementById('btn-filtrar-aplicables');
+        const btnVerTodos = document.getElementById('btn-ver-todos');
+        const btnVolverActivos = document.getElementById('btn-volver-activos');
+        const btnCrearRiesgo = document.getElementById('btn-crear-riesgo');
+
+        if (btnFiltrar) btnFiltrar.style.display = 'none';
+        if (btnFiltrarAplicables) btnFiltrarAplicables.style.display = 'none';
+        if (btnVerTodos) btnVerTodos.style.display = 'none';
+        if (btnVolverActivos) btnVolverActivos.style.display = 'none';
+        if (btnCrearRiesgo) btnCrearRiesgo.style.display = 'none';
+
+        // 🔄 CORREGIDO: Eliminar TODOS los botones temporales existentes (no solo el de factor)
+        const botonesTemporales = [
+            'btn-volver-temp-factor',
+            'btn-volver-temp-riesgos',
+            'btn-volver-temp-aplicables'
+        ];
+        
+        botonesTemporales.forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) {
+                btn.remove();
+            }
+        });
+
+        // Crear nuevo botón temporal
+        let btnTemporal = document.createElement('a');
+        btnTemporal.href = '#';
+        btnTemporal.className = 'btn btn-sm btn-outline-primary btn-custom';
+        btnTemporal.id = 'btn-volver-temp-factor';
+        btnTemporal.innerHTML = '🔍 Volver a Riesgos Activos';
+        btnTemporal.onclick = function(e) {
+            e.preventDefault();
+            RiesgoGlobal.restaurarVistaDesdeFactores();
+        };
+
+        // Insertar el botón temporal
+        const contenedorBotones = document.getElementById('contenedor-botones-filtro');
+        if (contenedorBotones) {
+            contenedorBotones.insertBefore(btnTemporal, contenedorBotones.firstChild);
+        }
+
+        // Procesar ayuda contextual si está disponible
+        if (window.AyudaContextual && typeof window.AyudaContextual.procesar === 'function') {
+            window.AyudaContextual.procesar(btnTemporal, 'btn-volver-riesgos-aplicables');
+        }
+
+    },
+
+    restaurarVistaDesdeFactores: function() {
+
+        this.filtroFactorActivo = false;
+
+        // Mostrar todas las filas activas
+        const modoTodos = {{ 'true' if modo_todos else 'false' }};
+        const filasRiesgo = document.querySelectorAll('tr.fila-riesgo');
+
+        filasRiesgo.forEach(fila => {
+            const esInactivo = fila.classList.contains('fila-riesgo-inactivo');
+
+            // Mostrar solo las activas (o todas si estamos en modo "ver todos")
+            if (!esInactivo || modoTodos) {
+                fila.style.display = '';
+            } else {
+                fila.style.display = 'none';
+            }
+        });
+
+        // Restaurar visibilidad de botones
+        const btnFiltrar = document.getElementById('btn-filtrar-sin-valorar');
+        const btnFiltrarAplicables = document.getElementById('btn-filtrar-aplicables');
+        const btnVerTodos = document.getElementById('btn-ver-todos');
+        const btnVolverActivos = document.getElementById('btn-volver-activos');
+        const btnCrearRiesgo = document.getElementById('btn-crear-riesgo');
+        const monitoreo = {{ 'true' if monitoreo else 'false' }};
+
+        if (btnFiltrar && !monitoreo) btnFiltrar.style.display = 'inline-block';
+        if (btnFiltrarAplicables && !monitoreo && !modoTodos) btnFiltrarAplicables.style.display = 'inline-block';
+        if (btnVerTodos) btnVerTodos.style.display = 'inline-block';
+        if (btnVolverActivos) btnVolverActivos.style.display = 'inline-block';
+        if (btnCrearRiesgo && !monitoreo) btnCrearRiesgo.style.display = 'inline-block';
+
+        // 🔄 CORREGIDO: Eliminar TODOS los botones temporales
+        const botonesTemporales = [
+            'btn-volver-temp-factor',
+            'btn-volver-temp-riesgos',
+            'btn-volver-temp-aplicables'
+        ];
+        
+        botonesTemporales.forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) {
+                btn.remove();
+            }
+        });
+
+        // Quitar marcado visual de factores
+        document.querySelectorAll('.factor-filtrable').forEach(f => f.classList.remove('factor-activo'));
+
+
+        // Actualizar contador de registros
+        if (typeof actualizarContadorRegistros === 'function') {
+            actualizarContadorRegistros();
+        }
+    }
+};
+
+// Inicializar cuando el DOM esté listo
+document.addEventListener('DOMContentLoaded', function() {
+    const sistemaId = {{ id_sistema if id_sistema else 'null' }};
+    if (sistemaId) {
+        RiesgoGlobal.init(sistemaId);
+    }
+});
+</script>
+
+
+{% endblock %}

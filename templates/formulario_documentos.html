@@ -1,0 +1,403 @@
+
+<!--
+    Aplicación para la protección de datos en Sistemas IA
+    Copyright (C) 2025-2026 Consejo de Transparencia y Protección de Datos de Andalucía
+
+    Licenciado bajo EUPL v1.2: https://eupl.eu/1.2/es/
+-->
+
+
+{% extends "base.html" %}
+{% block title %}Documentos - {{ nombre_aplicacion }}{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <img id="logo-ctpd" src="{{ url_for('static', filename='img/logo_ctpdandalucia.png') }}" alt="Logo" style="height: 80px;">
+  <h1 class="text-center flex-grow-1" id="cabecera">Gestión de Informes</h1>
+  <img id="logo-junta" src="{{ url_for('static', filename='img/logo_junta.png') }}" alt="Logo Junta" style="height: 80px;">
+</div>
+
+<!-- Card de Informes Disponibles -->
+<div class="card mb-4" id="card-informes-disponibles">
+  <div class="card-header bg-primary text-white" id="header-informes-disponibles">
+    <h5 class="mb-0" id="titulo-informes-disponibles"><i class="bi bi-file-earmark-text me-2"></i>Informes Disponibles</h5>
+  </div>
+  <div class="card-body" id="body-informes-disponibles">
+    {% if documentos %}
+      <div class="table-responsive" id="contenedor-tabla-documentos">
+        <table class="table table-hover table-bordered align-middle tabla-documentos" id="tabla-documentos">
+          <thead class="table-dark" id="thead-documentos">
+            <tr id="fila-cabecera-documentos">
+              <th id="th-informe" style="width: 30%;">Informe</th>
+              <th id="th-tipo" style="width: 15%;">Tipo</th>
+              <th id="th-estado" style="width: 15%;">Estado</th>
+              <th id="th-fase-evaluacion" style="width: 25%;">Fase de Evaluación</th>
+              <th id="th-acciones" style="width: 15%;" class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-documentos">
+            {% for doc in documentos %}
+            <tr id="fila-documento-{{ doc.id_datdocs }}">
+              <td id="celda-descripcion-{{ doc.id_datdocs }}">
+                <strong>{{ doc.descripcion }}</strong>
+                {% if doc.instrucciones %}
+                <br>
+                <small class="text-muted">
+                  <i class="bi bi-info-circle"
+                     id="icono-instrucciones-{{ doc.id_datdocs }}"
+                     data-bs-toggle="modal"
+                     data-bs-target="#modalInstrucciones{{ doc.id_datdocs }}"
+                     style="cursor: pointer;" title="Ver instrucciones"></i>
+                  <span id="texto-instrucciones-{{ doc.id_datdocs }}">Instrucciones disponibles</span>
+                </small>
+                {% endif %}
+              </td>
+              <td id="celda-tipo-{{ doc.id_datdocs }}">
+                <span class="badge bg-info" id="badge-tipo-{{ doc.id_datdocs }}">{{ doc.tipo_documento }}</span>
+              </td>
+              <td id="celda-situacion-{{ doc.id_datdocs }}">
+                <span class="fw-bold {{ doc.situacion_clase }}" id="texto-situacion-{{ doc.id_datdocs }}">
+                  {{ doc.situacion }}
+                </span>
+              </td>
+              <td id="celda-fase-{{ doc.id_datdocs }}">{{ doc.fase_evaluacion }}</td>
+              <td class="text-center" id="celda-acciones-{{ doc.id_datdocs }}">
+                <a href="{{ url_for('editar_documento', id_datdocs=doc.id_datdocs) }}"
+                  class="btn btn-sm btn-primary"
+                  id="btn-editar-documento-{{ doc.id_datdocs }}">
+                  <i class="bi bi-pencil-square"></i> Editar
+                </a>
+              </td>
+            </tr>
+
+            <!-- Modal de instrucciones -->
+            {% if doc.instrucciones %}
+            <div class="modal fade" id="modalInstrucciones{{ doc.id_datdocs }}" tabindex="-1">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content" id="modal-content-instrucciones-{{ doc.id_datdocs }}">
+                  <div class="modal-header bg-primary text-white" id="modal-header-instrucciones-{{ doc.id_datdocs }}">
+                    <h5 class="modal-title" id="modal-titulo-instrucciones-{{ doc.id_datdocs }}">
+                      <i class="bi bi-info-circle me-2"></i>Instrucciones - {{ doc.descripcion }}
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" id="btn-cerrar-modal-instrucciones-{{ doc.id_datdocs }}"></button>
+                  </div>
+                  <div class="modal-body" id="modal-body-instrucciones-{{ doc.id_datdocs }}">
+                    {{ doc.instrucciones | safe }}
+                  </div>
+                  <div class="modal-footer" id="modal-footer-instrucciones-{{ doc.id_datdocs }}">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="btn-cerrar-instrucciones-{{ doc.id_datdocs }}">Cerrar</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="alert alert-info" role="alert" id="alerta-sin-documentos">
+        <i class="bi bi-info-circle me-2"></i>
+        <span id="mensaje-sin-documentos">No hay documentos disponibles para esta fase del proyecto.</span>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ===== SECCIÓN: EXPORTACIONES ===== -->
+<div class="card mb-4" id="card-exportaciones">
+  <div class="card-header bg-success text-white" id="header-exportaciones">
+    <h5 class="mb-0" id="titulo-exportaciones"><i class="bi bi-file-earmark-spreadsheet me-2"></i>Exportaciones</h5>
+  </div>
+  <div class="card-body" id="body-exportaciones">
+    <p class="text-muted mb-3" id="descripcion-exportaciones">
+      <i class="bi bi-info-circle me-2"></i>
+      <span id="texto-descripcion-exportaciones">Genere informes en diferentes formatos con los datos del proyecto.</span>
+    </p>
+
+    <div class="d-flex flex-wrap gap-3" id="contenedor-botones-exportacion">
+      <!-- Botones de Elementos de Descripción (siempre visibles) -->
+      <button type="button" class="btn btn-outline-secondary" id="btn-exportar-elementos-html" onclick="exportarElementosDescripcion('html')">
+        <i class="bi bi-filetype-html me-2"></i>Elementos de descripción (HTML)
+      </button>
+      <button type="button" class="btn btn-outline-danger" id="btn-exportar-elementos-pdf" onclick="exportarElementosDescripcion('pdf')">
+        <i class="bi bi-filetype-pdf me-2"></i>Elementos de descripción (PDF)
+      </button>
+
+      <!-- Botón de exportación de Requisitos (solo si mostrar_requisitos) -->
+      {% if mostrar_requisitos %}
+      <button type="button" class="btn btn-outline-info" id="btn-exportar-requisitos" onclick="exportarRequisitosCumplimiento()">
+        <i class="bi bi-check2-square me-2"></i>Requisitos de cumplimiento
+      </button>
+      {% endif %}
+
+      <!-- Botón de exportación de Mitigación de Riesgos (solo si nivel_riesgo == 'R') -->
+      {% if nivel_riesgo == 'R' %}
+      <button type="button" class="btn btn-outline-success" id="btn-exportar-mitigacion" onclick="exportarMitigacionRiesgos()">
+        <i class="bi bi-shield-check me-2"></i>Mitigación de riesgos
+      </button>
+      {% endif %}
+
+      <!-- Botón de exportación de Controles Monitoreo (solo si fase_monitoreo) -->
+      {% if fase_monitoreo %}
+      <button type="button" class="btn btn-outline-primary" id="btn-exportar-monitoreo" onclick="exportarControlesMonitoreo()">
+        <i class="bi bi-clipboard-data me-2"></i>Controles Monitoreo
+      </button>
+      {% endif %}
+    </div>
+
+    <!-- Área de mensajes de exportación -->
+    <div id="exportacion-mensaje" class="mt-3" style="display: none;"></div>
+  </div>
+</div>
+<!-- ===== FIN SECCIÓN EXPORTACIONES ===== -->
+
+<!-- Botones de navegación -->
+<div class="d-grid gap-3 d-md-flex justify-content-between mt-4" id="contenedor-navegacion">
+  <a href="{{ url_for('formulario_controles') }}" class="btn btn-outline-secondary btn-lg rounded-pill" id="btn-navegacion-atras">
+    ⬅ Atrás
+  </a>
+  <a href="{{ url_for('formulario_fases') }}" class="btn btn-outline-secondary btn-lg rounded-pill" id="btn-navegacion-siguiente">
+    Siguiente ➡
+  </a>
+</div>
+
+<!-- Script para exportación -->
+<script>
+function exportarRequisitosCumplimiento() {
+    const btn = document.getElementById('btn-exportar-requisitos');
+    const msgArea = document.getElementById('exportacion-mensaje');
+
+    // Deshabilitar botón y mostrar spinner
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Generando...';
+
+    // Mostrar mensaje de procesamiento
+    msgArea.style.display = 'block';
+    msgArea.innerHTML = '<div class="alert alert-info"><i class="bi bi-hourglass-split me-2"></i>Generando informe de requisitos de cumplimiento...</div>';
+
+    // Llamar al endpoint de exportación
+    fetch('{{ url_for("exportar_requisitos_cumplimiento") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.exito) {
+            // Mostrar mensaje de éxito con enlace de descarga
+            msgArea.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    ${data.mensaje}
+                    <br><br>
+                    <a href="${data.url_descarga}" class="btn btn-success btn-sm" download>
+                        <i class="bi bi-download me-2"></i>Descargar ${data.nombre_archivo}
+                    </a>
+                </div>
+            `;
+        } else {
+            // Mostrar mensaje de error
+            msgArea.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    ${data.mensaje}
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        msgArea.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                Error al generar la exportación. Por favor, inténtelo de nuevo.
+            </div>
+        `;
+    })
+    .finally(() => {
+        // Restaurar botón
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check2-square me-2"></i>Requisitos de cumplimiento';
+    });
+}
+
+function exportarMitigacionRiesgos() {
+    const btn = document.getElementById('btn-exportar-mitigacion');
+    const msgArea = document.getElementById('exportacion-mensaje');
+
+    // Deshabilitar botón y mostrar spinner
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Generando...';
+
+    // Mostrar mensaje de procesamiento
+    msgArea.style.display = 'block';
+    msgArea.innerHTML = '<div class="alert alert-info"><i class="bi bi-hourglass-split me-2"></i>Generando informe de mitigación de riesgos...</div>';
+
+    // Llamar al endpoint de exportación
+    fetch('{{ url_for("exportar_mitigacion_riesgos") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.exito) {
+            // Mostrar mensaje de éxito con enlace de descarga
+            msgArea.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    ${data.mensaje}
+                    <br><br>
+                    <a href="${data.url_descarga}" class="btn btn-success btn-sm" download>
+                        <i class="bi bi-download me-2"></i>Descargar ${data.nombre_archivo}
+                    </a>
+                </div>
+            `;
+        } else {
+            // Mostrar mensaje de error
+            msgArea.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    ${data.mensaje}
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        msgArea.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                Error al generar la exportación. Por favor, inténtelo de nuevo.
+            </div>
+        `;
+    })
+    .finally(() => {
+        // Restaurar botón
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-shield-check me-2"></i>Mitigación de riesgos';
+    });
+}
+
+function exportarControlesMonitoreo() {
+    const btn = document.getElementById('btn-exportar-monitoreo');
+    const msgArea = document.getElementById('exportacion-mensaje');
+
+    // Deshabilitar botón y mostrar spinner
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Generando...';
+
+    // Mostrar mensaje de procesamiento
+    msgArea.style.display = 'block';
+    msgArea.innerHTML = '<div class="alert alert-info"><i class="bi bi-hourglass-split me-2"></i>Generando CSV de controles de monitoreo...</div>';
+
+    // Llamar al endpoint de exportación
+    fetch('{{ url_for("exportar_controles_monitoreo") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.exito) {
+            // Mostrar mensaje de éxito con enlace de descarga
+            msgArea.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    ${data.mensaje}
+                    <br><br>
+                    <a href="${data.url_descarga}" class="btn btn-success btn-sm" download>
+                        <i class="bi bi-download me-2"></i>Descargar ${data.nombre_archivo}
+                    </a>
+                </div>
+            `;
+        } else {
+            // Mostrar mensaje de error
+            msgArea.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    ${data.mensaje}
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        msgArea.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                Error al generar la exportación. Por favor, inténtelo de nuevo.
+            </div>
+        `;
+    })
+    .finally(() => {
+        // Restaurar botón
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-clipboard-data me-2"></i>Controles Monitoreo';
+    });
+}
+
+function exportarElementosDescripcion(formato) {
+    const btnId = formato === 'html' ? 'btn-exportar-elementos-html' : 'btn-exportar-elementos-pdf';
+    const btn = document.getElementById(btnId);
+    const msgArea = document.getElementById('exportacion-mensaje');
+    const iconoOriginal = formato === 'html' ? 'bi-filetype-html' : 'bi-filetype-pdf';
+    const textoOriginal = formato === 'html' ? 'Elementos de descripción (HTML)' : 'Elementos de descripción (PDF)';
+
+    // Deshabilitar botón y mostrar spinner
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Generando...';
+
+    // Mostrar mensaje de procesamiento
+    msgArea.style.display = 'block';
+    msgArea.innerHTML = `<div class="alert alert-info"><i class="bi bi-hourglass-split me-2"></i>Generando ${formato.toUpperCase()} de elementos de descripción...</div>`;
+
+    // Llamar al endpoint de exportación
+    fetch(`/exportar/elementos-descripcion/${formato}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.exito) {
+            // Mostrar mensaje de éxito con enlace de descarga
+            msgArea.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    ${data.mensaje}
+                    <br><br>
+                    <a href="${data.url_descarga}" class="btn btn-success btn-sm" download>
+                        <i class="bi bi-download me-2"></i>Descargar ${data.nombre_archivo}
+                    </a>
+                </div>
+            `;
+        } else {
+            // Mostrar mensaje de error
+            msgArea.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    ${data.mensaje}
+                </div>
+            `;
+        }
+    })
+    .catch(error => {
+        msgArea.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                Error al generar la exportación. Por favor, inténtelo de nuevo.
+            </div>
+        `;
+    })
+    .finally(() => {
+        // Restaurar botón
+        btn.disabled = false;
+        btn.innerHTML = `<i class="bi ${iconoOriginal} me-2"></i>${textoOriginal}`;
+    });
+}
+</script>
+
+{% endblock %}

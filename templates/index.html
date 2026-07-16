@@ -1,0 +1,207 @@
+
+<!--
+    Aplicación para la protección de datos en Sistemas IA
+    Copyright (C) 2025-2026 Consejo de Transparencia y Protección de Datos de Andalucía
+
+    Licenciado bajo EUPL v1.2: https://eupl.eu/1.2/es/
+-->
+
+
+{% extends "base.html" %}
+{% block title %}Inicio - {{ nombre_aplicacion }}{% endblock %}
+{% block content %}
+<div id="contenedor-cabecera-inicio" class="d-flex justify-content-between align-items-center mb-4">
+    <img id="logo-ctpd" src="{{ url_for('static', filename='img/logo_ctpdandalucia.png') }}" alt="Logo" style="height: 80px;">
+    <div class="text-center flex-grow-1" id="cabecera">
+        <h1 id="titulo-metodologia">Protección de Datos en Sistemas de IA</h1>
+    </div>
+    <img id="logo-junta" src="{{ url_for('static', filename='img/logo_junta.png') }}" alt="Logo Junta" style="height: 80px;">
+</div>
+{% if mensaje %}
+<div id="alerta-mensaje" class="alert alert-success">{{ mensaje }}</div>
+{% endif %}
+
+<form id="form-datos-proyecto" method="POST" action="/guardar-inicio">
+    <div id="card-datos-proyecto" class="card mb-4">
+        <div id="body-datos-proyecto" class="card-body">
+            <h5 id="titulo-card-proyecto" class="card-title">Datos del Proyecto</h5>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label id="label-nombre-proyecto" class="form-label">Nombre del Proyecto</label>
+                    <input class="form-control bg-warning-subtle" name="nombre_proyecto" id="nombre_proyecto" value="{{ datos.nombre_proyecto if datos else '' }}" placeholder="[Editar aquí]" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label id="label-fecha-inicio" class="form-label">Fecha Inicio</label>
+                    <input class="form-control" type="date" name="fecha_inicio" id="fecha_inicio" value="{{ datos.fecha_inicio if datos and datos.fecha_inicio else today_date }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label id="label-dpd-responsable" class="form-label">DPD asesor</label>
+                    <input class="form-control bg-warning-subtle" name="dpd_responsable" id="dpd_responsable" value="{{ datos.dpd_responsable if datos else '' }}" placeholder="[Editar aquí]" required>
+                    <div id="nota-dpd" class="form-text">
+                        <i class="bi bi-exclamation-triangle text-warning"></i> {{ msg_dpd if msg_dpd else '' }}
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label id="label-estado-proyecto" class="form-label">Estado del Proyecto</label>
+                    <input class="form-control" id="estado_proyecto" name="estado_proyecto" value="{{ datos.estado if datos and datos.estado else 'Pendiente de configuración' }}" readonly>
+                </div>
+            </div>
+            {% if fase_actual %}
+            <!-- FASE ACTUAL - COMPACTA Y LIMPIA CON CABECERA DE TABLA -->
+            <div id="contenedor-fase-actual" class="col-12 mt-3 text-center">
+                <div id="panel-fase-actual" class="p-0 bg-light rounded-3 border d-inline-block w-100" style="max-width: 700px;">
+                    <!-- CABECERA CON FONDO OSCURO -->
+                    <div id="header-fase-actual" class="bg-dark text-white p-2 rounded-top text-center">
+                        <strong>Fase Actual:</strong>
+                    </div>
+
+                    <!-- CUERPO DEL CONTENIDO -->
+                    <div id="body-fase-actual" class="p-3 d-flex align-items-center justify-content-between">
+                        <!-- Ícono + Texto juntos -->
+                        <div id="info-fase-actual" class="d-flex align-items-center gap-2">
+                            <!-- Ícono de la fase -->
+                            <div id="icono-fase-actual" class="d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; border-radius: 50%; background-color: #0d6efd; color: white;">
+                                {% if fase_actual.es_monitoreo %}
+                                <i class="bi bi-graph-up fs-5"></i>
+                                {% else %}
+                                <i class="bi bi-arrow-right-circle fs-5"></i>
+                                {% endif %}
+                            </div>
+
+                            <!-- Texto de la fase (pegado al ícono) -->
+                            <div id="texto-fase-actual">
+                                {{ fase_actual.nombre }}
+                            </div>
+                        </div>
+
+                        <!-- Etiqueta de monitoreo a la derecha -->
+                        {% if fase_actual.es_monitoreo %}
+                        <div id="badge-monitoreo" class="badge bg-info text-dark rounded-pill px-2 py-1">
+                            <i class="bi bi-check-circle-fill me-1"></i> En monitoreo continuo
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <!-- NO HAY FASE ASIGNADA -->
+            <div id="contenedor-sin-fase" class="col-12 mt-3 text-center">
+                <div id="panel-sin-fase" class="p-0 bg-light rounded-3 border d-inline-block w-100" style="max-width: 700px;">
+                    <!-- CABECERA CON FONDO OSCURO -->
+                    <div id="header-sin-fase" class="bg-dark text-white p-2 rounded-top text-center">
+                        <strong>Fase Actual:</strong>
+                    </div>
+
+                    <!-- CUERPO DEL CONTENIDO -->
+                    <div id="body-sin-fase" class="p-3 d-flex align-items-center justify-content-center gap-2">
+                        <!-- Ícono de "sin fase" -->
+                        <div id="icono-sin-fase" class="d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; border-radius: 50%; background-color: #6c757d; color: white;">
+                            <i class="bi bi-dash-circle fs-5"></i>
+                        </div>
+
+                        <!-- Mensaje elegante y en lenguaje culto -->
+                        <div id="mensaje-sin-fase" class="text-muted">
+                            Aún no se ha asignado una fase para este proyecto.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            <div id="contenedor-navegacion-inicio" class="d-grid gap-3 d-md-flex justify-content-between mt-4 mt-4 px-3">
+                <!-- Botón Atrás -->
+                <a id="btn-navegacion-atras" href="{{ url_for('seleccionar_proyecto') }}" class="btn btn-outline-secondary rounded-pill">
+                    ⬅ Atrás
+                </a>
+                <button type="submit" id="btn-guardar-proyecto" class="btn btn-success rounded-pill">Guardar Proyecto</button>
+                {% if proyecto_completo %}
+                <a id="btn-navegacion-siguiente" href="{{ url_for('formulario_fases') }}" class="btn btn-primary rounded-pill">
+                    Siguiente ➡
+                </a>
+                {% endif %}
+            </div>
+        </div>
+</form>
+<script>
+
+</script>
+<!--
+<h5 class="mb-2 ms-3">Componentes</h5>
+<table class="table table-bordered text-center align-middle">
+    <thead class="table-dark">
+        <tr>
+            <th>COMPONENTE</th>
+            <th>ESTADO</th>
+            <th>TIEMPO ESTIMADO</th>
+            <th>NAVEGACIÓN</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for comp in componentes %}
+            <tr>
+                <td>{{ comp.nombre }}</td>
+                <td class="{% if comp.estado == 'Completo' or (comp.nombre == 'Elaboración EIPD' and comp.estado != 'Pendiente') %}text-success
+                                {% elif comp.estado.startswith('Pendiente:') or comp.estado == 'Pendiente' %}text-danger
+                                {% elif comp.estado.startswith('En progreso:') or comp.estado == 'En progreso' %}text-warning
+                                {% else %}text-muted
+                                {% endif %}">
+                    {{ comp.estado }}
+                </td>
+                <td>{{ comp.tiempo }}</td>
+                <td>
+                    {% if comp.ruta %}
+                        <a href="{{ comp.ruta }}">→ Ir a {{ comp.nombre }}</a>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<div class="card my-4">
+    <div class="card-header bg-dark text-white">Configuración de la metodología</div>
+    <div class="card-body">
+        <div class="row mb-2">
+            <div class="col-md-6">
+                <strong>Tipo de Adquisición:</strong>
+                {% if configuracion_automatica.tipo_adquisicion_texto %}
+                    {{ configuracion_automatica.tipo_adquisicion_texto }}
+                {% else %}
+                    <span class="text-muted">No disponible</span>
+                {% endif %}
+            </div>
+            <div class="col-md-6">
+                <strong>Perfil de Supervisión:</strong>
+                {% if configuracion_automatica.perfil_supervision %}
+                    {{ configuracion_automatica.perfil_supervision }}
+                {% else %}
+                    <span class="text-muted">No calculado</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="row mb-2">
+            <div class="col-md-6"><strong>Controles Aplicables:</strong> [Lista desde matriz]</div>
+            <div class="col-md-6"><strong>Riesgos Estimados:</strong>
+            {% if configuracion_automatica.riesgos_aarr %}
+                {{ configuracion_automatica.riesgos_aarr }}
+            {% else %}
+            <span class="text-muted">No calculado</span>
+            {% endif %}
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <strong>Tiempo Total Estimado:</strong>
+                {% if configuracion_automatica.tiempo_total %}
+                    {{ configuracion_automatica.tiempo_total }}
+                {% else %}
+                    <span class="text-muted">Sin calcular</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+-->
+<!-- <h6>Progreso General</h6>
+<div class="progress mb-4">
+    <div class="progress-bar bg-success" style="width: 40%;">40%</div>
+</div> -->
+{% endblock %}

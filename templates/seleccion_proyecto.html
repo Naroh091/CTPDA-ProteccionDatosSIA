@@ -1,0 +1,579 @@
+
+<!--
+    Aplicación para la protección de datos en Sistemas IA
+    Copyright (C) 2025-2026 Consejo de Transparencia y Protección de Datos de Andalucía
+
+    Licenciado bajo EUPL v1.2: https://eupl.eu/1.2/es/
+-->
+
+
+{% extends "base.html" %}
+{% block title %}Inicio - {{ nombre_aplicacion }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4" id="contenedor-cabecera">
+
+  <img id="logo-ctpd" src="{{ url_for('static', filename='img/logo_ctpdandalucia.png') }}" alt="Logo" style="height: 80px;">
+  <div class="text-center flex-grow-1" id="cabecera">
+    <h1 id="titulo-principal">Protección de Datos en Sistemas de IA</h1>
+  </div>
+
+  <div class="d-flex flex-column align-items-end" id="contenedor-logo-junta">
+    <img id="logo-junta" src="{{ url_for('static', filename='img/logo_junta.png') }}" alt="Logo Junta" style="height: 80px;">
+
+    <span id="version-software" style="font-size: 0.8em; font-weight: normal; margin-top: 5px; color: #6c757d;">
+      ({{ version_software }})
+    </span>
+  </div>
+
+</div>
+
+<!-- ============================================================================
+     BANNER DE ACTUALIZACIONES DISPONIBLES
+     ============================================================================ -->
+{% if hay_actualizaciones or actualizacion_exe_descargada %}
+<div class="card border-success mb-4" id="cardActualizacion">
+    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center" id="header-actualizacion">
+        <span id="titulo-actualizacion">
+            <i class="bi bi-arrow-up-circle-fill me-2"></i>
+            <strong>Actualizaciones disponibles</strong>
+        </span>
+        <span class="badge bg-light text-success" id="badge-resumen-actualizaciones" style="font-size: 0.85em;">
+            {{ resumen_actualizaciones }}
+        </span>
+    </div>
+    <div class="card-body" id="body-actualizacion">
+        <!-- Estado inicial: Actualizaciones disponibles para aplicar -->
+        <div id="estadoDisponible" {% if actualizacion_exe_descargada %}style="display: none;"{% endif %}>
+            <p class="mb-3" id="parrafo-info-actualizaciones">
+                <i class="bi bi-info-circle text-primary me-2"></i>
+                {% if info_actualizaciones and info_actualizaciones.exe %}
+                    Hay actualizaciones disponibles. La actualización de la aplicación requiere descarga (~35 MB).
+                {% else %}
+                    Hay actualizaciones disponibles que se aplicarán de forma inmediata.
+                {% endif %}
+            </p>
+
+            <!-- Detalle de actualizaciones -->
+            <ul class="list-unstyled mb-3 ms-4 small text-muted" id="lista-detalle-actualizaciones">
+                {% if info_actualizaciones %}
+                    {% if info_actualizaciones.bd %}
+                    <li id="actualizacion-bd"><i class="bi bi-database me-1"></i> Base de datos: {{ info_actualizaciones.bd.version_actual }} → {{ info_actualizaciones.bd.version_nueva }}</li>
+                    {% endif %}
+                    {% for pl in info_actualizaciones.plantillas %}
+                    <li id="actualizacion-plantilla-{{ pl.codigo }}"><i class="bi bi-file-earmark-text me-1"></i> Plantilla {{ pl.codigo|upper }}: {{ pl.version_actual }} → {{ pl.version_nueva }}</li>
+                    {% endfor %}
+                    {% if info_actualizaciones.exe %}
+                    <li id="actualizacion-exe"><i class="bi bi-box-seam me-1"></i> Aplicación: {{ info_actualizaciones.exe.version_actual }} → {{ info_actualizaciones.exe.version_nueva }}</li>
+                    {% endif %}
+                {% endif %}
+            </ul>
+
+            <div class="d-flex gap-2" id="contenedor-botones-actualizacion">
+                <button type="button" class="btn btn-success" id="btnAplicarActualizaciones">
+                    <i class="bi bi-download me-2"></i>Aplicar actualizaciones
+                </button>
+                <form action="{{ url_for('cancelar_actualizaciones') }}" method="POST" class="d-inline" id="form-cancelar-actualizaciones">
+                    <button type="submit" class="btn btn-outline-secondary" id="btn-omitir-actualizaciones">
+                        <i class="bi bi-x-lg me-1"></i>Omitir
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Estado: Aplicando actualizaciones -->
+        <div id="estadoAplicando" style="display: none;">
+            <p class="mb-2" id="parrafo-estado-aplicando">
+                <i class="bi bi-hourglass-split text-warning me-2"></i>
+                <strong id="textoEstadoAplicando">Aplicando actualizaciones...</strong>
+            </p>
+            <div class="progress mb-3" style="height: 25px;" id="contenedor-barra-progreso">
+                <div id="barraProgreso" class="progress-bar progress-bar-striped progress-bar-animated bg-success"
+                     role="progressbar" style="width: 0%;"
+                     aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                    <span id="textoProgreso">0%</span>
+                </div>
+            </div>
+            <p class="text-muted small mb-0" id="aviso-no-cerrar">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                Por favor, no cierre la aplicación.
+            </p>
+        </div>
+
+        <!-- Estado: Descarga de exe completada (solo visible si hay descarga pendiente de sesión anterior) -->
+        <div id="estadoCompletado" {% if not actualizacion_exe_descargada %}style="display: none;"{% endif %}>
+            <p class="mb-3" id="parrafo-descarga-completada">
+                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                <strong>Actualización de aplicación descargada y lista para instalar</strong>
+            </p>
+            <p class="text-muted mb-3" id="texto-ventana-comandos">
+                Se abrirá una ventana de comandos para completar la instalación.
+            </p>
+            <div class="d-flex gap-2" id="contenedor-botones-instalar">
+                <a href="{{ url_for('aplicar_actualizacion_exe') }}" class="btn btn-success btn-lg" id="btn-instalar-ahora">
+                    <i class="bi bi-arrow-repeat me-2"></i>Instalar ahora
+                </a>
+                <form action="{{ url_for('cancelar_actualizaciones') }}" method="POST" class="d-inline" id="form-cancelar-instalacion">
+                    <button type="submit" class="btn btn-outline-secondary" id="btn-cancelar-instalacion">
+                        <i class="bi bi-x-lg me-1"></i>Cancelar
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Estado: Error -->
+        <div id="estadoError" style="display: none;">
+            <p class="mb-3" id="parrafo-titulo-error">
+                <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>
+                <strong>Error durante la actualización</strong>
+            </p>
+            <p class="text-danger mb-3" id="mensajeError"></p>
+            <button type="button" class="btn btn-outline-danger" id="btnReintentar">
+                <i class="bi bi-arrow-clockwise me-2"></i>Reintentar
+            </button>
+        </div>
+    </div>
+</div>
+{% endif %}
+<!-- FIN BANNER DE ACTUALIZACIONES -->
+
+<div class="d-flex justify-content-center align-items-center" style="height: 60vh;" id="contenedor-principal">
+  <div class="card p-4 shadow" style="min-width: 350px;" id="card-seleccion-proyecto">
+
+    {% if proyectos %}
+    <form method="POST" action="{{ url_for('cargar_proyecto') }}" id="form-cargar-proyecto">
+      <div class="mb-3" id="grupo-selector-proyecto">
+        <label for="proyecto_id" class="form-label" id="label-proyecto">Proyecto:</label>
+        <select class="form-select" name="proyecto_id" id="proyecto_id" required>
+          {% for p in proyectos %}
+          <option value="{{ p.ID_SISTEMA }}">{{ p.D_NOMPROYEC }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="d-grid gap-2" id="grupo-botones-cargar-crear">
+        <button type="submit" class="btn btn-primary" id="btn-cargar-proyecto">↥ Cargar proyecto</button>
+        <a href="{{ url_for('nuevo_proyecto') }}" class="btn btn-outline-success" id="btn-crear-nuevo-proyecto">🗏️ Crear nuevo proyecto</a>
+      </div>
+    </form>
+    <div class="d-grid gap-2" id="grupo-boton-eliminar">
+      <button id="btn-eliminar" class="btn btn-outline-danger mt-3">🗙 Eliminar proyecto seleccionado</button>
+    </div>
+    <hr class="my-4" id="separador-exportar-importar">
+    <div class="d-grid gap-2" id="grupo-exportar">
+      <form method="POST" action="{{ url_for('exportar_proyecto.exportar_proyecto') }}" id="export-form">
+        <input type="hidden" name="proyecto_id" id="proyecto_id_a_exportar" value="{{ session['id_sistema'] }}">
+        <button type="button" class="btn btn-outline-primary w-100" style="margin-bottom:1em;" id="btn-exportar">⭳ Exportar proyecto</button>
+      </form>
+    </div>
+    <div class="d-grid gap-2" id="grupo-importar">
+      <form method="POST" action="{{ url_for('importar_proyecto') }}" enctype="multipart/form-data" id="import-form">
+        <input type="file" class="d-none" name="archivo" accept=".zip" id="file-input" required>
+        <button type="button" class="btn btn-outline-success w-100" id="btn-importar">⭱ Importar proyecto</button>
+      </form>
+    </div>
+
+    <!-- Mensaje de progreso (oculto por defecto) -->
+    <div id="progreso-importacion" class="alert alert-info mt-3 d-none" role="alert">
+      <div class="d-flex align-items-center" id="contenedor-spinner-importacion">
+        <div class="spinner-border spinner-border-sm me-2" role="status" id="spinner-importacion">
+          <span class="visually-hidden">Importando...</span>
+        </div>
+        <div id="texto-progreso-importacion">
+          <strong id="titulo-importando">Importación en progreso...</strong><br>
+          <small id="aviso-no-recargar">Por favor, no recargues la página.</small>
+        </div>
+      </div>
+    </div>
+
+    {% else %}
+    <div class="text-center" id="contenedor-sin-proyectos">
+      <p class="mb-4" id="mensaje-sin-proyectos">⚠️ No hay proyectos disponibles.</p>
+      <div class="d-grid gap-2" id="grupo-crear-sin-proyectos">
+        <a type="button" href="{{ url_for('nuevo_proyecto') }}" class="btn btn-outline-success" id="btn-crear-proyecto-inicial">🗏️ Crear nuevo proyecto</a>
+      </div>
+    </div>
+    <hr class="my-4" id="separador-importar-sin-proyectos">
+    <div class="d-grid gap-2" id="grupo-importar-sin-proyectos">
+      <form method="POST" action="{{ url_for('importar_proyecto') }}" enctype="multipart/form-data" id="import-form">
+        <input type="file" class="d-none" name="archivo" accept=".zip" id="file-input" required>
+        <button type="button" class="btn btn-outline-success w-100" id="btn-importar">📥 Importar proyecto</button>
+      </form>
+    </div>
+
+    <!-- Mensaje de progreso (oculto por defecto) -->
+    <div id="progreso-importacion" class="alert alert-info mt-3 d-none" role="alert">
+      <div class="d-flex align-items-center" id="contenedor-spinner-importacion-sin-proyectos">
+        <div class="spinner-border spinner-border-sm me-2" role="status" id="spinner-importacion-sin-proyectos">
+          <span class="visually-hidden">Importando...</span>
+        </div>
+        <div id="texto-progreso-importacion-sin-proyectos">
+          <strong id="titulo-importando-sin-proyectos">Importación en progreso...</strong><br>
+          <small id="aviso-no-recargar-sin-proyectos">Por favor, no recargues la página.</small>
+        </div>
+      </div>
+    </div>
+
+    {% endif %}
+  </div>
+
+  <!-- Modal de Confirmación de Eliminación -->
+  <div class="modal fade" id="confirmarEliminarModal" tabindex="-1" aria-labelledby="confirmarEliminarModalLabel" aria-hidden="true">
+    <div class="modal-dialog" id="dialog-confirmar-eliminar">
+      <div class="modal-content" id="content-confirmar-eliminar">
+        <div class="modal-header" id="header-confirmar-eliminar">
+          <h5 class="modal-title" id="confirmarEliminarModalLabel">Confirmar Eliminación</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="btn-cerrar-modal-eliminar"></button>
+        </div>
+        <div class="modal-body" id="body-confirmar-eliminar">
+          ¿Está seguro de que desea eliminar el proyecto seleccionado? Esta acción no se puede deshacer.
+        </div>
+        <div class="modal-footer" id="footer-confirmar-eliminar">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="btn-cancelar-eliminar">Cancelar</button>
+          <button type="button" class="btn btn-danger" id="confirmarEliminarBtn">Eliminar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmación de Exportación -->
+  <div class="modal fade" id="confirmarExportarModal" tabindex="-1" aria-labelledby="confirmarExportarModalLabel" aria-hidden="true">
+    <div class="modal-dialog" id="dialog-confirmar-exportar">
+      <div class="modal-content" id="content-confirmar-exportar">
+        <div class="modal-header" id="header-confirmar-exportar">
+          <h5 class="modal-title" id="confirmarExportarModalLabel">Confirmar Exportación</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="btn-cerrar-modal-exportar"></button>
+        </div>
+        <div class="modal-body" id="body-confirmar-exportar">
+          <p id="mensaje-exportar">¿Desea exportar el proyecto seleccionado?</p>
+        </div>
+        <div class="modal-footer" id="footer-confirmar-exportar">
+          <button type="button" class="btn btn-danger" data-bs-dismiss="modal" id="btn-cancelar-exportar">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="confirmarExportarBtn">Exportar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Confirmación de Importación -->
+  <div class="modal fade" id="confirmarImportarModal" tabindex="-1" aria-labelledby="confirmarImportarModalLabel" aria-hidden="true">
+    <div class="modal-dialog" id="dialog-confirmar-importar">
+      <div class="modal-content" id="content-confirmar-importar">
+        <div class="modal-header" id="header-confirmar-importar">
+          <h5 class="modal-title" id="confirmarImportarModalLabel">Confirmar Importación</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="btn-cerrar-modal-importar"></button>
+        </div>
+        <div class="modal-body" id="body-confirmar-importar">
+          <p id="pregunta-confirmar-importar">¿Desea importar el proyecto desde el archivo seleccionado?</p>
+          <div class="alert alert-warning mt-2" role="alert" id="alerta-importar">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>Importante:</strong> <span id="aviso-no-presionar">No presiones el botón nuevamente durante la importación.</span>
+          </div>
+        </div>
+        <div class="modal-footer" id="footer-confirmar-importar">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="btn-cancelar-importar">Cancelar</button>
+          <button type="button" class="btn btn-success" id="confirmarImportarBtn">Importar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Error para exportación sin proyecto seleccionado -->
+  <div class="modal fade" id="errorExportarModal" tabindex="-1" aria-labelledby="errorExportarModalLabel" aria-hidden="true">
+    <div class="modal-dialog" id="dialog-error-exportar">
+      <div class="modal-content" id="content-error-exportar">
+        <div class="modal-header" id="header-error-exportar">
+          <h5 class="modal-title text-danger" id="errorExportarModalLabel">Error de Exportación</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" id="btn-cerrar-modal-error-exportar"></button>
+        </div>
+        <div class="modal-body" id="body-error-exportar">
+          <span id="mensaje-error-exportar">Por favor, selecciona un proyecto para exportar.</span>
+        </div>
+        <div class="modal-footer" id="footer-error-exportar">
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal" id="btn-aceptar-error-exportar">Aceptar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============================================================================
+  // EXPORTACIÓN - Solo si existe el botón (cuando hay proyectos)
+  // ============================================================================
+  const btnExportar = document.getElementById('btn-exportar');
+  if (btnExportar) {
+    btnExportar.addEventListener('click', function () {
+      const selectElement = document.getElementById('proyecto_id');
+      const selectedProjectId = selectElement.value;
+      if (selectedProjectId) {
+        const modal = new bootstrap.Modal(document.getElementById('confirmarExportarModal'));
+        document.getElementById('mensaje-exportar').textContent = '¿Desea exportar el proyecto "' + selectElement.options[selectElement.selectedIndex].text + '"?';
+        modal.show();
+      } else {
+        const errorModal = new bootstrap.Modal(document.getElementById('errorExportarModal'));
+        errorModal.show();
+      }
+    });
+
+    document.getElementById('confirmarExportarBtn').addEventListener('click', function () {
+      const selectElement = document.getElementById('proyecto_id');
+      const selectedProjectId = selectElement.value;
+      if (selectedProjectId) {
+        document.getElementById('proyecto_id_a_exportar').value = selectedProjectId;
+        document.getElementById('export-form').submit();
+      }
+      bootstrap.Modal.getInstance(document.getElementById('confirmarExportarModal')).hide();
+    });
+  }
+
+  // ============================================================================
+  // ELIMINACIÓN - Solo si existe el botón (cuando hay proyectos)
+  // ============================================================================
+  const btnEliminar = document.getElementById('btn-eliminar');
+  if (btnEliminar) {
+    btnEliminar.addEventListener('click', function () {
+      const modal = new bootstrap.Modal(document.getElementById('confirmarEliminarModal'));
+      modal.show();
+    });
+
+    document.getElementById('confirmarEliminarBtn').addEventListener('click', function () {
+      const selectElement = document.getElementById('proyecto_id');
+      const selectedProjectId = selectElement.value;
+      if (selectedProjectId) {
+        // Construir la URL con el proyecto_id
+        const url = `/eliminar-proyecto/${selectedProjectId}`;
+        fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            (function(){ var u=new URL(window.location.href); u.searchParams.set("_t",Date.now()); window.location.href=u.toString(); })();
+          } else {
+            alert('Error al eliminar el proyecto: ' + data.message);
+          }
+        })
+        .catch(error => {
+          alert('Error al eliminar el proyecto.');
+        });
+      }
+      bootstrap.Modal.getInstance(document.getElementById('confirmarEliminarModal')).hide();
+    });
+  }
+
+  // ============================================================================
+  // IMPORTACIÓN - VERSIÓN SIMPLIFICADA
+  // ============================================================================
+
+  let importModalOpen = false;
+  let importacionEnProgreso = false;
+
+  const btnImportar = document.getElementById('btn-importar');
+  const fileInput = document.getElementById('file-input');
+
+  if (btnImportar && fileInput) {
+    btnImportar.addEventListener('click', function () {
+      if (importacionEnProgreso) {
+        return;
+      }
+      fileInput.value = '';
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', function () {
+      if (importacionEnProgreso) {
+        this.value = '';
+        return;
+      }
+
+      if (this.files.length > 0 && this.files[0].name.toLowerCase().endsWith('.zip') && !importModalOpen) {
+        const modal = new bootstrap.Modal(document.getElementById('confirmarImportarModal'));
+        modal.show();
+        importModalOpen = true;
+
+        document.getElementById('confirmarImportarModal').addEventListener('hidden.bs.modal', function () {
+          importModalOpen = false;
+        }, { once: true });
+
+      } else if (this.files.length > 0 && !this.files[0].name.toLowerCase().endsWith('.zip')) {
+        alert("Por favor, seleccione un archivo .zip válido.");
+        this.value = '';
+        importModalOpen = false;
+      }
+    });
+  }
+
+  document.getElementById('confirmarImportarBtn').addEventListener('click', function () {
+    if (importacionEnProgreso) {
+      return;
+    }
+
+    const fileInput = document.getElementById('file-input');
+    if (fileInput.files.length > 0) {
+      importacionEnProgreso = true;
+
+      // Cerrar modal
+      const modalConfirmar = bootstrap.Modal.getInstance(document.getElementById('confirmarImportarModal'));
+      modalConfirmar.hide();
+
+      // Deshabilitar botón
+      const btnImportar = document.getElementById('btn-importar');
+      btnImportar.disabled = true;
+      btnImportar.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Importando...';
+
+      // Mostrar progreso
+      document.getElementById('progreso-importacion').classList.remove('d-none');
+
+      // Enviar formulario
+      document.getElementById('import-form').submit();
+    }
+  });
+</script>
+
+<style>
+  .spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+    border-width: 0.2em;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+</style>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- ============================================================================
+     JAVASCRIPT DE ACTUALIZACIONES
+     Este bloque se ejecuta DESPUÉS de que jQuery esté cargado
+     ============================================================================ -->
+{% if hay_actualizaciones or actualizacion_exe_descargada %}
+<script>
+$(document).ready(function() {
+    const btnAplicar = $('#btnAplicarActualizaciones');
+    const btnReintentar = $('#btnReintentar');
+    const estadoDisponible = $('#estadoDisponible');
+    const estadoAplicando = $('#estadoAplicando');
+    const estadoCompletado = $('#estadoCompletado');
+    const estadoError = $('#estadoError');
+    const barraProgreso = $('#barraProgreso');
+    const textoProgreso = $('#textoProgreso');
+    const textoEstadoAplicando = $('#textoEstadoAplicando');
+    const mensajeError = $('#mensajeError');
+
+    // Verificar si hay actualización de exe
+    const hayActualizacionExe = {{ 'true' if info_actualizaciones and info_actualizaciones.exe else 'false' }};
+
+    function mostrarEstado(estado) {
+        estadoDisponible.hide();
+        estadoAplicando.hide();
+        estadoCompletado.hide();
+        estadoError.hide();
+
+        switch(estado) {
+            case 'disponible': estadoDisponible.show(); break;
+            case 'aplicando': estadoAplicando.show(); break;
+            case 'completado': estadoCompletado.show(); break;
+            case 'error': estadoError.show(); break;
+        }
+    }
+
+    function actualizarProgreso(porcentaje, texto) {
+        barraProgreso.css('width', porcentaje + '%');
+        barraProgreso.attr('aria-valuenow', porcentaje);
+        textoProgreso.text(porcentaje + '%');
+        if (texto) {
+            textoEstadoAplicando.text(texto);
+        }
+    }
+
+    function aplicarActualizaciones() {
+        mostrarEstado('aplicando');
+        actualizarProgreso(10, 'Aplicando actualizaciones de BD y plantillas...');
+
+        // Primero aplicar BD y plantillas
+        $.ajax({
+            url: '{{ url_for("aplicar_actualizaciones") }}',
+            type: 'POST',
+            timeout: 120000, // 2 minutos
+            success: function(response) {
+                if (response.requiere_descarga_exe) {
+                    // Hay exe que descargar
+                    actualizarProgreso(30, 'Descargando actualización de la aplicación...');
+                    descargarExe();
+                } else if (response.redirect) {
+                    // No hay exe, redirigir
+                    actualizarProgreso(100, '¡Actualizaciones completadas!');
+                    setTimeout(function() {
+                        window.location.href = response.redirect;
+                    }, 1000);
+                } else if (!response.success) {
+                    mensajeError.text('Error aplicando actualizaciones');
+                    mostrarEstado('error');
+                }
+            },
+            error: function(xhr, status, error) {
+                mensajeError.text('Error de conexión al aplicar actualizaciones');
+                mostrarEstado('error');
+            }
+        });
+    }
+
+    function descargarExe() {
+        // Simular progreso mientras descarga
+        let progresoSimulado = 30;
+        const intervaloProgreso = setInterval(function() {
+            if (progresoSimulado < 90) {
+                progresoSimulado += Math.random() * 3 + 0.5;
+                if (progresoSimulado > 90) progresoSimulado = 90;
+                actualizarProgreso(Math.round(progresoSimulado));
+            }
+        }, 800);
+
+        $.ajax({
+            url: '{{ url_for("descargar_actualizacion_exe") }}',
+            type: 'POST',
+            timeout: 600000, // 10 minutos
+            success: function(response) {
+                clearInterval(intervaloProgreso);
+                if (response.success) {
+                    actualizarProgreso(100, '¡Descarga completada!');
+                    setTimeout(function() {
+                        window.location.href = '{{ url_for("aplicar_actualizacion_exe") }}';
+                    }, 500);
+                } else {
+                    mensajeError.text(response.error || 'Error descargando aplicación');
+                    mostrarEstado('error');
+                }
+            },
+            error: function(xhr, status, error) {
+                clearInterval(intervaloProgreso);
+                let errorMsg = 'Error de conexión';
+                if (status === 'timeout') {
+                    errorMsg = 'La descarga tardó demasiado. Inténtelo de nuevo.';
+                } else if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMsg = xhr.responseJSON.error;
+                }
+                mensajeError.text(errorMsg);
+                mostrarEstado('error');
+            }
+        });
+    }
+
+    // Event handlers
+    btnAplicar.on('click', function() {
+        aplicarActualizaciones();
+    });
+
+    btnReintentar.on('click', function() {
+        aplicarActualizaciones();
+    });
+});
+</script>
+{% endif %}
+{% endblock %}
