@@ -1,4 +1,4 @@
-﻿altgraph==0.17.4
+altgraph==0.17.4
 blinker==1.9.0
 certifi==2025.8.3
 cffi==2.0.0
@@ -10,7 +10,7 @@ Cython==3.2.4
 et_xmlfile==2.0.0
 Flask==3.1.1
 greenlet==3.2.3
-idna==3.10
+idna==3.15
 itsdangerous==2.2.0
 Jinja2==3.1.6
 MarkupSafe==3.0.2
